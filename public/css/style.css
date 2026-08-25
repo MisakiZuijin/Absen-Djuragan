@@ -1,0 +1,200 @@
+   /* Prevent image from being copied */
+   .no-select {
+       user-select: none;
+       -webkit-user-select: none;
+       -moz-user-select: none;
+       -ms-user-select: none;
+   }
+
+   /* Floating buttons for mobile */
+   @media (max-width: 768px) {
+       .floating-btn-container {
+           position: fixed;
+           bottom: 0;
+           left: 0;
+           width: 100%;
+           background-color: white;
+           gap: 2px;
+           display: flex;
+           justify-content: space-between;
+           z-index: 50;
+       }
+
+       .floating-btn {
+           padding: 0;
+           margin: 0;
+           width: 50%;
+           height: 50px;
+           border-radius: 0;
+           box-shadow: none;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 14px;
+       }
+
+       .masuk {
+           width: 500px;
+       }
+
+       /* Mobile floating buttons for izin */
+       .floating-btn form {
+           width: 50%;
+           height: 50px;
+           margin: 0;
+           padding: 0;
+       }
+
+       .floating-btn form button {
+           width: 100%;
+           height: 100%;
+           border-radius: 0;
+           box-shadow: none;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+           font-size: 14px;
+       }
+
+       .attention-section {
+           padding-bottom: 40px;
+           box-sizing: border-box;
+           overflow-x: auto;
+           white-space: nowrap;
+       }
+   }
+
+   .dropdown-menu {
+       display: none;
+       z-index: 3;
+   }
+
+   .dropdown-menu.show {
+       display: block;
+   }
+
+
+   .nav-link {
+       font-weight: bold;
+       color: white;
+       text-decoration: none;
+   }
+
+   .nav-link:hover {
+       color: #D1D5DB;
+       /* Equivalent to text-gray-300 in Tailwind CSS */
+   }
+
+   .nav-active {
+       font-weight: bold;
+       color: #D1D5DB;
+       /* Equivalent to text-gray-300 in Tailwind CSS */
+       text-decoration: underline;
+       /* Optional: underline for active link */
+   }
+
+   .loader {
+       border-top-color: #3498db;
+       animation: spin 1s infinite linear;
+   }
+
+   @keyframes spin {
+       0% {
+           transform: rotate(0deg);
+       }
+
+       100% {
+           transform: rotate(360deg);
+       }
+   }
+
+   /* Prayer Mode Styles */
+   .prayer-mode {
+       position: relative;
+   }
+
+   .prayer-mode::before {
+       content: '';
+       position: absolute;
+       top: 0;
+       left: 0;
+       right: 0;
+       bottom: 0;
+       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+       opacity: 0.1;
+       border-radius: 8px;
+       z-index: -1;
+   }
+
+   .prayer-mode .text-2xl {
+       color: #4f46e5;
+       text-shadow: 0 0 10px rgba(79, 70, 229, 0.3);
+   }
+
+   /* Permit Modal Styles */
+   .permit-modal {
+       animation: modalFadeIn 0.3s ease-out;
+   }
+
+   @keyframes modalFadeIn {
+       from {
+           opacity: 0;
+           transform: scale(0.9) translateY(-20px);
+       }
+
+       to {
+           opacity: 1;
+           transform: scale(1) translateY(0);
+       }
+   }
+
+   /* Permit Timer Animation */
+   #permit-timer {
+       font-family: 'Courier New', monospace;
+       font-weight: bold;
+       animation: timerGlow 1.5s ease-in-out infinite alternate;
+   }
+
+   @keyframes timerGlow {
+       from {
+           text-shadow: 0 0 5px #3b82f6, 0 0 10px #3b82f6, 0 0 15px #3b82f6;
+       }
+
+       to {
+           text-shadow: 0 0 10px #3b82f6, 0 0 20px #3b82f6, 0 0 30px #3b82f6;
+       }
+   }
+
+   /* Permit Icon Animation */
+   .permit-icon {
+       animation: iconBounce 2s infinite;
+   }
+
+   @keyframes iconBounce {
+
+       0%,
+       20%,
+       50%,
+       80%,
+       100% {
+           transform: translateY(0);
+       }
+
+       40% {
+           transform: translateY(-10px);
+       }
+
+       60% {
+           transform: translateY(-5px);
+       }
+   }
+
+   /* Permit Button Hover Effect */
+   .permit-button {
+       transition: all 0.3s ease;
+   }
+
+   .permit-button:hover {
+       transform: translateY(-2px);
+       box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+   }

@@ -1,0 +1,93 @@
+.typewriter h1 {
+    overflow: hidden;
+    white-space: nowrap;
+    margin: 0 auto;
+    letter-spacing: 0.15em;
+    border-right: 4px solid white; /* Adding a border to represent the cursor */
+}
+
+.typing-animation {
+    animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite, fade-out 4.25s ease-out forwards;
+}
+
+@keyframes typing {
+    from { width: 0; }
+    to { width: 100%; }
+}
+
+@keyframes blink-caret {
+    from, to { border-color: transparent; }
+    50% { border-color: white; }
+}
+
+
+
+.floating-box {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background-color: #ff0000; /* Merah */
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    transform: translateX(100%); /* Menyembunyikan elemen di luar layar */
+    transition: transform 0.3s ease-in-out; /* Durasi dan jenis transisi */
+}
+
+.floating-box.show {
+    transform: translateX(0); /* Menampilkan elemen */
+}
+
+.floating-box.hidden {
+    transform: translateX(100%); /* Menyembunyikan elemen */
+}
+
+/* Prayer Mode Styles */
+.prayer-mode {
+    filter: blur(3px);
+    pointer-events: none;
+    transition: filter 0.3s ease-in-out;
+}
+
+.prayer-mode a[onclick*="showModalPrayer"] {
+    filter: none !important;
+    pointer-events: auto !important;
+    z-index: 1000;
+    position: relative;
+}
+
+/* Submenu Styles */
+.has-submenu {
+    position: relative;
+}
+
+.submenu {
+    display: none;
+    padding-left: 1rem;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-left: 2px solid #4f46e5;
+}
+
+.has-submenu.active .submenu {
+    display: block;
+}
+
+.submenu li {
+    margin: 0.25rem 0;
+}
+
+.submenu a {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    color: #9ca3af;
+    transition: all 0.2s;
+}
+
+.submenu a:hover,
+.submenu a.nav-link {
+    color: #ffffff;
+    background-color: rgba(79, 70, 229, 0.2);
+    border-radius: 0.375rem;
+}
