@@ -27,49 +27,20 @@ class UpdateAttendanceStatus extends Command
     /**
      * Execute the console command.
      */
-    public function handle()
+    public function handle(\App\Services\AttendanceService $attendanceService)
     {
         Log::info('Scheduler is running: Checking for missed attendances...');
-        $now = Carbon::now();
 
         try {
-            $schedulesToUpdate = DetailSchedule::query()
-                ->where('attd_status_id', 1) // HANYA targetkan yang masih 'Terjadwal'
-                ->whereDate('date', '<=', $now->toDateString()) // Targetkan hari ini dan hari-hari sebelumnya yang mungkin terlewat
-                ->whereDoesntHave('attendance', function ($query) {
-                    $query->whereNotNull('start_time');
-                })
-                ->whereHas('shift', function ($query) use ($now) {
-                    // Lakukan perbandingan waktu langsung di dalam query SQL
-                    // Kondisi: waktu sekarang > (jam masuk shift + 60 menit)
-                    $query->where(DB::raw("TIMESTAMP(detail_schedules.date, shifts.start_time)"), '<', $now->copy()->subMinutes(60));
-                })
-                ->get();
-
-            if ($schedulesToUpdate->isEmpty()) {
-                $this->info('No schedules found to update to Alpha.');
-                Log::info('No schedules to update to Alpha.');
-                return 0; // Command successful, no action needed
-            }
-
-            $updatedCount = 0;
-            foreach ($schedulesToUpdate as $schedule) {
-                // Ubah statusnya menjadi Alpha (ID 5)
-                $schedule->attd_status_id = 5;
-                $schedule->save();
-                $updatedCount++;
-            }
-
-            $message = "Successfully updated {$updatedCount} schedules to Alpha.";
+            $attendanceService->markMissedSchedulesAsAlpha();
+            $message = "Successfully checked and marked missed schedules as Alpha.";
             $this->info($message);
             Log::info($message);
-
+            return 0;
         } catch (\Exception $e) {
             $this->error('An error occurred: ' . $e->getMessage());
             Log::error('Error in UpdateAttendanceStatus command: ' . $e->getMessage());
-            return 1; // Command failed
+            return 1;
         }
-        
-        return 0; // Command successful
     }
 }

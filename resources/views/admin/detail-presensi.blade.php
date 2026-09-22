@@ -188,7 +188,7 @@
                     <div class="flex justify-end space-x-4">
                         <button type="submit"
                             class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">Tambahkan</button>
-                        <button type="button"
+                        <button type="button" id="btn-cancel-note"
                             class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">Batal</button>
                     </div>
                 </form>
@@ -813,7 +813,7 @@ function showNotification(message, type = 'success') {
 }
 
 // Handle tombol Batal pada form catatan
-$('form[action="{{ route('intern.storeNote', ['id' => $intern_data->id]) }}"] button[type="button"]').on('click', function() {
+$('#btn-cancel-note').on('click', function() {
     // Kosongkan textarea
     $('#text-input').val('');
 });
@@ -1196,6 +1196,11 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                 </button>
                             `;
                 } else if (attdStatus.id === 3) {
+                    const permitCategoryId = permitData?.permit_category_id || '';
+                    const description = (permitData?.description || '').toLowerCase();
+                    const isSakit = (permitCategoryId == 1 || permitCategoryId == 2 || description.includes('sakit'));
+                    const statusName = isSakit ? 'Izin Sakit' : (attdStatus.name || 'Izin');
+
                     cellContent = `
                                 <button class="open-modal-presence hover:underline"
                                         data-schedule-id="${schedule.id}"
@@ -1205,7 +1210,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                         data-proof-url="${permitData?.proof_url || 'Tidak ada link'}"
                                         data-permit-category-id="${permitData?.permit_category_id || ''}"
                                         data-ischange-schedule="${schedule.isChangeSchedule || ''}">
-                                    ${attdStatus.name} <i class="fa-solid fa-circle-info"></i>
+                                    ${statusName} <i class="fa-solid fa-circle-info"></i>
                                 </button>
                             `;
                 } else {
@@ -1243,7 +1248,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                 }
             }
 
-            var internId = @json($intern_id);
+            var internId = "{{ $intern_id }}";
 
             loadData(internId, pageNow, pageSize, status_id);
             updatePagination();

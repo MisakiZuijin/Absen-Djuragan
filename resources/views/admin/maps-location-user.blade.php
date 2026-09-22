@@ -16,14 +16,14 @@
 
     <script>
         const officeCoords = [
-            {{ $coordinates[0]->latitude ?? 'null' }},
-            {{ $coordinates[0]->longitude ?? 'null' }}
+            parseFloat("{{ $coordinates[0]->latitude ?? 0 }}") || null,
+            parseFloat("{{ $coordinates[0]->longitude ?? 0 }}") || null
         ];
 
-        const latStart = {{ $lat_start ?? 'null' }};
-        const longStart = {{ $long_start ?? 'null' }};
-        const latEnd = {{ $lat_end ?? 'null' }};
-        const longEnd = {{ $long_end ?? 'null' }};
+        const latStart = parseFloat("{{ $lat_start ?? '' }}") || null;
+        const longStart = parseFloat("{{ $long_start ?? '' }}") || null;
+        const latEnd = parseFloat("{{ $lat_end ?? '' }}") || null;
+        const longEnd = parseFloat("{{ $long_end ?? '' }}") || null;
 
         const officeName = "{{ $officeName }}";
 
@@ -42,11 +42,11 @@
         });
 
         const yellowIcon = new L.Icon({
-            iconUrl: '{{ asset('img/location-pin-yellow.png') }}',
+            iconUrl: "{{ asset('img/location-pin-yellow.png') }}",
             iconSize: [40, 40],
         });
         const blueIcon = new L.Icon({
-            iconUrl: '{{ asset('img/location-pin-blue.png') }}',
+            iconUrl: "{{ asset('img/location-pin-blue.png') }}",
             iconSize: [40, 40],
         });
 

@@ -6,15 +6,18 @@ use App\Helper\LogConsole;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class InternAttendanceResource extends JsonResource {
-    protected $meta;
-    public function __construct($resource, $meta = []) {
+class InternAttendanceResource extends JsonResource
+{
+    protected mixed $meta;
+    public function __construct(mixed $resource, $meta = [])
+    {
         parent::__construct($resource);
 
         $this->meta = $meta;
     }
 
-    public function toArray(Request $request): array {
+    public function toArray(Request $request): array
+    {
         // Ensure $internAttendance is an array and handle potential null or empty values
         $internAttendance = $this->resource['listAttendance'] ?? [];
 

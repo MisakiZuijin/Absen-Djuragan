@@ -1,243 +1,436 @@
+/**
+ * Unified Raise Hand Notification System for Admin & Assistant Admin
+ * Uses HTML5 Audio (/sounds/notification.wav) for reliable, clean notifications.
+ */
 class RaiseHandNotificationManager {
     constructor() {
-        this.permission = 'default';
-        this.lastCount = 0;
+        this.role = null; // 'admin' | 'assistant'
+        this.badgeElement = null;
+        this.pollUrl = null;
+        this.targetUrl = null;
+        this.currentCount = 0;
+        this.urgentCount = 0;
+        this.isFirstRun = true;
         this.pollInterval = null;
-        this.notificationSound = null;
+        this.pollIntervalMs = 4000;
+        this.isFetching = false;
+        this.titleFlashInterval = null;
+        this.originalDocumentTitle = document.title;
+        this.notificationPermission = 'default';
+        this.repeatInterval = null;
+        this.repeatIntervalMs = 12000; // Pengulangan bunyi setiap 12 detik khusus untuk permintaan kondisi URGENT
+        this.isAudioUnlocked = false;
+        this.audioNoticeElement = null;
         this.isInitialized = false;
     }
 
-    async init() {
-        if (this.isInitialized) return;
-
-        await this.requestPermission();
-
-        this.loadNotificationSound();
-
-        this.startPolling();
-        
-        this.isInitialized = true;
-        console.log('✅ Raise Hand Notification System initialized');
+    getSoundUrl() {
+        return window.__raiseHandSoundUrl || '/sounds/notification.wav';
     }
 
-    async requestPermission() {
-        if (!('Notification' in window)) {
-            console.warn('Browser tidak mendukung notifikasi desktop');
+    init() {
+        if (this.isInitialized) return;
+
+        // Detect if admin or assistant admin badge exists in the DOM
+        const adminBadge = document.getElementById('raiseHandBadge');
+        const assistantBadge = document.getElementById('assistantRaiseHandBadge');
+
+        if (adminBadge) {
+            this.role = 'admin';
+            this.badgeElement = adminBadge;
+            this.pollUrl = '/admin/raise-hand/count';
+            this.targetUrl = '/admin/raise-hand';
+        } else if (assistantBadge) {
+            this.role = 'assistant';
+            this.badgeElement = assistantBadge;
+            this.pollUrl = '/raise-hand/count';
+            this.targetUrl = '/assistant-admin/raise-hand/list';
+        } else {
+            // Neither badge found on this page
             return;
         }
 
-        if (Notification.permission === 'granted') {
-            this.permission = 'granted';
-            console.log('✅ Notifikasi sudah diizinkan');
-        } else if (Notification.permission !== 'denied') {
-            const permission = await Notification.requestPermission();
-            this.permission = permission;
-            
-            if (permission === 'granted') {
-                console.log('✅ Notifikasi berhasil diizinkan');
-                this.showWelcomeNotification();
-            } else {
-                console.log('❌ Notifikasi ditolak');
-            }
+        // Read initial count from HTML badge rendered by server
+        const initialText = this.badgeElement.textContent.trim();
+        this.currentCount = parseInt(initialText, 10) || 0;
+
+        // Setup audio & permission
+        this.initAudio();
+        this.setupNotificationPermission();
+
+        // Start polling (akan memeriksa kondisi urgent pada poll pertama)
+        this.isInitialized = true;
+        this.startPolling();
+
+        console.log(`🔔 Raise Hand Notification System initialized for [${this.role}] (Initial count: ${this.currentCount})`);
+    }
+
+    initAudio() {
+        this.isAudioUnlocked = false;
+
+        // Listener satu kali saat pengguna berinteraksi pertama kali dengan halaman
+        const unlockOnUserGesture = () => {
+            if (this.isAudioUnlocked) return;
+            this.isAudioUnlocked = true;
+            this.hideAudioNotice();
+            console.log('🔊 Audio browser telah di-unlock melalui interaksi pengguna');
+
+            // Hapus listener setelah sekali terpicu
+            ['click', 'keydown', 'touchstart'].forEach(evt => {
+                document.removeEventListener(evt, unlockOnUserGesture);
+            });
+        };
+
+        ['click', 'keydown', 'touchstart'].forEach(evt => {
+            document.addEventListener(evt, unlockOnUserGesture, { once: true, passive: true });
+        });
+    }
+
+    async setupNotificationPermission() {
+        if (!('Notification' in window)) return;
+
+        this.notificationPermission = Notification.permission;
+        if (this.notificationPermission === 'default') {
+            const requestOnGesture = async () => {
+                try {
+                    const permission = await Notification.requestPermission();
+                    this.notificationPermission = permission;
+                } catch (e) {}
+                document.removeEventListener('click', requestOnGesture);
+            };
+            document.addEventListener('click', requestOnGesture, { once: true, passive: true });
         }
     }
 
-    loadNotificationSound() {
-        this.notificationSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUKXh8LZjHAU5k9nyz3osBSl+zPLaizsKGGS56+mmVBELTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBSh+zPDajDwJFmS56+mnVBEKTKXh8bllHgU2jdTz0H0vBQ==');
-        this.notificationSound.volume = 0.5;
-    }
+    startPolling() {
+        if (this.pollInterval) clearInterval(this.pollInterval);
 
-    showWelcomeNotification() {
-        this.showNotification(
-            'Sistem Notifikasi Aktif',
-            'Anda akan menerima notifikasi saat ada permintaan raise hand baru',
-            '/favicon.ico'
-        );
-    }
-
-    startPolling(interval = 5000) {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-        }
-
-        this.checkForUpdates();
+        // First poll check after 1.5 seconds
+        setTimeout(() => {
+            this.checkForUpdates();
+        }, 1500);
 
         this.pollInterval = setInterval(() => {
             this.checkForUpdates();
-        }, interval);
-
-        console.log(`🔄 Polling started (every ${interval}ms)`);
+        }, this.pollIntervalMs);
     }
 
     async checkForUpdates() {
+        if (this.isFetching || !this.pollUrl) return;
+
+        this.isFetching = true;
         try {
-            const response = await fetch('/admin/raise-hand/count', {
+            const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+            const headers = {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            };
+            if (csrfMeta) {
+                headers['X-CSRF-TOKEN'] = csrfMeta.getAttribute('content');
+            }
+
+            const response = await fetch(this.pollUrl, {
                 method: 'GET',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
+                headers: headers,
+                credentials: 'same-origin'
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                throw new Error(`HTTP ${response.status}`);
             }
 
             const data = await response.json();
-            const currentCount = data.count || 0;
+            const newCount = typeof data.count === 'number' ? data.count : (parseInt(data.count, 10) || 0);
+            const urgentCount = typeof data.urgent_count === 'number' ? data.urgent_count : 0;
 
-            this.updateBadge(currentCount);
-
-            if (currentCount > this.lastCount) {
-                const newRequests = currentCount - this.lastCount;
-                this.handleNewRequest(newRequests, currentCount);
-            }
-
-            this.lastCount = currentCount;
-
+            this.handleCountUpdate(newCount, urgentCount);
         } catch (error) {
-            console.error('Error checking raise hand updates:', error);
+            // Silently handle ordinary polling network glitches
+        } finally {
+            this.isFetching = false;
         }
     }
 
-    async handleNewRequest(newRequests, totalCount) {
-        this.playNotificationSound();
-
-        if (this.permission === 'granted') {
-            const title = newRequests === 1 
-                ? '🤚 Permintaan Bantuan Baru!' 
-                : `🤚 ${newRequests} Permintaan Bantuan Baru!`;
-            
-            const body = totalCount === 1
-                ? 'Ada 1 peserta yang membutuhkan bantuan'
-                : `Total ${totalCount} peserta sedang menunggu bantuan`;
-
-            this.showNotification(title, body, '/favicon.ico', {
-                requireInteraction: true,
-                actions: [
-                    { action: 'view', title: '👀 Lihat' },
-                    { action: 'dismiss', title: '✖️ Tutup' }
-                ]
-            });
+    handleCountUpdate(newCount, urgentCount = 0) {
+        if (!this.badgeElement) {
+            this.badgeElement = document.getElementById(this.role === 'admin' ? 'raiseHandBadge' : 'assistantRaiseHandBadge');
+            if (!this.badgeElement) return;
         }
 
-        this.flashTabTitle();
-    }
+        const isNewArrival = !this.isFirstRun && (newCount > this.currentCount);
+        const diff = newCount - this.currentCount;
 
-    showNotification(title, body, icon, options = {}) {
-        if (this.permission !== 'granted') return;
-
-        const defaultOptions = {
-            body: body,
-            icon: icon,
-            badge: icon,
-            tag: 'raise-hand-notification',
-            requireInteraction: false,
-            silent: false,
-            ...options
-        };
-
-        const notification = new Notification(title, defaultOptions);
-
-        notification.onclick = (event) => {
-            event.preventDefault();
-            window.focus();
-
-            if (event.action === 'view' || !event.action) {
-                window.location.href = '/admin/raise-hand';
-            }
-            
-            notification.close();
-        };
-
-        if (!defaultOptions.requireInteraction) {
-            setTimeout(() => notification.close(), 10000);
+        // Update badge text and visibility (menampilkan total seluruh antrean aktif)
+        if (newCount > 0) {
+            this.badgeElement.textContent = newCount > 99 ? '99+' : newCount;
+            this.badgeElement.classList.remove('hidden');
+        } else {
+            this.badgeElement.textContent = '0';
+            this.badgeElement.classList.add('hidden');
         }
 
-        return notification;
+        // PENGULANGAN BUNYI: HANYA untuk permintaan yang masuk KONDISI URGENT.
+        // Permintaan presentasi besok / masa mendatang (urgentCount == 0) TIDAK diberi notifikasi ulang.
+        if (urgentCount > 0) {
+            this.startSoundRepeat(urgentCount);
+        } else {
+            this.stopSoundRepeat();
+        }
+
+        // Trigger alert effects on NEW requests
+        if (isNewArrival) {
+            console.log(`🔔 Permintaan raise hand baru (+${diff}, total: ${newCount}, urgent: ${urgentCount})`);
+            this.playNotificationSound();
+            this.showDesktopNotification(diff, newCount);
+            this.flashTabTitle(diff, newCount);
+            this.animateBadge();
+        }
+
+        this.currentCount = newCount;
+        this.urgentCount = urgentCount;
+        this.isFirstRun = false;
     }
 
-    // Play notification sound
     playNotificationSound() {
-        if (this.notificationSound) {
-            this.notificationSound.currentTime = 0;
-            this.notificationSound.play().catch(e => {
-                console.warn('Could not play notification sound:', e);
-            });
+        try {
+            const soundUrl = this.getSoundUrl();
+            const audio = new Audio(soundUrl);
+            audio.volume = 0.85;
+
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('🔊 Audio notifikasi WAV berhasil berbunyi:', soundUrl);
+                    this.isAudioUnlocked = true;
+                    this.hideAudioNotice();
+                }).catch(err => {
+                    console.warn('⚠️ Pemutaran audio dicegah oleh browser autoplay policy:', err.name);
+                    // Tampilkan notifikasi ramah kepada admin jika browser memblokir audio otomatis
+                    this.showAudioNotice();
+                });
+            }
+        } catch (e) {
+            console.error('❌ Gagal memutar suara notifikasi:', e);
         }
     }
 
-    flashTabTitle() {
-        const originalTitle = document.title;
-        let flashCount = 0;
-        const maxFlashes = 6;
+    showAudioNotice() {
+        if (this.audioNoticeElement || this.isAudioUnlocked) return;
 
-        const flashInterval = setInterval(() => {
-            document.title = flashCount % 2 === 0 
-                ? '🔴 PERMINTAAN BARU!' 
-                : originalTitle;
-            
+        const notice = document.createElement('div');
+        notice.id = 'raiseHandAudioNotice';
+        notice.className = 'fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2 cursor-pointer transition-all duration-300 text-sm animate-bounce';
+        notice.innerHTML = `
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M12 6v12m-3.5-3.5L5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L8.5 14.5z"/>
+            </svg>
+            <span>Ada antrean Raise Hand! Klik di sini untuk mengaktifkan suara alarm</span>
+        `;
+
+        notice.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.isAudioUnlocked = true;
+            this.hideAudioNotice();
+            this.playNotificationSound();
+        });
+
+        document.body.appendChild(notice);
+        this.audioNoticeElement = notice;
+    }
+
+    hideAudioNotice() {
+        if (this.audioNoticeElement) {
+            try {
+                this.audioNoticeElement.remove();
+            } catch (e) {}
+            this.audioNoticeElement = null;
+        }
+    }
+
+    showDesktopNotification(diff, total) {
+        if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+        const roleTitle = this.role === 'assistant' ? 'Asisten Admin' : 'Admin';
+        const title = diff === 1 ? '🤚 Permintaan Bantuan Baru!' : `🤚 ${diff} Permintaan Bantuan Baru!`;
+        const body = total === 1 ? 'Ada 1 peserta magang yang membutuhkan bantuan' : `Total ${total} peserta sedang menunggu bantuan`;
+
+        try {
+            const notif = new Notification(title, {
+                body: body,
+                icon: '/favicon.ico',
+                badge: '/favicon.ico',
+                tag: 'raise-hand-notification',
+                renotify: true,
+                requireInteraction: false
+            });
+
+            notif.onclick = (event) => {
+                event.preventDefault();
+                window.focus();
+                if (this.targetUrl) {
+                    window.location.href = this.targetUrl;
+                }
+                notif.close();
+            };
+
+            setTimeout(() => notif.close(), 8000);
+        } catch (e) {}
+    }
+
+    flashTabTitle(diff, total) {
+        if (this.titleFlashInterval) {
+            clearInterval(this.titleFlashInterval);
+        }
+
+        this.originalDocumentTitle = document.title.replace(/^🔴\s*\(\d+\)\s*/, '');
+        let flashCount = 0;
+        const maxFlashes = 8;
+        const alertTitle = `🔴 (${total}) BANTUAN BARU!`;
+
+        this.titleFlashInterval = setInterval(() => {
+            document.title = (flashCount % 2 === 0) ? alertTitle : this.originalDocumentTitle;
             flashCount++;
 
             if (flashCount >= maxFlashes) {
-                clearInterval(flashInterval);
-                document.title = originalTitle;
+                clearInterval(this.titleFlashInterval);
+                this.titleFlashInterval = null;
+                document.title = this.originalDocumentTitle;
             }
         }, 500);
     }
 
-    updateBadge(count) {
-        const badge = document.getElementById('raiseHandBadge');
-        if (badge) {
-            if (count > 0) {
-                badge.textContent = count > 99 ? '99+' : count;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
+    animateBadge() {
+        if (!this.badgeElement) return;
+        this.badgeElement.classList.add('scale-125', 'ring-4', 'ring-red-300');
+        setTimeout(() => {
+            if (this.badgeElement) {
+                this.badgeElement.classList.remove('scale-125', 'ring-4', 'ring-red-300');
             }
-        }
+        }, 600);
     }
 
-    stopPolling() {
-        if (this.pollInterval) {
-            clearInterval(this.pollInterval);
-            this.pollInterval = null;
-            console.log('⏹️ Polling stopped');
+    startSoundRepeat(urgentCount = 1) {
+        if (this.repeatInterval) return;
+
+        console.log(`🔁 Pengulangan bunyi aktif: berbunyi berkala setiap ${this.repeatIntervalMs / 1000}s khusus untuk ${urgentCount} permintaan kondisi URGENT`);
+        this.repeatInterval = setInterval(() => {
+            if (this.urgentCount > 0) {
+                console.log(`🔁 Mengulang bunyi notifikasi untuk ${this.urgentCount} permintaan kondisi URGENT`);
+                this.playNotificationSound();
+                this.animateBadge();
+            } else {
+                this.stopSoundRepeat();
+            }
+        }, this.repeatIntervalMs);
+    }
+
+    stopSoundRepeat() {
+        if (this.repeatInterval) {
+            clearInterval(this.repeatInterval);
+            this.repeatInterval = null;
+            console.log('⏹️ Pengulangan bunyi dinonaktifkan');
         }
     }
 
     destroy() {
-        this.stopPolling();
+        this.stopSoundRepeat();
+        this.hideAudioNotice();
+        if (this.pollInterval) {
+            clearInterval(this.pollInterval);
+            this.pollInterval = null;
+        }
+        if (this.titleFlashInterval) {
+            clearInterval(this.titleFlashInterval);
+            this.titleFlashInterval = null;
+            document.title = this.originalDocumentTitle;
+        }
         this.isInitialized = false;
     }
 }
 
-let raiseHandNotificationManager = null;
-
-document.addEventListener('DOMContentLoaded', function() {
-    const isAdminPage = window.location.pathname.includes('/admin');
-    
-    if (isAdminPage) {
-        raiseHandNotificationManager = new RaiseHandNotificationManager();
-        raiseHandNotificationManager.init();
-        
-        window.raiseHandNotificationManager = raiseHandNotificationManager;
+// Global Helper to Test Sound on Demand
+window.testNotificationSound = function(e) {
+    if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
     }
-});
 
-document.addEventListener('visibilitychange', function() {
-    if (raiseHandNotificationManager) {
-        if (document.hidden) {
-            console.log('Tab hidden - continuing background polling');
-        } else {
-            console.log('Tab visible - checking for updates');
-            raiseHandNotificationManager.checkForUpdates();
+    const manager = window.raiseHandNotificationManager;
+    const soundUrl = (manager && manager.getSoundUrl)
+        ? manager.getSoundUrl()
+        : (window.__raiseHandSoundUrl || '/sounds/notification.wav');
+
+    const audio = new Audio(soundUrl);
+    audio.volume = 0.85;
+
+    audio.play().then(() => {
+        console.log('🔊 Test suara notifikasi WAV berhasil berbunyi!');
+        if (manager) {
+            manager.isAudioUnlocked = true;
+            manager.hideAudioNotice();
         }
-    }
-});
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'success',
+                title: '🔊 Suara notifikasi aktif & berfungsi!',
+                showConfirmButton: false,
+                timer: 2500,
+                timerProgressBar: true
+            });
+        }
+    }).catch(err => {
+        console.error('❌ Gagal memutar suara test:', err);
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: 'warning',
+                title: '⚠️ Browser membatasi audio: silakan klik halaman sekali',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+    });
+};
 
-window.addEventListener('beforeunload', function() {
-    if (raiseHandNotificationManager) {
-        raiseHandNotificationManager.destroy();
+// Single Global Instance Protection
+(function() {
+    if (window.__raiseHandNotificationManagerInstance) {
+        return;
     }
-});
+
+    function initManager() {
+        if (window.__raiseHandNotificationManagerInstance) return;
+        const manager = new RaiseHandNotificationManager();
+        manager.init();
+        window.__raiseHandNotificationManagerInstance = manager;
+        window.raiseHandNotificationManager = manager;
+        // Backward-compatible global references
+        window.adminRaiseHandNotifier = manager;
+        window.assistantAdminNotifier = manager;
+    }
+
+    // Class alias on window for backward compatibility
+    window.RaiseHandNotifications = RaiseHandNotificationManager;
+    window.AssistantAdminNotifications = RaiseHandNotificationManager;
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initManager);
+    } else {
+        initManager();
+    }
+
+    document.addEventListener('visibilitychange', function() {
+        if (window.__raiseHandNotificationManagerInstance && !document.hidden) {
+            window.__raiseHandNotificationManagerInstance.checkForUpdates();
+        }
+    });
+
+    window.addEventListener('beforeunload', function() {
+        if (window.__raiseHandNotificationManagerInstance) {
+            window.__raiseHandNotificationManagerInstance.destroy();
+        }
+    });
+})();

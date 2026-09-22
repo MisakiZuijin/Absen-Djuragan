@@ -34,12 +34,19 @@ use App\Http\Controllers\PrayerController;
 use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\NotificationStreamController;
 use App\Http\Controllers\LateAbsenceController;
+use App\Http\Controllers\ProjectCompletedController;
+use App\Http\Controllers\AdminPermitSakitController;
+use App\Http\Controllers\AdminPermitKeperluanController;
+use App\Http\Controllers\SettingMeetController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
 */
+
+
+
 
 // Platform Check
 Route::get('/platform-check', function () {
@@ -67,11 +74,15 @@ Route::prefix('user')->middleware('role:3')->group(function () {
     Route::controller(UserController::class)->group(function () {
         Route::get('/home', 'userView')->name('user.home');
         Route::get('/home/attendance/change', 'attendanceChangeView')->name('user.attendance.change.view');
+        Route::get('/tasks', 'taskDivisionView')->name('user.tasks.index');
         Route::post('/add-permit-reason-user', 'addPermitPresence')->name('attendance.addPermitPresenceUser');
         Route::post('/whatsapp-notification/toggle', 'toggleWhatsappNotification')->name('user.whatsapp.toggle');
         Route::post('/whatsapp-notification/test', 'testWhatsappNotification')->name('user.whatsapp.test');
         Route::post('/permit/start', 'startPermit')->name('user.permit.start');
         Route::post('/permit/end', 'endPermit')->name('user.permit.end');
+        Route::post('/account-links/update', 'updateAccountLinks')->name('user.account.update');
+        Route::post('/projects/{id}/repository', 'updateProjectRepository')->name('user.projects.repository.update');
+        Route::post('/projects/{id}/revision-note', 'updateProjectRevisionNote')->name('user.projects.revision.update');
     });
 
     Route::controller(AttendanceController::class)->group(function () {
@@ -79,6 +90,7 @@ Route::prefix('user')->middleware('role:3')->group(function () {
     });
 
     Route::controller(LogActivityController::class)->group(function () {
+        Route::get('/logbook', 'logbookView')->name('user.logbook.index');
         Route::post('/home/action/log-activity', 'logActivityAction')->name('home.logActivity.action');
         Route::post('/home/action/update/log-activity', 'updateLogActivityAction')->name('home.logActivity.update.action');
         Route::get('/home/history-activity', 'historyActivityView')->name('home.historyActivity');
@@ -97,7 +109,7 @@ Route::prefix('user')->middleware('role:3')->group(function () {
         Route::post('/prayer/cancel', 'cancelPrayer')->name('prayer.cancel');
     });
 
-    Route::controller(HrMonitoringController::class)->group(function(){
+    Route::controller(HrMonitoringController::class)->group(function () {
         Route::get('/monitor/toilet', 'monitorToilet')->name('hr.monitor.toilet');
         Route::get('/monitor/prayer', 'monitorPrayer')->name('hr.monitor.prayer');
         Route::get('/monitor/toilet/data', 'getToiletData')->name('hr.monitor.toilet.data');
@@ -128,37 +140,37 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/notifications/enhanced-count', 'getEnhancedCount')->name('admin.notifications.enhanced-count');
     });
 
-   Route::controller(AttendanceController::class)->group(function () {
-    Route::get('/presence', [AdminController::class, 'presenceView'])->name('admin.presence');
-    Route::get('/presence/detail/{intern_id}', [AdminController::class, 'prensenceDetailView'])->name('admin.presence.detail');
-    Route::post('/attendance/updateTime/{id}', 'updateTime')->name('attendance.updateTime');
-    Route::post('/attendance/updateStatus/{id}', 'updateStatus')->name('attendance.updateStatus');
-    Route::post('/attendance/delete/{id}', 'delete')->name('attendance.delete');
+    Route::controller(AttendanceController::class)->group(function () {
+        Route::get('/presence', [AdminController::class, 'presenceView'])->name('admin.presence');
+        Route::get('/presence/detail/{intern_id}', [AdminController::class, 'prensenceDetailView'])->name('admin.presence.detail');
+        Route::post('/attendance/updateTime/{id}', 'updateTime')->name('attendance.updateTime');
+        Route::post('/attendance/updateStatus/{id}', 'updateStatus')->name('attendance.updateStatus');
+        Route::post('/attendance/delete/{id}', 'delete')->name('attendance.delete');
 
-// Ubah route untuk mendukung metode DELETE
-    Route::delete('/adjustable-attendance/delete/{id}', 'deleteAdjustableAttendance')->name('adjustable-attendance.delete');
-    Route::post('/adjustable-attendance/restore/{id}', 'restoreAdjustableAttendance')->name('adjustable-attendance.restore');
+        // Ubah route untuk mendukung metode DELETE
+        Route::delete('/adjustable-attendance/delete/{id}', 'deleteAdjustableAttendance')->name('adjustable-attendance.delete');
+        Route::post('/adjustable-attendance/restore/{id}', 'restoreAdjustableAttendance')->name('adjustable-attendance.restore');
 
-    Route::post('/attendance/reset/{id}', 'reset')->name('attendance.reset');
-    Route::post('/attendance/updatestatusattd/{id}', 'updatestatusattd')->name('attendance.updatestatusattd');
-    Route::post('/adjustable-attendance/update-status/{id}', 'updateStatusAdjustable')->name('attendance.updateStatusAdjustable');
-    Route::post('/add-permit-reason', 'addPermitPresenceadmin')->name('attendance.addPermitPresenceadmin');
-    Route::post('/update-permit-reason', 'updatePermitPresence')->name('attendance.updatePermitPresence');
-    Route::get('/presence/location/user', 'locationUser')->name('location.user.view');
-    Route::post('/detail-schedule/update', 'updateShift')->name('update.Shift');
-    Route::post('/intern/storeNote/{id}', 'storeNote')->name('intern.storeNote');
-    Route::get('/presence/log-activity/{internId}', 'show')->name('log-activity.show');
-    Route::get('/report/{internId}/', 'reportUserPDF')->name('download-report-user.pdf');
-    Route::get('/presence/report/', 'reportPDF')->name('download-report.pdf');
-    Route::post('/attendance/notify-alpha/bulk', 'sendBulkAlphaNotifications')->name('admin.attendance.notify.alpha.bulk');
-    Route::post('/attendance/notify-alpha/{id}', 'sendAlphaNotification')->name('admin.attendance.notify.alpha');
-    Route::post('/attendance/notify-permit/bulk', 'sendBulkPermitNotifications')->name('admin.attendance.notify.permit.bulk');
-    Route::post('/attendance/notify-permit/{id}', 'sendPermitNotification')->name('admin.attendance.notify.permit');
-    Route::post('/attendance/toilet/return', 'returnFromToilet')->name('attendance.toilet.return')->middleware('auth');
-    Route::get('/detail-auto-attendance/{id}', 'detailAutoAttendance')->name('admin.detail.autoAttd');
-    Route::get('/api/attendance/detail', 'getDetail');
-    Route::get('/attendance/detail', [AttendanceController::class, 'attendanceDetailAdmin']);
-});
+        Route::post('/attendance/reset/{id}', 'reset')->name('attendance.reset');
+        Route::post('/attendance/updatestatusattd/{id}', 'updatestatusattd')->name('attendance.updatestatusattd');
+        Route::post('/adjustable-attendance/update-status/{id}', 'updateStatusAdjustable')->name('attendance.updateStatusAdjustable');
+        Route::post('/add-permit-reason', 'addPermitPresenceadmin')->name('attendance.addPermitPresenceadmin');
+        Route::post('/update-permit-reason', 'updatePermitPresence')->name('attendance.updatePermitPresence');
+        Route::get('/presence/location/user', 'locationUser')->name('location.user.view');
+        Route::post('/detail-schedule/update', 'updateShift')->name('update.Shift');
+        Route::post('/intern/storeNote/{id}', 'storeNote')->name('intern.storeNote');
+        Route::get('/presence/log-activity/{internId}', 'show')->name('log-activity.show');
+        Route::get('/report/{internId}/', 'reportUserPDF')->name('download-report-user.pdf');
+        Route::get('/presence/report/', 'reportPDF')->name('download-report.pdf');
+        Route::post('/attendance/notify-alpha/bulk', 'sendBulkAlphaNotifications')->name('admin.attendance.notify.alpha.bulk');
+        Route::post('/attendance/notify-alpha/{id}', 'sendAlphaNotification')->name('admin.attendance.notify.alpha');
+        Route::post('/attendance/notify-permit/bulk', 'sendBulkPermitNotifications')->name('admin.attendance.notify.permit.bulk');
+        Route::post('/attendance/notify-permit/{id}', 'sendPermitNotification')->name('admin.attendance.notify.permit');
+        Route::post('/attendance/toilet/return', 'returnFromToilet')->name('attendance.toilet.return')->middleware('auth');
+        Route::get('/detail-auto-attendance/{id}', 'detailAutoAttendance')->name('admin.detail.autoAttd');
+        Route::get('/api/attendance/detail', 'getDetail');
+        Route::get('/attendance/detail', [AttendanceController::class, 'attendanceDetailAdmin']);
+    });
 
     Route::controller(ShiftController::class)->group(function () {
         Route::get('shifts/{name?}', 'index')->name('admin.shift.index');
@@ -167,6 +179,24 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('shifts/bulk-update', 'bulkUpdate')->name('admin.shifts.bulk-update');
         Route::get('/api/interns-by-school/{school}', 'getInternsBySchool')->name('admin.api.interns-by-school');
         Route::post('/api/interns-by-schools', 'getInternsBySchools')->name('admin.api.interns-by-schools');
+    });
+
+    // Izin Sakit
+    Route::controller(AdminPermitSakitController::class)->group(function () {
+        Route::get('/izin-sakit', 'index')->name('admin.permitSakit.index');
+        Route::post('/izin-sakit/{id}/approve-lunas', 'approveLunas')->name('admin.permitSakit.approveLunas');
+        Route::post('/izin-sakit/{id}/wajib-ganti-jam', 'setWajibGantiJam')->name('admin.permitSakit.setWajibGantiJam');
+        Route::post('/izin-sakit/{id}/reject-alpha', 'setWajibGantiJam')->name('admin.permitSakit.rejectAlpha');
+        Route::post('/izin-sakit/{id}/update-detail', 'updateDetail')->name('admin.permitSakit.updateDetail');
+    });
+
+    // Izin Tidak Hadir (Keperluan Biasa & Alpha)
+    Route::controller(AdminPermitKeperluanController::class)->group(function () {
+        Route::get('/izin-tidak-hadir', 'index')->name('admin.permitKeperluan.index');
+        Route::post('/izin-tidak-hadir/{id}/approve-gantijam', 'approveGantiJam')->name('admin.permitKeperluan.approveGantiJam');
+        Route::post('/izin-tidak-hadir/{id}/approve-lunas', 'approveLunas')->name('admin.permitKeperluan.approveLunas');
+        Route::post('/izin-tidak-hadir/{id}/set-alpha', 'setAlpha')->name('admin.permitKeperluan.setAlpha');
+        Route::post('/izin-tidak-hadir/{id}/update-detail', 'updateDetail')->name('admin.permitKeperluan.updateDetail');
     });
 
     Route::controller(AdminIzinKeluarController::class)->group(function () {
@@ -200,7 +230,7 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
     Route::controller(HandRaiseController::class)->group(function () {
         Route::get('/raise-hand', 'index')->name('admin.raiseHand.index');
         Route::get('/raise-hand/table-data', 'getTableData')->name('admin.raiseHand.tableData');
-        Route::delete('/raise-hand/{id}/confirm', 'confirmAction')->name('admin.raiseHand.confirm');
+        Route::match(['post', 'delete'], '/raise-hand/{id}/confirm', 'confirmAction')->name('admin.raiseHand.confirm');
         Route::get('/raise-hand/count', 'getCount')->name('admin.raiseHand.count');
         Route::get('/raise-hand/count-enhanced', 'getEnhancedCount')->name('admin.raiseHand.count-enhanced');
         Route::post('/raise-hand/{id}/quick-resolve', 'quickResolve')->name('admin.raiseHand.quick-resolve');
@@ -220,6 +250,10 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/divisi/edit/{userId}', 'divisionTeamEditView')->name('admin.division.edit.view');
         Route::delete('/delete/user/{internId}', 'destroy')->name('admin.intern.destroy');
         Route::post('/bulk-action', 'bulkAction')->name('bulk.action');
+    });
+
+    Route::controller(ProjectCompletedController::class)->group(function () {
+        Route::get('/portofolio-project', 'index')->name('admin.projects.completed');
     });
 
     Route::post('/intern/update', [InternController::class, 'adminUpdateInternAction'])->name('admin.update.intern.action');
@@ -317,9 +351,22 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::post('/add-holiday', 'storeHoliday')->name('holidays.store');
             Route::post('/update-holiday/{id}', 'updateHoliday')->name('holidays.update');
             Route::delete('/delete-holiday/{id}', 'deleteHoliday')->name('holidays.delete');
+            Route::post('/update-office-info', 'updateOfficeInfo')->name('admin.pengaturan.holiday.updateInfo');
+        });
+
+        Route::controller(SettingMeetController::class)->group(function () {
+            Route::get('/meet', 'index')->name('admin.pengaturan.meet');
+            Route::post('/meet/assign', 'assignMeetLink')->name('admin.pengaturan.meet.assign');
+            Route::post('/meet/clear/{id}', 'clearDivisionMeet')->name('admin.pengaturan.meet.clear');
         });
 
         Route::get('/office/maps', [AdminMapsController::class, 'officeMapsView'])->name('office.maps.view');
+
+        Route::get('/checkin-message', [SettingController::class, 'checkinMessageSettingsView'])
+            ->name('admin.pengaturan.checkin-message');
+
+        Route::post('/checkin-message', [SettingController::class, 'updateCheckinMessages'])
+            ->name('admin.pengaturan.checkin-message.update');
     });
 
     Route::controller(BroadcastController::class)->prefix('broadcasts')->group(function () {
@@ -371,4 +418,3 @@ Route::middleware(['auth', 'role:6'])->prefix('assistant-admin')->name('assistan
 Route::middleware(['auth'])->group(function () {
     Route::get('/raise-hand/count', [HandRaiseController::class, 'getCount']);
 });
-

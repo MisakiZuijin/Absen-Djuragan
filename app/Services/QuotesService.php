@@ -7,39 +7,40 @@ use App\Models\Quotes;
 use App\Repositories\Interface\QuotesRepository;
 use App\Http\Requests\StoreQuoteRequest;
 
-use function App\Helper\actionResult;
 use function Sentry\captureException;
 
-class QuotesService {
-    protected $quotesRepository;
-    protected $model;
+class QuotesService
+{
+    protected QuotesRepository $quotesRepository;
 
-    public function __construct(QuotesRepository $quotesRepository) {
+    public function __construct(QuotesRepository $quotesRepository)
+    {
         $this->quotesRepository = $quotesRepository;
     }
 
-    public function store(StoreQuoteRequest $storeQuoteRequest) : ActionResult {
+    public function store(StoreQuoteRequest $storeQuoteRequest): ActionResult
+    {
         try {
             $data = $storeQuoteRequest->validated();
-            
+
             $data['created_by'] = 'admin';
-            
+
             $result = $this->quotesRepository->create($data);
-            
+
             return new ActionResult(true, "Successfully added data into quotes", $result);
         } catch (\Throwable $th) {
-            captureException($th); // Error tracking
+            captureException($th);
             return new ActionResult(false, "Failed to update, something went wrong", null);
         }
     }
 
-
-    public function getAll() {
-        // Mengembalikan objek Query Builder
+    public function getAll()
+    {
         return Quotes::query();
     }
 
-    public function getByCategory($category) {
+    public function getByCategory(string $category)
+    {
         try {
             $result = $this->quotesRepository->getAll()->where('kategori', $category)->get();
             return new ActionResult(true, "success retrive data quotes by category", $result);
@@ -49,7 +50,8 @@ class QuotesService {
         }
     }
 
-    public function delete($id) {
+    public function delete(int $id)
+    {
         try {
             $result = $this->quotesRepository->delete($id);
             return new ActionResult(true, "success delete quotes", $result);

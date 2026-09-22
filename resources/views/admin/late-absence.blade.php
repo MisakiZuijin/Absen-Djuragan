@@ -335,11 +335,11 @@
                             <td class="px-4 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex space-x-2">
                                     <button
-                                        onclick="openUpdateModal({{ $late->id }}, '{{ $late->status }}', '{{ addslashes($late->notes ?? '') }}')"
+                                        onclick="openUpdateModal('{{ $late->id }}', '{{ $late->status }}', '{{ addslashes($late->notes ?? '') }}')"
                                         class="text-blue-600 hover:text-blue-900" title="Edit Status">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button onclick="deleteRecord({{ $late->id }})" class="text-red-600 hover:text-red-900"
+                                    <button onclick="deleteRecord('{{ $late->id }}')" class="text-red-600 hover:text-red-900"
                                         title="Hapus">
                                         <i class="fas fa-trash"></i>
                                     </button>

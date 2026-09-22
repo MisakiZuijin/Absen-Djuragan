@@ -24,18 +24,21 @@ use Symfony\Component\Console\Logger\ConsoleLogger;
 
 use function Sentry\captureException;
 
-class UserService {
-    protected $userRepository;
-    protected $profileRepository;
-    protected $internRepository;
+class UserService
+{
+    protected UserRepository $userRepository;
+    protected ProfileRepository $profileRepository;
+    protected InternRepository $internRepository;
 
-    public function __construct(UserRepository $userRepo, ProfileRepository $profileRepo, InternRepository $internRepo) {
+    public function __construct(UserRepository $userRepo, ProfileRepository $profileRepo, InternRepository $internRepo)
+    {
         $this->userRepository = $userRepo;
         $this->profileRepository = $profileRepo;
         $this->internRepository = $internRepo;
     }
 
-    public function getUserLoggedData() {
+    public function getUserLoggedData()
+    {
 
         $user = $this->userRepository->getAuthenticatedUser();
         if (is_null($user)) {
@@ -43,7 +46,8 @@ class UserService {
         }
         return $user;
     }
-    public function getUserById($id) {
+    public function getUserById(int $id)
+    {
         try {
             $internData = $this->userRepository->findById($id);
 
@@ -57,7 +61,8 @@ class UserService {
         }
     }
 
-    public function createUser($data): ActionResult {
+    public function createUser(array $data): ActionResult
+    {
         $userDataKeys = ['username', 'email', 'password', 'is_gps_available'];
         $schoolId = $data["school_origin_id"];
         $nim = $data['nim'];
@@ -137,84 +142,98 @@ class UserService {
         }
     }
 
-    public function login($reqData, $deviceToken): ActionResult {
-    try {
-        $credentials = ['email' => $reqData['username'], 'password' => $reqData['password']];
-        $usernameOrEmail = $credentials['email'];
-        $password = $credentials['password'];
+    public function login(array $reqData, ?string $deviceToken): ActionResult
+    {
+        try {
+            $credentials = ['email' => $reqData['username'], 'password' => $reqData['password']];
+            $usernameOrEmail = $credentials['email'];
+            $password = $credentials['password'];
 
-        if (filter_var($usernameOrEmail, FILTER_VALIDATE_EMAIL)) {
-            $user = $this->userRepository->findByEmail($usernameOrEmail);
-        } else {
-            $user = $this->userRepository->findByUsername($usernameOrEmail);
+            if (filter_var($usernameOrEmail, FILTER_VALIDATE_EMAIL)) {
+                $user = $this->userRepository->findByEmail($usernameOrEmail);
+            } else {
+                $user = $this->userRepository->findByUsername($usernameOrEmail);
+            }
+
+            // Cek apakah user ada dan password benar
+            if (!$user || !Hash::check($password, $user->password)) {
+                return new ActionResult(false, "Cek kembali username/email dan password anda", null);
+            }
+
+            // Periksa status aktif dan konfirmasi untuk semua role kecuali admin (role_id 1)
+            if ($user->role_id != 1) {
+                if (!$user->is_active) {
+                    return new ActionResult(false, "Akun Anda belum aktif. Silakan hubungi administrator.", null);
+                }
+
+                if (!$user->is_confirm) {
+                    return new ActionResult(false, "Akun Anda belum dikonfirmasi. Silakan hubungi administrator.", null);
+                }
+            }
+
+            // Validasi device khusus untuk role magang (role_id 3)
+            if ($user->role_id == 3) {
+                $agent = new Agent();
+
+                if ($user->is_reset_token) {
+                    $device_uid = bin2hex(random_bytes(8));
+                    $cookieLifetime = 10 * 365 * 24 * 60;
+                    $cookie = cookie('device_token', $device_uid, $cookieLifetime);
+                    $currentPlatform = $agent->platform() ?: 'Windows';
+                    $currentBrowser = $agent->browser() ?: 'Chrome';
+
+                    $this->userRepository->update($user->id, [
+                        'device' => $device_uid,
+                        'os' => $currentPlatform,
+                        'browser' => $currentBrowser,
+                        'is_reset_token' => false
+                    ]);
+
+                    $user->device = $device_uid;
+                    $user->os = $currentPlatform;
+                    $user->browser = $currentBrowser;
+                }
+
+                if ($deviceToken != $user->device && !$user->is_reset_token) {
+                    return new ActionResult(false, "Anda tidak bisa login di device yang berbeda");
+                }
+
+                if (!$agent->is($user->os)) {
+                    return new ActionResult(false, "Anda tidak bisa login di OS yang berbeda");
+                }
+
+                if (!$agent->is($user->browser)) {
+                    return new ActionResult(false, "Anda tidak bisa login di browser yang berbeda");
+                }
+            }
+
+            $this->userRepository->attemptLogin($user);
+
+            $profile = $this->profileRepository->findByUserId($user->id);
+
+            $result = [
+                "id" => $user->id,
+                "user_id" => $profile->user_id ?? $user->id,
+                "username" => $user->username,
+                "email" => $user->email,
+                "role_id" => $user->role_id,
+                "full_name" => $profile->full_name ?? "",
+                "address" => $profile->phone ?? "",
+                "date_of_birth" => $profile->date_of_birth ?? "",
+                "birth_place" => $profile->birth_place ?? "",
+                "cookie" => $cookie ?? null
+            ];
+
+            return new ActionResult(true, "Login berhasil", $result);
+        } catch (\Exception $e) {
+            captureException($e);
+            return new ActionResult(false, "Terjadi kesalahan saat login. Silakan coba lagi nanti.", null);
         }
-
-        // Cek apakah user ada dan password benar
-        if (!$user || !Hash::check($password, $user->password)) {
-            return new ActionResult(false, "Cek kembali username/email dan password anda", null);
-        }
-
-        // Periksa status aktif dan konfirmasi untuk semua role kecuali admin (role_id 1)
-        if ($user->role_id != 1) {
-            if (!$user->is_active) {
-                return new ActionResult(false, "Akun Anda belum aktif. Silakan hubungi administrator.", null);
-            }
-
-            if (!$user->is_confirm) {
-                return new ActionResult(false, "Akun Anda belum dikonfirmasi. Silakan hubungi administrator.", null);
-            }
-        }
-
-        // Validasi device khusus untuk role magang (role_id 3)
-        if ($user->role_id == 3) {
-            $agent = new Agent();
-
-            if ($user->is_reset_token) {
-                $device_uid = bin2hex(random_bytes(8));
-                $cookieLifetime = 10 * 365 * 24 * 60;
-                $cookie = cookie('device_token', $device_uid, $cookieLifetime);
-                $this->userRepository->update($user->id, ['device' => $device_uid, 'is_reset_token' => false]);
-            }
-
-            if ($deviceToken != $user->device && !$user->is_reset_token) {
-                return new ActionResult(false, "Anda tidak bisa login di device yang berbeda");
-            }
-
-            if (!$agent->is($user->os)) {
-                return new ActionResult(false, "Anda tidak bisa login di OS yang berbeda");
-            }
-
-            if (!$agent->is($user->browser)) {
-                return new ActionResult(false, "Anda tidak bisa login di browser yang berbeda");
-            }
-        }
-
-        $this->userRepository->attemptLogin($user);
-
-        $profile = $this->profileRepository->findByUserId($user->id);
-
-        $result = [
-            "id" => $user->id,
-            "user_id" => $profile->user_id ?? $user->id,
-            "username" => $user->username,
-            "email" => $user->email,
-            "role_id" => $user->role_id,
-            "full_name" => $profile->full_name ?? "",
-            "address" => $profile->phone ?? "",
-            "date_of_birth" => $profile->date_of_birth ?? "",
-            "birth_place" => $profile->birth_place ?? "",
-            "cookie" => $cookie ?? null
-        ];
-
-        return new ActionResult(true, "Login berhasil", $result);
-    } catch (\Exception $e) {
-        captureException($e);
-        return new ActionResult(false, "Terjadi kesalahan saat login. Silakan coba lagi nanti.", null);
     }
-}
 
 
-    public function logout(): ActionResult {
+    public function logout(): ActionResult
+    {
         try {
             $this->userRepository->deleteAuthenticatedUser();
             return new ActionResult(true, "success logout", null);
@@ -224,7 +243,8 @@ class UserService {
         }
     }
 
-    public function updateProfile(UpdateProfileRequest $updateProfileRequest, $id) {
+    public function updateProfile(UpdateProfileRequest $updateProfileRequest, int $id)
+    {
         try {
             DB::beginTransaction();
             $data = $updateProfileRequest->validated();
@@ -246,7 +266,8 @@ class UserService {
     }
 
 
-    public function getUserDataByInternId($interId): ActionResult {
+    public function getUserDataByInternId(int $interId): ActionResult
+    {
         try {
             $result = $this->internRepository->getById($interId);
 
@@ -258,7 +279,8 @@ class UserService {
         }
     }
 
-    public function forgetPassRequest(Request $request): ActionResult {
+    public function forgetPassRequest(Request $request): ActionResult
+    {
         try {
             $data = $request->validate([
                 'email' => 'required|email'
@@ -294,7 +316,8 @@ class UserService {
             return new ActionResult(false, "Failed to send password reset link", null);
         }
     }
-    public function changePassword(Request $request, $jwt) {
+    public function changePassword(Request $request, string $jwt)
+    {
         try {
             $data = $request->validate([
                 "password" => 'required|min:8',
@@ -318,7 +341,8 @@ class UserService {
         }
     }
 
-    public function createPermitPresence(StorePermitPresenceRequest $storePermitPresenceRequest): ActionResult {
+    public function createPermitPresence(StorePermitPresenceRequest $storePermitPresenceRequest): ActionResult
+    {
         try {
             $validated = $storePermitPresenceRequest->validated();
 

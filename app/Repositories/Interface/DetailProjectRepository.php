@@ -2,9 +2,10 @@
 
 namespace App\Repositories\Interface;
 
-interface DetailProjectRepository {
-    public function create($data);
-    public function update($id, $data);
+interface DetailProjectRepository
+{
+    public function create(array $data);
+    public function update(int $id, array $data);
     public function getAll();
-    public function delete($id);
+    public function delete(int $id);
 }

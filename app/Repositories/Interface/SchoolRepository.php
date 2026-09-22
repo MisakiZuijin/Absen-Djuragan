@@ -2,9 +2,10 @@
 
 namespace App\Repositories\Interface;
 
-interface SchoolRepository {
+interface SchoolRepository
+{
     public function getAllSchool();
-    public function store($data);
-    public function update($id, $data);
-    public function delete($id);
+    public function store(array $data);
+    public function update(int $id, array $data);
+    public function delete(int $id);
 }

@@ -11,8 +11,8 @@ use App\Services\ToiletPermitService;
 
 class HrMonitoringController extends Controller
 {
-    protected $prayerPermitService;
-    protected $toiletPermitService;
+    protected PrayerPermitService $prayerPermitService;
+    protected ToiletPermitService $toiletPermitService;
 
     public function __construct(PrayerPermitService $prayerPermitService, ToiletPermitService $toiletPermitService)
     {

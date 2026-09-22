@@ -9,13 +9,14 @@ use App\Http\Requests\StoreQuoteRequest;
 use App\Http\Requests\UpdateProfileRequest;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
-use App\Models\PermitSetting; // Gunakan model baru
+use App\Models\PermitSetting;
+use App\Models\CheckinMessage;
 
 class SettingController extends Controller
 {
-    protected $userService;
-    protected $internService;
-    protected $quoteService;
+    protected UserService $userService;
+    protected InternService $internService;
+    protected QuotesService $quoteService;
 
     public function __construct(UserService $userService, InternService $internService, QuotesService $quoteService)
     {
@@ -83,7 +84,7 @@ class SettingController extends Controller
         return view('admin.edit-profile', ['user' => $userData]);
     }
 
-    public function updateProfile(UpdateProfileRequest $request, $id)
+    public function updateProfile(UpdateProfileRequest $request, int $id)
     {
         $this->userService->updateProfile($request, $id);
         return redirect()->route('profile.pengaturan.view')->with('success', 'Profil berhasil diperbarui!');
@@ -101,9 +102,53 @@ class SettingController extends Controller
         return redirect()->route('admin.pengaturan.view')->with('success', 'Quote ulang tahun berhasil ditambahkan!');
     }
 
-    public function deleteQuote($id)
+    public function deleteQuote(int $id)
     {
         $this->quoteService->delete($id);
         return redirect()->route('admin.pengaturan.view')->with('success', 'Quote berhasil dihapus!');
+    }
+
+    public function checkinMessageSettingsView(): View
+    {
+        $messages = CheckinMessage::all()->keyBy('type');
+        return view('admin.pengaturan-checkin-message', compact('messages'));
+    }
+
+    public function updateCheckinMessages(Request $request)
+    {
+        $request->validate([
+            'on_time_message' => 'required|string|max:500',
+            'late_message' => 'required|string|max:500',
+            'on_time_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'late_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        foreach (['on_time', 'late'] as $type) {
+            $msg = CheckinMessage::firstOrCreate(['type' => $type]);
+            $msg->message = $request->input("{$type}_message");
+
+            if ($request->hasFile("{$type}_image")) {
+                // Hapus gambar lama jika ada
+                if ($msg->image && file_exists(public_path('checkin-images/' . $msg->image))) {
+                    unlink(public_path('checkin-images/' . $msg->image));
+                }
+                $file = $request->file("{$type}_image");
+                $filename = $type . '_' . time() . '.' . $file->getClientOriginalExtension();
+                $file->move(public_path('checkin-images'), $filename);
+                $msg->image = $filename;
+            }
+
+            // Jika admin ingin menghapus gambar
+            if ($request->has("remove_{$type}_image")) {
+                if ($msg->image && file_exists(public_path('checkin-images/' . $msg->image))) {
+                    unlink(public_path('checkin-images/' . $msg->image));
+                }
+                $msg->image = null;
+            }
+
+            $msg->save();
+        }
+
+        return redirect()->back()->with('success', 'Pengaturan popup check-in berhasil diperbarui!');
     }
 }

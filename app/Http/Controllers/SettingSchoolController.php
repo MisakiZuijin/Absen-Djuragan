@@ -13,8 +13,8 @@ use App\Models\EducationalLevel;
 
 class SettingSchoolController extends Controller
 {
-    protected $userService;
-    protected $schoolService;
+    protected UserService $userService;
+    protected SchoolService $schoolService;
 
     public function __construct(UserService $userService, SchoolService $schoolService)
     {
@@ -44,14 +44,14 @@ class SettingSchoolController extends Controller
         return redirect()->back()->with('success', 'Data Sekolah berhasil ditambahkan!');
     }
 
-    public function updateSchool(UpdateSchoolRequest $updateSchoolRequest, $id)
+    public function updateSchool(UpdateSchoolRequest $updateSchoolRequest, int $id)
     {
         $this->schoolService->update($updateSchoolRequest, $id);
 
         return redirect()->back()->with('success', 'Data Sekolah berhasil diperbarui!');
     }
 
-    public function deleteSchool($id)
+    public function deleteSchool(int $id)
     {
         $this->schoolService->delete($id);
 

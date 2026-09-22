@@ -9,7 +9,7 @@ use Illuminate\Support\Collection;
 
 class WhatsappService
 {
-    protected $apiUrl;
+    protected ?string $apiUrl = null;
 
     public function __construct()
     {
@@ -37,10 +37,10 @@ class WhatsappService
         }
         // Pastikan nomor yang sudah benar (diawali 62) tidak diubah
         elseif (substr($sanitizedNumber, 0, 2) !== '62') {
-             // Jika format lain (misal langsung 8xx), tambahkan 62 di depan jika perlu
-             // Asumsi nomor Indonesia
+            // Jika format lain (misal langsung 8xx), tambahkan 62 di depan jika perlu
+            // Asumsi nomor Indonesia
             if (strlen($sanitizedNumber) > 9) { // Cek panjang minimal nomor seluler
-                 $sanitizedNumber = '62' . $sanitizedNumber;
+                $sanitizedNumber = '62' . $sanitizedNumber;
             }
         }
         // --- AKHIR DARI PENAMBAHAN LOGIKA ---
@@ -97,13 +97,13 @@ class WhatsappService
                 }
             }
         }
-        
+
         // 2. Kirim pesan ke setiap nomor yang valid
         if ($validPhoneNumbers->isEmpty()) {
             Log::warning("Tidak ada nomor wali/guru yang bisa dinotifikasi untuk Intern ID: {$intern->id}");
             return;
         }
-        
+
         foreach ($validPhoneNumbers as $phoneNumber) {
             $this->sendMessage($phoneNumber, $message);
         }
@@ -112,10 +112,10 @@ class WhatsappService
     public function sendPermitNotification(Intern $intern, string $studentName, string $permitCategory, string $reason): void
     {
         $message = "*Notifikasi Pengajuan Izin*\n" .
-                   "Siswa a/n *{$studentName}* telah mengajukan izin dengan rincian:\n" .
-                   "Kategori: *{$permitCategory}*\n" .
-                   "Alasan: {$reason}";
-        
+            "Siswa a/n *{$studentName}* telah mengajukan izin dengan rincian:\n" .
+            "Kategori: *{$permitCategory}*\n" .
+            "Alasan: {$reason}";
+
         $this->sendNotificationToAllTargets($intern, $message);
     }
 }

@@ -13,35 +13,40 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Data yang sudah ada diubah menjadi firstOrCreate
-        Role::firstOrCreate(
-            ['name' => 'Admin'],
-            ['description' => 'Memiliki akses penuh ke semua fitur dan pengaturan sistem.']
-        );
+        // Bersihkan role Contributor dan Alumni jika masih ada di database
+        Role::whereIn('name', ['Contributor', 'Alumni'])->delete();
 
-        Role::firstOrCreate(
-            ['name' => 'Contributor'],
-            ['description' => 'Dapat menambahkan dan mengedit konten tetapi memiliki akses terbatas ke pengaturan.']
-        );
+        $roles = [
+            [
+                'id' => 1,
+                'name' => 'Admin',
+                'description' => 'Memiliki akses penuh ke semua fitur dan pengaturan sistem.',
+            ],
+            [
+                'id' => 3,
+                'name' => 'Magang',
+                'description' => 'Intern dengan akses sementara ke fitur sistem tertentu.',
+            ],
+            [
+                'id' => 5,
+                'name' => 'Outsider',
+                'description' => 'User dari luar organisasi, seperti pembimbing kampus, dengan akses view-only ke data pemagang tertentu.',
+            ],
+            [
+                'id' => 6,
+                'name' => 'Asisten Admin',
+                'description' => 'Mengapprove log activity intern',
+            ],
+        ];
 
-        Role::firstOrCreate(
-            ['name' => 'Magang'],
-            ['description' => 'Intern dengan akses sementara ke fitur sistem tertentu.']
-        );
-
-        Role::firstOrCreate(
-            ['name' => 'Alumni'],
-            ['description' => 'Anggota yang sudah tidak aktif dengan akses hanya baca ke data historis mereka.']
-        );
-
-        Role::firstOrCreate(
-            ['name' => 'Outsider'],
-            ['description' => 'User dari luar organisasi, seperti pembimbing kampus, dengan akses view-only ke data pemagang tertentu.']
-        );
-
-        Role::firstOrCreate(
-            ['name' => 'Asisten Admin'],
-            ['description' => 'Mengapprove log activity intern']
-        );
+        foreach ($roles as $role) {
+            Role::updateOrCreate(
+                ['id' => $role['id']],
+                [
+                    'name' => $role['name'],
+                    'description' => $role['description'],
+                ]
+            );
+        }
     }
 }

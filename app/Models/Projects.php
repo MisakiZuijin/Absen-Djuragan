@@ -16,6 +16,7 @@ class Projects extends Model
         "name_project_id",
         "team",
         "description",
+        "repository_url",
         "status"
     ];
 

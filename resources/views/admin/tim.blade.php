@@ -136,7 +136,7 @@
                                     <div class="flex justify-end space-x-1 mt-auto mb-1 mr-1">
                                         <a href="{{ route('admin.division.edit.view', ['userId' => $team->user->id]) }}"
                                             class="text-xs text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">Sunting</a>
-                                        <a onclick="openDeleteModal(event, {{ $team->id }})" href="#"
+                                        <a href="#" data-id="{{ $team->id }}" onclick="openDeleteModal(event, this.dataset.id)"
                                             class="text-xs text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Hapus</a>
                                     </div>
                                 </div>
@@ -197,7 +197,7 @@
                     const deleteForm = document.getElementById('deleteForm');
 
                     // Set action URL untuk form dengan ID yang dipilih
-                    deleteForm.action = `{{ route('admin.intern.destroy', ':id') }}`.replace(':id', internId);
+                    deleteForm.action = "{{ route('admin.intern.destroy', ':id') }}".replace(':id', internId);
 
                     // Set nilai hidden input dengan ID tim
                     const deleteTeamId = document.getElementById('deleteTeamId');
@@ -210,15 +210,8 @@
 
                 function closeDeleteModal() {
                     const modal = document.getElementById('deleteModal');
-                    modal.classList.remove('flex');
+                    modal.classList.remove('flex', 'block');
                     modal.classList.add('hidden'); // Sembunyikan modal
-                }
-
-
-                function closeDeleteModal() {
-                    const modal = document.getElementById('deleteModal');
-                    modal.classList.add('hidden');
-                    modal.classList.remove('block'); // Ensure modal is hidden
                 }
 
                 // Close dropdowns and modal when clicking outside

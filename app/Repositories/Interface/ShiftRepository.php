@@ -2,12 +2,13 @@
 
 namespace App\Repositories\Interface;
 
-interface ShiftRepository {
-    public function create($data);
-    public function update(array $data, $id);
-    public function getById($id);
+interface ShiftRepository
+{
+    public function create(array $data);
+    public function update(array $data, int $id);
+    public function getById(int $id);
     public function getAll();
-    public function getByTimeRange($time);
-    public function delete($id);
-    public function getWhere(string $column, $value);
+    public function getByTimeRange(string $time);
+    public function delete(int $id);
+    public function getWhere(string $column, mixed $value);
 }

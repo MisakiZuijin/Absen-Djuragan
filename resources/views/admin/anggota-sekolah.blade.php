@@ -93,7 +93,11 @@
                                     {{ $data->schedules->pluck('type')->implode(', ') ?? 'Not Available' }}</td>
                                 <td class="py-4 px-6">
                                     <button id="openModalButton"
-                                        onclick="openModal({{ $data->id }}, '{{ $data->user->profile->full_name }}', '{{ $data->division->name ?? 'dont have division' }}', '{{ $data->schedules->pluck('office.name')->implode(', ') }}')"
+                                        data-id="{{ $data->id }}"
+                                        data-name="{{ $data->user->profile->full_name }}"
+                                        data-division="{{ $data->division->name ?? 'dont have division' }}"
+                                        data-office="{{ $data->schedules->pluck('office.name')->implode(', ') }}"
+                                        onclick="openModal(this.dataset.id, this.dataset.name, this.dataset.division, this.dataset.office)"
                                         class="px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         Buat
                                     </button>

@@ -6,22 +6,27 @@ use App\Models\Profile;
 use App\Repositories\Interface\ProfileRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-class ProfileRepositoryIMPL implements ProfileRepository {
-    protected $model;
+class ProfileRepositoryIMPL implements ProfileRepository
+{
+    protected Profile $model;
 
-    public function __construct(Profile $profile) {
+    public function __construct(Profile $profile)
+    {
         $this->model = $profile;
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         return $this->model->all();
     }
 
-    public function store($data) {
+    public function store(array $data)
+    {
         return $this->model->create($data);
     }
 
-    public function update(int $id, array $data) {
+    public function update(int $id, array $data)
+    {
         $entity = $this->model->find($id);
 
         if (!$entity) {
@@ -35,20 +40,22 @@ class ProfileRepositoryIMPL implements ProfileRepository {
         return $entity;
     }
 
-
-    public function findById($id) {
+    public function findById(int $id)
+    {
         return $this->model->find($id);
     }
 
-    public function findByUserId($id) {
+    public function findByUserId(int $id)
+    {
         return $this->model->where("user_id", $id)->first();
     }
 
-    public function deleteById($id) {
+    public function deleteById(int $id)
+    {
         return $this->model->where("id", $id)->delete();
     }
 
-    public function updateProfile($id, $data)
+    public function updateProfile(int $id, array $data)
     {
         $profile = $this->model->find($id);
         if ($profile) {

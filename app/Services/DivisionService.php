@@ -11,20 +11,21 @@ use Illuminate\Http\Request;
 use App\Models\Projects;
 use App\Models\DetailProjects;
 use Exception;
-
-use function App\Helper\actionResult;
 use function Sentry\captureException;
 
-class DivisionService {
-    protected $divisionRepository;
-    protected $internRepository;
+class DivisionService
+{
+    protected DivisionRepository $divisionRepository;
+    protected InternRepository $internRepository;
 
-    public function __construct(DivisionRepository $divisionRepository, InternRepository $internRepository) {
+    public function __construct(DivisionRepository $divisionRepository, InternRepository $internRepository)
+    {
         $this->divisionRepository = $divisionRepository;
         $this->internRepository = $internRepository;
     }
 
-    public function getAll(): ActionResult {
+    public function getAll(): ActionResult
+    {
         try {
             $datas =  $this->divisionRepository->getAll();
             foreach ($datas as $data) {
@@ -37,7 +38,8 @@ class DivisionService {
         }
     }
 
-    public function getAllDivision(): ActionResult {
+    public function getAllDivision(): ActionResult
+    {
         try {
             $datas = $this->divisionRepository->getAll();
             return new ActionResult(true, "success retrieve data", $datas);
@@ -47,7 +49,8 @@ class DivisionService {
         }
     }
 
-    public function getAllWithNoDivision(): ActionResult {
+    public function getAllWithNoDivision(): ActionResult
+    {
         try {
             $datas = $this->internRepository->getWithoutDivision();
             return new ActionResult(true, "success retrieve data", $datas);
@@ -57,7 +60,8 @@ class DivisionService {
         }
     }
 
-    public function getAllTeamInDivision($id): ActionResult {
+    public function getAllTeamInDivision(int $id): ActionResult
+    {
         try {
             if ($id == 0) {
                 $data = $this->internRepository->getAll();
@@ -72,7 +76,8 @@ class DivisionService {
     }
 
 
-    public function create(StoreDivisionRequest $storeDivisionRequest): ActionResult {
+    public function create(StoreDivisionRequest $storeDivisionRequest): ActionResult
+    {
         try {
             $data = $storeDivisionRequest->validated();
 
@@ -94,7 +99,8 @@ class DivisionService {
         }
     }
 
-    public function update(UpdateDivisionRequest $updateDivisionRequest, $id) {
+    public function update(UpdateDivisionRequest $updateDivisionRequest, int $id)
+    {
         try {
             $data = $updateDivisionRequest->validated();
 
@@ -117,7 +123,8 @@ class DivisionService {
         }
     }
 
-    public function delete($id) {
+    public function delete(int $id)
+    {
         try {
             $result = $this->divisionRepository->delete($id);
             return new ActionResult(true, "success delete quotes", $result);
@@ -127,8 +134,9 @@ class DivisionService {
         }
     }
 
-    
-    public function updateProject(Request $request): ActionResult {
+
+    public function updateProject(Request $request): ActionResult
+    {
         try {
             // Validasi input yang masuk
             $validated = $request->validate([
@@ -137,18 +145,18 @@ class DivisionService {
                 'team.*' => 'integer|exists:interns,id',
                 'projectId' => 'required|exists:projects,id',
             ]);
-    
+
             // Ambil data yang sudah divalidasi
             $action = $validated['action'];
             $userIds = $validated['team'];
             $projectId = $validated['projectId'];
-    
+
             // Cek apakah project ada
             $project = Projects::find($projectId);
             if (!$project) {
                 return new ActionResult(false, "Project not found", null);
             }
-    
+
             if ($action === 'Tambah') {
                 // Tambah anggota ke dalam project
                 foreach ($userIds as $userId) {
@@ -167,15 +175,13 @@ class DivisionService {
             } else {
                 return new ActionResult(false, "Invalid action selected", null);
             }
-    
+
             // Jika semuanya berhasil
             return new ActionResult(true, $message, null);
-    
         } catch (\Throwable $th) {
             // Lakukan error tracking dan kembalikan error response
             captureException($th); // Error tracking
             return new ActionResult(false, "An error occurred. Please try again.", null);
         }
     }
-    
 }

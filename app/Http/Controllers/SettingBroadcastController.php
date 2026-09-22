@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\File;
 
 class SettingBroadcastController extends Controller
 {
-    protected $userService;
+    protected UserService $userService;
 
     public function __construct(UserService $userService)
     {
@@ -47,7 +47,7 @@ class SettingBroadcastController extends Controller
             'users' => 'required_if:broadcast_type,specific|array',
             'users.*' => 'exists:users,id',
         ]);
-        
+
         $imageName = null;
         if ($request->hasFile('image')) {
             $image = $request->file('image');
@@ -83,7 +83,7 @@ class SettingBroadcastController extends Controller
             'users' => 'required_if:broadcast_type,specific|array',
             'users.*' => 'exists:users,id',
         ]);
-        
+
         $imageName = $broadcast->image;
         if ($request->hasFile('image')) {
             // Hapus gambar lama jika ada dan file-nya benar-benar ada
@@ -101,7 +101,7 @@ class SettingBroadcastController extends Controller
             'image' => $imageName,
             'broadcast_type' => $validatedData['broadcast_type'],
         ]);
-        
+
         // Logika update relasi yang bersih menggunakan sync() dan detach()
         if ($validatedData['broadcast_type'] === 'division') {
             $broadcast->divisions()->sync($request->input('divisions', []));
@@ -123,11 +123,11 @@ class SettingBroadcastController extends Controller
         if ($broadcast->image && File::exists(public_path('broadcast-image/' . $broadcast->image))) {
             File::delete(public_path('broadcast-image/' . $broadcast->image));
         }
-        
+
         // Hapus semua relasi di pivot table
         $broadcast->divisions()->detach();
         $broadcast->users()->detach();
-        
+
         // Hapus record broadcast
         $broadcast->delete();
 

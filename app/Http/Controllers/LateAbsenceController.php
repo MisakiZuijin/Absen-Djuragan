@@ -59,7 +59,6 @@ class LateAbsenceController extends Controller
             $offices = Office::all();
 
             return view('admin.late-absence', compact('lateAbsences', 'shifts', 'offices'));
-
         } catch (\Exception $e) {
             Log::error('Error in LateAbsenceController@index: ' . $e->getMessage());
 
@@ -168,7 +167,6 @@ class LateAbsenceController extends Controller
                 'late_attendances' => $lateAttendances,
                 'total_found' => count($lateAttendances)
             ]);
-
         } catch (\Exception $e) {
             Log::error('Error in create method: ' . $e->getMessage());
             return response()->json(['error' => 'Terjadi kesalahan saat mencari data'], 500);
@@ -215,7 +213,6 @@ class LateAbsenceController extends Controller
             DB::commit();
 
             return redirect()->back()->with('status', "Berhasil membuat {$created} record keterlambatan untuk tanggal {$date}");
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error creating late absence records: ' . $e->getMessage());
@@ -223,26 +220,25 @@ class LateAbsenceController extends Controller
         }
     }
 
-    private function getInternShiftForDate($internId, $date)
+    private function getInternShiftForDate(int $internId, string $date)
     {
         try {
             // Cari detail schedule untuk intern pada tanggal tertentu
-            $detailSchedule = DetailSchedule::whereHas('schedule', function($query) use ($internId) {
-                    $query->where('intern_id', $internId);
-                })
+            $detailSchedule = DetailSchedule::whereHas('schedule', function ($query) use ($internId) {
+                $query->where('intern_id', $internId);
+            })
                 ->whereDate('date', $date)
                 ->with('shift')
                 ->first();
 
             return $detailSchedule ? $detailSchedule->shift : null;
-
         } catch (\Exception $e) {
             Log::error('Error getting intern shift: ' . $e->getMessage());
             return null;
         }
     }
 
-    private function createLateRecord($attendance, $date)
+    private function createLateRecord(Attendance $attendance, string $date)
     {
         try {
             // Dapatkan shift yang seharusnya untuk intern pada tanggal tersebut
@@ -285,7 +281,6 @@ class LateAbsenceController extends Controller
             }
 
             return false;
-
         } catch (\Exception $e) {
             Log::error('Error creating late record: ' . $e->getMessage());
             return false;
@@ -366,7 +361,6 @@ class LateAbsenceController extends Controller
             DB::commit();
 
             return response()->json($results);
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error scanning late absences: ' . $e->getMessage());
@@ -374,7 +368,7 @@ class LateAbsenceController extends Controller
         }
     }
 
-    public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, int $id)
     {
         $request->validate([
             'status' => 'required|in:telat,tepat_waktu,lewat',
@@ -424,7 +418,6 @@ class LateAbsenceController extends Controller
             DB::commit();
 
             return redirect()->back()->with('status', 'Status keterlambatan berhasil diperbarui');
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error updating late absence status: ' . $e->getMessage());
@@ -471,7 +464,6 @@ class LateAbsenceController extends Controller
             ]);
 
             return true;
-
         } catch (\Exception $e) {
             Log::error('Error adjusting start time to shift: ' . $e->getMessage());
             throw $e;
@@ -481,7 +473,7 @@ class LateAbsenceController extends Controller
      * Hitung adjusted_end_time berdasarkan keterlambatan
      * TIDAK otomatis mengisi end_time di attendance
      */
-        private function calculateAdjustedEndTime(LateAbsence $lateAbsence)
+    private function calculateAdjustedEndTime(LateAbsence $lateAbsence)
     {
         try {
             $attendance = $lateAbsence->attendance;
@@ -511,7 +503,6 @@ class LateAbsenceController extends Controller
             ]);
 
             return true;
-
         } catch (\Exception $e) {
             Log::error('Error calculating adjusted end time: ' . $e->getMessage());
             throw $e;
@@ -540,7 +531,6 @@ class LateAbsenceController extends Controller
             ]);
 
             return true;
-
         } catch (\Exception $e) {
             Log::error('Error restoring original start time: ' . $e->getMessage());
             return false;
@@ -569,7 +559,6 @@ class LateAbsenceController extends Controller
             ]);
 
             return true;
-
         } catch (\Exception $e) {
             Log::error('Error clearing adjusted end time: ' . $e->getMessage());
             return false;
@@ -643,7 +632,6 @@ class LateAbsenceController extends Controller
             }
 
             return redirect()->back()->with('status', $message);
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error bulk updating late absence: ' . $e->getMessage(), [
@@ -657,7 +645,7 @@ class LateAbsenceController extends Controller
     /**
      * Method untuk handle checkout user
      */
-    public function processCheckout(Request $request, $attendanceId)
+    public function processCheckout(Request $request, Attendance $attendanceId)
     {
         try {
             $attendance = Attendance::with(['shift', 'lateAbsences'])->findOrFail($attendanceId);
@@ -711,7 +699,6 @@ class LateAbsenceController extends Controller
                 'checkout_time' => $attendance->end_time,
                 'total_work_hours' => round($totalWorkMinutes / 60, 2)
             ]);
-
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error processing checkout: ' . $e->getMessage());
@@ -723,7 +710,7 @@ class LateAbsenceController extends Controller
         }
     }
 
-    public function destroy($id)
+    public function destroy(int $id)
     {
         try {
             $lateAbsence = LateAbsence::findOrFail($id);
@@ -744,7 +731,6 @@ class LateAbsenceController extends Controller
             $lateAbsence->delete();
 
             return response()->json(['success' => true, 'message' => 'Record berhasil dihapus']);
-
         } catch (\Exception $e) {
             Log::error('Error deleting late absence: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Gagal menghapus record'], 500);
@@ -824,7 +810,7 @@ class LateAbsenceController extends Controller
         }
     }
 
-    public function getDetails($id)
+    public function getDetails(int $id)
     {
         try {
             $lateAbsence = LateAbsence::with(['intern.user.profile', 'shift', 'attendance'])
@@ -899,7 +885,6 @@ class LateAbsenceController extends Controller
 
             $fileName = 'laporan-keterlambatan-' . now()->format('d-m-Y') . '.pdf';
             return $pdf->download($fileName);
-
         } catch (\Exception $e) {
             Log::error('Error exporting PDF data: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal mengekspor data PDF');

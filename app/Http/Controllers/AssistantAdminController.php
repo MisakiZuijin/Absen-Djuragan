@@ -16,8 +16,8 @@ use App\Services\AssistantAdminService;
 
 class AssistantAdminController extends Controller
 {
-    protected $userService;
-    protected $assistantAdminService;
+    protected UserService $userService;
+    protected AssistantAdminService $assistantAdminService;
 
     public function __construct(UserService $userService, AssistantAdminService $assistantAdminService)
     {
@@ -62,7 +62,6 @@ class AssistantAdminController extends Controller
             return redirect()
                 ->route('admin.assistant-admins.index')
                 ->with('success', 'Assistant admin berhasil dibuat.');
-
         } catch (\Exception $e) {
             return back()
                 ->withInput()
@@ -90,7 +89,7 @@ class AssistantAdminController extends Controller
         $this->assistantAdminService->updateAssistantAdmin($assistant_admin, $validated);
 
         return redirect()->route('admin.assistant-admins.index')
-                         ->with('success', 'Assistant admin updated successfully.');
+            ->with('success', 'Assistant admin updated successfully.');
     }
 
     public function destroy(User $assistant_admin)
@@ -98,14 +97,14 @@ class AssistantAdminController extends Controller
         $assistant_admin->delete();
 
         return redirect()->route('admin.assistant-admins.index')
-                        ->with('success', 'Assistant admin deleted successfully.');
+            ->with('success', 'Assistant admin deleted successfully.');
     }
 
     // =============================================
     // ASSISTANT ADMIN PANEL METHODS (ROLE 6)
     // =============================================
 
-      public function dashboard()
+    public function dashboard()
     {
         // 1. Ambil data yang sudah ada dari service Anda
         $dashboardData = $this->assistantAdminService->getDashboardData();
@@ -143,13 +142,13 @@ class AssistantAdminController extends Controller
         ]);
     }
 
-    public function confirmHandRaise(Request $request, $id)
+    public function confirmHandRaise(Request $request, int $id)
     {
         $this->assistantAdminService->confirmHandRaise($id);
         return back()->with('success', 'Raise hand siswa berhasil dikonfirmasi.');
     }
 
-    public function confirmRaiseHandForm($id)
+    public function confirmRaiseHandForm(int $id)
     {
         $handRaise = HandRaise::with([
             'user.profile',
@@ -162,18 +161,17 @@ class AssistantAdminController extends Controller
         ]);
     }
 
-    public function confirmRaiseHandAction(Request $request, $id)
+    public function confirmRaiseHandAction(Request $request, int $id)
     {
         try {
             $handRaise = HandRaise::findOrFail($id);
             $handRaise->delete();
 
             return redirect()->route('assistant.raisehand.list')
-                             ->with('success', 'Permintaan Raise Hand telah berhasil dikonfirmasi.');
-
+                ->with('success', 'Permintaan Raise Hand telah berhasil dikonfirmasi.');
         } catch (\Exception $e) {
             return redirect()->back()
-                             ->with('error', 'Gagal mengkonfirmasi. Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Gagal mengkonfirmasi. Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -206,7 +204,7 @@ class AssistantAdminController extends Controller
             $redirectDate = $request->input('date', now()->toDateString());
 
             return redirect()->route('assistant.logactivity', ['date' => $redirectDate])
-                             ->with('success', 'Log aktivitas berhasil disetujui.');
+                ->with('success', 'Log aktivitas berhasil disetujui.');
         }
         return back()->with('error', 'Status "Accepted" tidak ditemukan di database.');
     }
@@ -218,12 +216,12 @@ class AssistantAdminController extends Controller
         $rejectedStatus = Status::where('name', 'Rejected')->first();
         if ($rejectedStatus) {
             $log->update(['status_id' => $rejectedStatus->id]);
-            
+
             // Ambil tanggal dari request untuk redirect yang benar
             $redirectDate = $request->input('date', now()->toDateString());
 
             return redirect()->route('assistant.logactivity', ['date' => $redirectDate])
-                             ->with('success', 'Log aktivitas berhasil ditolak.');
+                ->with('success', 'Log aktivitas berhasil ditolak.');
         }
         return back()->with('error', 'Status "Rejected" tidak ditemukan di database.');
     }
@@ -244,7 +242,7 @@ class AssistantAdminController extends Controller
     }
 
     // === METHOD updateLogActivity DIPERBAIKI TOTAL ===
-    public function updateLogActivity(Request $request, $id)
+    public function updateLogActivity(Request $request, int $id)
     {
         // Validasi diperluas untuk menangani semua aksi dari halaman konfirmasi
         $request->validate([
@@ -277,7 +275,7 @@ class AssistantAdminController extends Controller
                 $log->status_id = $status->id;
                 $message = 'Log aktivitas berhasil ditolak.';
             }
-            
+
             $log->save(); // Simpan semua perubahan ke database
 
             DB::commit();
@@ -286,8 +284,7 @@ class AssistantAdminController extends Controller
             $redirectDate = $request->input('redirect_date');
 
             return redirect()->route('assistant.logactivity', ['date' => $redirectDate])
-                             ->with('success', $message);
-
+                ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollback();
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
@@ -329,7 +326,7 @@ class AssistantAdminController extends Controller
         ]);
     }
 
-     public function izinPrayer()
+    public function izinPrayer()
     {
         $perPage = 25;
         $paginatedInterns = $this->assistantAdminService->getInternsWithPermits('prayer', $perPage);
@@ -363,7 +360,7 @@ class AssistantAdminController extends Controller
         ]);
     }
 
-     public function izinToilet()
+    public function izinToilet()
     {
         $perPage = 25;
         $paginatedInterns = $this->assistantAdminService->getInternsWithPermits('toilet', $perPage);

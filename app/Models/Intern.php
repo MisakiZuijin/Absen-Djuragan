@@ -51,6 +51,30 @@ class Intern extends Model
         return $this->hasMany(Schedule::class, 'intern_id');
     }
 
+    public function detailSchedules(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            DetailSchedule::class,
+            Schedule::class,
+            'intern_id',
+            'schedule_id',
+            'id',
+            'id'
+        );
+    }
+
+    public function todayDetailSchedule(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            DetailSchedule::class,
+            Schedule::class,
+            'intern_id',
+            'schedule_id',
+            'id',
+            'id'
+        )->whereDate('detail_schedules.date', today());
+    }
+
     public function detailProject(): HasMany
     {
         return $this->hasMany(DetailProjects::class, "intern_id");
@@ -59,6 +83,11 @@ class Intern extends Model
     public function whatsappNumber(): HasOne
     {
         return $this->hasOne(WhatsappNumber::class, 'intern_id');
+    }
+
+    public function account(): HasOne
+    {
+        return $this->hasOne(InternAccount::class, 'intern_id');
     }
     public function outsiders()
     {

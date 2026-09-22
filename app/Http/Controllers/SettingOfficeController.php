@@ -15,8 +15,8 @@ use App\Models\Coordinate;
 
 class SettingOfficeController extends Controller
 {
-    protected $userService;
-    protected $officeService;
+    protected UserService $userService;
+    protected OfficeService $officeService;
 
     public function __construct(UserService $userService, OfficeService $officeService)
     {
@@ -45,21 +45,21 @@ class SettingOfficeController extends Controller
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil ditambahkan!');
     }
 
-    public function updateOffice(UpdateOfficeRequest $updateOfficeRequest, $id)
+    public function updateOffice(UpdateOfficeRequest $updateOfficeRequest, int $id)
     {
         $this->officeService->update($updateOfficeRequest, $id);
 
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil diperbarui!');
     }
 
-    public function deleteOffice($id)
+    public function deleteOffice(int $id)
     {
         $this->officeService->delete($id);
 
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil dihapus!');
     }
 
-    public function showEditLocation($id)
+    public function showEditLocation(int $id)
     {
         $office = Office::with('coordinate')->findOrFail($id);
         $coordinates = Coordinate::where('office_id', $id)->get();

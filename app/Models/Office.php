@@ -15,7 +15,12 @@ class Office extends Model {
     protected $fillable = [
         "name",
         "address",
-        "capacity"
+        "capacity",
+        "sop_url",
+        "rules_url",
+        "rules_description",
+        "piket_url",
+        "piket_description"
     ];
 
 

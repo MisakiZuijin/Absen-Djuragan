@@ -16,11 +16,12 @@ use App\Models\AdjustableAttd;
 
 use function Sentry\captureException;
 
-class InternService {
-    protected $internRepository;
-    protected $userRepository;
-    protected $profileRepository;
-    protected $detailProjectRepository;
+class InternService
+{
+    protected InternRepository $internRepository;
+    protected UserRepository $userRepository;
+    protected ProfileRepository $profileRepository;
+    protected DetailProjectRepository $detailProjectRepository;
 
     public function __construct(
         UserRepository $userRepository,
@@ -34,7 +35,8 @@ class InternService {
         $this->detailProjectRepository = $detailProjectRepository;
     }
 
-    public function absence($data): ActionResult {
+    public function absence(array $data): ActionResult
+    {
         try {
             $internId = $data['id'];
             unset($data["id"]);
@@ -46,7 +48,8 @@ class InternService {
         }
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         try {
             $result = $this->internRepository->getAll();
             return new ActionResult(true, "success success get all intern", $result);
@@ -56,7 +59,8 @@ class InternService {
         }
     }
 
-    public function internTotal(): ActionResult {
+    public function internTotal(): ActionResult
+    {
         try {
             $result = $this->internRepository->countByInternRole();
 
@@ -72,7 +76,8 @@ class InternService {
         }
     }
 
-    public function update(EditInternRequest $editInternRequest): ActionResult {
+    public function update(EditInternRequest $editInternRequest): ActionResult
+    {
         try {
             DB::beginTransaction();
             $data = $editInternRequest->validated();
@@ -144,6 +149,44 @@ class InternService {
                     // Jika input nomor WA kosong, hapus data yang ada
                     $intern->whatsappNumber()->delete();
                 }
+
+                // Update / create intern_accounts credentials
+                $accountData = [
+                    'gdrive_url' => $data['gdrive_url'] ?? null,
+                    'github_url' => $data['github_url'] ?? null,
+                    'gmail_account' => $data['gmail_account'] ?? null,
+                    'figma_url' => $data['figma_url'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                ];
+
+                if (!empty($data['gmail_password'])) {
+                    $accountData['gmail_password'] = $data['gmail_password'];
+                }
+
+                if (isset($data['social_media_links']) && is_array($data['social_media_links'])) {
+                    $filteredLinks = array_values(array_filter($data['social_media_links'], function ($item) {
+                        return !empty($item['platform']) || !empty($item['username']) || !empty($item['url']);
+                    }));
+                    $accountData['social_media_links'] = !empty($filteredLinks) ? $filteredLinks : null;
+                } else {
+                    $accountData['social_media_links'] = null;
+                }
+
+                $hasAccountData = !empty($accountData['gdrive_url'])
+                    || !empty($accountData['github_url'])
+                    || !empty($accountData['gmail_account'])
+                    || !empty($accountData['gmail_password'])
+                    || !empty($accountData['figma_url'])
+                    || !empty($accountData['social_media_links'])
+                    || !empty($accountData['notes'])
+                    || $intern->account()->exists();
+
+                if ($hasAccountData) {
+                    $intern->account()->updateOrCreate(
+                        ['intern_id' => $intern->id],
+                        $accountData
+                    );
+                }
             }
 
             if (!empty($data["project_id"])) {
@@ -161,7 +204,8 @@ class InternService {
         }
     }
 
-    public function deleteInternDivision($internId) {
+    public function deleteInternDivision(int $internId)
+    {
         try {
             DB::transaction(function () use ($internId) {
                 $intern = Intern::findOrFail($internId);
@@ -219,5 +263,4 @@ class InternService {
             return redirect()->back()->with('error', 'Data anggota gagal dihapus! ' . $e->getMessage());
         }
     }
-
 }

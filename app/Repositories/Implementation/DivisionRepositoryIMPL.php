@@ -6,23 +6,22 @@ use App\Models\Division;
 use App\Models\Intern;
 use App\Repositories\Interface\DivisionRepository;
 
-class DivisionRepositoryIMPL implements DivisionRepository {
-    protected $model;
+class DivisionRepositoryIMPL implements DivisionRepository
+{
+    protected Division $model;
 
-    public function __construct(Division $division) {
+    public function __construct(Division $division)
+    {
         $this->model = $division;
     }
 
-    public function getById($id) {
+    public function getById(int $id)
+    {
         return $this->model->getById($id);
     }
 
-    // public function getInternCountByDivisionId($divisionId)
-    // {
-    //     return Intern::where('division_id', $divisionId)->count();
-    // }
-
-    public function getAll() {
+    public function getAll()
+    {
         return $this->model->all();
     }
 
@@ -31,12 +30,12 @@ class DivisionRepositoryIMPL implements DivisionRepository {
         return $this->model->all();
     }
 
-    public function create($data)
+    public function create(array $data)
     {
         return Division::create($data);
     }
 
-    public function update($data)
+    public function update(array $data)
     {
         $division = $this->model->find($data['id']);
         unset($data['id']);
@@ -47,13 +46,10 @@ class DivisionRepositoryIMPL implements DivisionRepository {
         return null;
     }
 
-    public function delete($id)
+    public function delete(int $id)
     {
         return Division::destroy($id);
     }
 
-    public function updateProject($data)
-    {
-        
-    }
+    public function updateProject(array $data) {}
 }

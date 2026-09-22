@@ -14,11 +14,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use function Sentry\captureException;
 
-class LogActivityService {
-    protected $logActivityRepository;
-    protected $userRepository;
-    protected $scheduleRepository;
-    protected $detailScheduleRepository;
+class LogActivityService
+{
+    protected LogActivityRepository $logActivityRepository;
+    protected UserRepository $userRepository;
+    protected ScheduleRepository $scheduleRepository;
+    protected DetailScheduleRepository $detailScheduleRepository;
 
     public function __construct(
         LogActivityRepository $logActivityRepository,
@@ -32,7 +33,8 @@ class LogActivityService {
         $this->detailScheduleRepository = $detailScheduleRepository;
     }
 
-    public function create(LogActivityRequest $request): ActionResult {
+    public function create(LogActivityRequest $request): ActionResult
+    {
         try {
             $data = $request->validated();
             $user = $this->userRepository->findById($data["user_id"]);
@@ -54,14 +56,18 @@ class LogActivityService {
 
             $detailSchedule = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $currentDateYMD);
 
+            if (!$detailSchedule) {
+                return new ActionResult(false, "Jadwal hari ini belum ditemukan. Harap hubungi admin untuk konfirmasi jadwal.", null);
+            }
+
             if (!is_null($detailSchedule->log_activity_id)) {
-                return new ActionResult(true, "Kamu sudah membuat Log Activity!", [
+                return new ActionResult(false, "Kamu sudah membuat Logbook hari ini!", [
                     "absenceHistory" => null,
                     "stage" => 1
                 ]);
             }
 
-            $data['date'] = $currentDate;
+            $data['date'] = $currentDateYMD;
             $resultLA = $this->logActivityRepository->store($data);
 
             $updateData = [
@@ -82,7 +88,8 @@ class LogActivityService {
     }
 
 
-    public function getLogHistory(): ActionResult {
+    public function getLogHistory(): ActionResult
+    {
         try {
             $user = $this->userRepository->getAuthenticatedUser();
             $internId = $user->intern->id;
@@ -99,7 +106,8 @@ class LogActivityService {
         }
     }
 
-    public function updateLogActivity($data) {
+    public function updateLogActivity(array $data)
+    {
         try {
 
             $logActId = $data["id"];
@@ -116,7 +124,8 @@ class LogActivityService {
         }
     }
 
-    public function UpdateLGActivity(Request $request, $id) {
+    public function UpdateLGActivity(Request $request, int $id)
+    {
         try {
             $validatedData = $request->validate([
                 "status" => "required|numeric"

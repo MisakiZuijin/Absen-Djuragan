@@ -205,9 +205,10 @@
         </div>
     </div>
 
+    <script id="shift-data" type="application/json">@json($shift)</script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            const shifts = @json($shift);
+            const shifts = JSON.parse(document.getElementById('shift-data')?.textContent || '[]');
             const perPage = 5;
             let currentPage = 1;
             const shiftTbody = document.querySelector('#shift-tbody');
@@ -329,7 +330,7 @@
                         $('#edit_adt_end_break_time').val(adtendBreak24);
 
                         // Memperbarui action URL form untuk update
-                        var actionUrl = '{{ route('shifts.update', ':id') }}';
+                        var actionUrl = "{{ route('shifts.update', ':id') }}";
                         actionUrl = actionUrl.replace(':id', shiftId);
                         $('#topupForm').attr('action', actionUrl);
 
@@ -342,7 +343,7 @@
                     button.addEventListener('click', function() {
                         const shiftId = this.getAttribute('data-id');
 
-                        var actionUrl = '{{ route('shifts.delete', ':id') }}';
+                        var actionUrl = "{{ route('shifts.delete', ':id') }}";
                         actionUrl = actionUrl.replace(':id', shiftId);
                         $('#deleteForm').attr('action', actionUrl);
                         $('#deleteForm').find('input[name="shiftId"]').val(shiftId);

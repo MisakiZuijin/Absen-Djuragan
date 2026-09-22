@@ -45,10 +45,99 @@ class TimeHelper
     }
 
     /**
+     * Check if a detail schedule is an excused/approved permit (e.g. Izin Sakit di-ACC / Bebas Ganti Jam)
+     *
+     * @param mixed $detailSchedule
+     * @return bool
+     */
+    public static function isApprovedExcusedLeave($detailSchedule): bool
+    {
+        if (!$detailSchedule) {
+            return false;
+        }
+
+        // Status must be Izin (attd_status_id == 3)
+        $attdStatusId = is_array($detailSchedule)
+            ? ($detailSchedule['attd_status_id'] ?? null)
+            : ($detailSchedule->attd_status_id ?? null);
+
+        if ((int)$attdStatusId !== 3) {
+            return false;
+        }
+
+        $isChangeSchedule = is_array($detailSchedule)
+            ? ($detailSchedule['isChangeSchedule'] ?? null)
+            : ($detailSchedule->isChangeSchedule ?? null);
+
+        $isApproved = is_array($detailSchedule)
+            ? ($detailSchedule['is_change_schedule_approved'] ?? null)
+            : ($detailSchedule->is_change_schedule_approved ?? null);
+
+        // Jika secara eksplisit ditetapkan Wajib Ganti Jam (2), bukan excused/lunas
+        if ((int)$isChangeSchedule === 2) {
+            return false;
+        }
+
+        // 1. Secara eksplisit di-ACC admin sebagai Bebas Ganti Jam / Lunas (isChangeSchedule == 1 atau is_change_schedule_approved == 1)
+        if ((int)$isChangeSchedule === 1 || (int)$isApproved === 1) {
+            return true;
+        }
+
+        // 2. Izin sakit dengan bukti surat dokter resmi yang valid (dan tidak diset wajib ganti jam)
+        $permitReason = is_array($detailSchedule)
+            ? ($detailSchedule['permit_reason'] ?? $detailSchedule['permitReason'] ?? null)
+            : ($detailSchedule->permitReason ?? null);
+
+        if ($permitReason) {
+            $categoryId = is_array($permitReason)
+                ? ($permitReason['permit_category_id'] ?? null)
+                : ($permitReason->permit_category_id ?? null);
+            $proofUrl = is_array($permitReason)
+                ? ($permitReason['proof_url'] ?? null)
+                : ($permitReason->proof_url ?? null);
+            $desc = is_array($permitReason)
+                ? ($permitReason['description'] ?? '')
+                : ($permitReason->description ?? '');
+
+            $isSakit = in_array((int)$categoryId, [1, 2]) || str_contains(strtolower($desc), 'sakit');
+            if ($isSakit && !empty($proofUrl)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Calculate daily work hours with proper break time handling
      */
-    public static function calculateDailyWorkHours($attendance, $shift)
+    public static function calculateDailyWorkHours($attendance, $shift, $detailSchedule = null)
     {
+        // Resolve detailSchedule if not passed directly
+        if (!$detailSchedule && $attendance instanceof \App\Models\Attendance) {
+            $detailSchedule = $attendance->detailSchedules;
+        }
+
+        $shiftTargetMinutes = $shift->total_time_in_minute ?? 0;
+        if ($shiftTargetMinutes <= 0 && $shift && $shift->start_time && $shift->end_time && $shift->start_time !== '00:00:00') {
+            $shiftTargetMinutes = max(0, self::diffInMinutes($shift->start_time, $shift->end_time) - ($shift->break_time_in_minute ?? 0));
+        }
+
+        // Jika izin disetujui / bebas ganti jam (Lunas / Izin Sakit di-ACC), waktu kerja otomatis memenuhi jam shift dan hutang jam 00:00
+        if ($detailSchedule && self::isApprovedExcusedLeave($detailSchedule)) {
+            return [
+                'actual_work_minutes' => $shiftTargetMinutes,
+                'actual_work_formatted' => self::formatMinutesToHours($shiftTargetMinutes),
+                'break_minutes' => 0,
+                'break_formatted' => '00:00',
+                'shift_target_minutes' => $shiftTargetMinutes,
+                'shift_target_formatted' => self::formatMinutesToHours($shiftTargetMinutes),
+                'diff_minutes' => 0,
+                'diff_formatted' => '00:00',
+                'is_sufficient' => true,
+            ];
+        }
+
         // Initialize variables
         $startTime = $attendance->start_time ?? null;
         $endTime = $attendance->end_time ?? null;
@@ -56,7 +145,6 @@ class TimeHelper
         $backTime = $attendance->back_time ?? null;
         
         $actualWorkMinutes = 0;
-        $shiftTargetMinutes = $shift->total_time_in_minute ?? 0;
         $breakMinutes = 0;
 
         // Calculate actual work time (excluding breaks)

@@ -40,7 +40,17 @@ class EditInternRequest extends FormRequest {
             "is_reset_device_token" => "nullable|boolean",
             "is_gps_active" => "required|boolean",
             "parent_whatsapp_number" => "nullable|numeric|starts_with:62",
-            "gender" => "nullable|string"
+            "gender" => "nullable|string",
+            "gdrive_url" => "nullable|url|max:500",
+            "github_url" => "nullable|url|max:255",
+            "gmail_account" => "nullable|string|max:255",
+            "gmail_password" => "nullable|string|max:255",
+            "figma_url" => "nullable|url|max:500",
+            "social_media_links" => "nullable|array",
+            "social_media_links.*.platform" => "nullable|string|max:50",
+            "social_media_links.*.username" => "nullable|string|max:100",
+            "social_media_links.*.url" => "nullable|string|max:500",
+            "notes" => "nullable|string|max:2000"
         ];
     }
 }

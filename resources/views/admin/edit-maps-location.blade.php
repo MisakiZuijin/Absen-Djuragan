@@ -46,6 +46,31 @@
                     class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                     required>
             </div>
+            <div class="mb-2">
+                <label for="sop_url" class="block text-gray-700 font-medium">Link SOP Magang (URL)</label>
+                <input type="url" id="sop_url" name="sop_url" value="{{ $office->sop_url ?? '' }}" placeholder="https://docs.google.com/..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+            </div>
+            <div class="mb-2">
+                <label for="rules_url" class="block text-gray-700 font-medium">Link Peraturan Kantor (URL)</label>
+                <input type="url" id="rules_url" name="rules_url" value="{{ $office->rules_url ?? '' }}" placeholder="https://docs.google.com/..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+            </div>
+            <div class="mb-2">
+                <label for="rules_description" class="block text-gray-700 font-medium">Poin Peraturan Kantor</label>
+                <textarea id="rules_description" name="rules_description" rows="3" placeholder="Tuliskan aturan kantor..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">{{ $office->rules_description ?? '' }}</textarea>
+            </div>
+            <div class="mb-2">
+                <label for="piket_url" class="block text-gray-700 font-medium">Link Jadwal Piket (URL)</label>
+                <input type="url" id="piket_url" name="piket_url" value="{{ $office->piket_url ?? '' }}" placeholder="https://docs.google.com/spreadsheets/..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+            </div>
+            <div class="mb-2">
+                <label for="piket_description" class="block text-gray-700 font-medium">Poin Tugas Piket</label>
+                <textarea id="piket_description" name="piket_description" rows="3" placeholder="Tuliskan ketentuan/tugas piket..."
+                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">{{ $office->piket_description ?? '' }}</textarea>
+            </div>
             <div class="grid grid-cols-2 gap-1">
                 <div class="mb-2">
                     <label for="latitudeoffice" class="block text-gray-700">Kantor Latitude<span
@@ -213,13 +238,13 @@
 
         // Saat halaman dimuat, load koordinat dari database (contoh)
         window.onload = function() {
-            // Contoh data yang diambil dari database (ubah sesuai dengan data dari backend)
-            var officeLatitude = {{ $coordinates->get(0)->latitude ?? 0 }};
-            var officeLongitude = {{ $coordinates->get(0)->longitude ?? 0 }};
-            var leftTopLatitude = {{ $coordinates->get(1)->latitude ?? 0 }};
-            var leftTopLongitude = {{ $coordinates->get(1)->longitude ?? 0 }};
-            var rightBottomLatitude = {{ $coordinates->get(2)->latitude ?? 0 }};
-            var rightBottomLongitude = {{ $coordinates->get(2)->longitude ?? 0 }};
+            // Data yang diambil dari database
+            var officeLatitude = parseFloat("{{ $coordinates->get(0)->latitude ?? 0 }}") || 0;
+            var officeLongitude = parseFloat("{{ $coordinates->get(0)->longitude ?? 0 }}") || 0;
+            var leftTopLatitude = parseFloat("{{ $coordinates->get(1)->latitude ?? 0 }}") || 0;
+            var leftTopLongitude = parseFloat("{{ $coordinates->get(1)->longitude ?? 0 }}") || 0;
+            var rightBottomLatitude = parseFloat("{{ $coordinates->get(2)->latitude ?? 0 }}") || 0;
+            var rightBottomLongitude = parseFloat("{{ $coordinates->get(2)->longitude ?? 0 }}") || 0;
 
             // Load koordinat ke peta
             loadCoordinates(officeLatitude, officeLongitude, leftTopLatitude, leftTopLongitude, rightBottomLatitude,

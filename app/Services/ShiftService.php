@@ -16,7 +16,7 @@ use App\Repositories\Interface\ShiftRepository;
 
 class ShiftService
 {
-    protected $shiftRepository;
+    protected ShiftRepository $shiftRepository;
 
     public function __construct(ShiftRepository $shiftRepository, Shift $model)
     {
@@ -65,11 +65,11 @@ class ShiftService
         }
     }
 
-    public function updateShift(UpdateShiftRequest $updateShiftRequest, $id)
+    public function updateShift(UpdateShiftRequest $updateShiftRequest, int $id)
     {
         try {
-            $startTime = $updateShiftRequest->input('addJamMulai');
-            $endTime = $updateShiftRequest->input('addJamBerakhir');
+            $startTime = $updateShiftRequest->input('jamMulai') ?? $updateShiftRequest->input('addJamMulai');
+            $endTime = $updateShiftRequest->input('jamBerakhir') ?? $updateShiftRequest->input('addJamBerakhir');
 
             $differenceInMinutes = DateNow::getDifferentInMinute($startTime, $endTime);
 
@@ -78,7 +78,7 @@ class ShiftService
 
             $breakTime = DateNow::getDifferentInMinute($startBreak, $endBreak);
 
-            $totalMinutes = $differenceInMinutes - $breakTime;
+            $totalMinutes = max(0, $differenceInMinutes - $breakTime);
 
             $data = [
                 'id' => $id,
@@ -121,7 +121,7 @@ class ShiftService
         return $this->shiftRepository->getAll();
     }
 
-    public function deleteShift($id)
+    public function deleteShift(int $id)
     {
         return $this->shiftRepository->delete($id);
     }

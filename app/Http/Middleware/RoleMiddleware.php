@@ -7,14 +7,17 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-class RoleMiddleware {
-    protected $userService;
+class RoleMiddleware
+{
+    protected UserService $userService;
 
-    public function __construct(UserService $userService) {
+    public function __construct(UserService $userService)
+    {
         $this->userService = $userService;
     }
 
-    public function handle(Request $request, Closure $next, int $roleId): Response {
+    public function handle(Request $request, Closure $next, int $roleId): Response
+    {
         $user = $this->userService->getUserLoggedData();
 
         if (is_null($user)) {

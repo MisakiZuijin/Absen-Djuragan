@@ -5,12 +5,15 @@ namespace App\Services;
 use App\Repositories\Interface\OfficeRepository;
 use Illuminate\Support\Facades\Auth;
 
-class LocationService {
+class LocationService
+{
     private OfficeRepository $officeRepository;
-    public function __construct(OfficeRepository $officeRepository) {
+    public function __construct(OfficeRepository $officeRepository)
+    {
         $this->officeRepository = $officeRepository;
     }
-    function checkIsInOfficeArea($latitude, $longitude): object {
+    function checkIsInOfficeArea(float $latitude, float $longitude): object
+    {
         $result = new \stdClass();
         $offices = $this->officeRepository->getAll();
         $isInOfficeArea = false;

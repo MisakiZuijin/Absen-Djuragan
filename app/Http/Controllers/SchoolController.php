@@ -9,21 +9,24 @@ use App\Services\ShiftService;
 use App\Services\UserService;
 use Illuminate\Contracts\View\View;
 
-class SchoolController extends Controller {
-    protected $userService;
-    protected $schoolService;
-    protected $internService;
-    protected $shiftService;
-    protected $officeService;
+class SchoolController extends Controller
+{
+    protected UserService $userService;
+    protected SchoolService $schoolService;
+    protected InternService $internService;
+    protected ShiftService $shiftService;
+    protected OfficeService $officeService;
 
-    public function __construct(UserService $userService, SchoolService $schoolService, ShiftService $shiftService, OfficeService $officeService) {
+    public function __construct(UserService $userService, SchoolService $schoolService, ShiftService $shiftService, OfficeService $officeService)
+    {
         $this->userService = $userService;
         $this->schoolService = $schoolService;
         $this->shiftService = $shiftService;
         $this->officeService = $officeService;
     }
 
-    public function adminSchoolView(): View {
+    public function adminSchoolView(): View
+    {
         $userData = $this->userService->getUserLoggedData();
         $schoolList = $this->schoolService->getCountSchool();
 
@@ -37,7 +40,8 @@ class SchoolController extends Controller {
         return view('admin.sekolah')->with($data);
     }
 
-    public function adminSchoolTeamView($schoolId): View {
+    public function adminSchoolTeamView(int $schoolId): View
+    {
         $userData = $this->userService->getUserLoggedData();
         $teamData = $this->schoolService->getTeamBySchoolId($schoolId);
         $shift = $this->shiftService->getAllShift();

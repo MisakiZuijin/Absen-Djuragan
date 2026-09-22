@@ -14,7 +14,7 @@
     @livewireScripts
 </head>
 
-<body class="h-screen bg-gray-100">
+<body class="min-h-screen bg-gray-100">
 
 
     <aside id="success-notif"
@@ -35,24 +35,27 @@
 
 
     <!-- Success Notification Box -->
-    <div class="floating-box hidden bg-green-500" id="success-box">
+    <div class="floating-box hidden bg-green-500" id="success-box" data-show="{{ session('success') ? '1' : '0' }}">
         <i class="fa-solid fa-check-circle"></i>
         {{ session('success') ?? '' }}
     </div>
 
     <!-- Error Notification Box -->
-    <div class="floating-box hidden" id="error-box">
+    <div class="floating-box hidden" id="error-box" data-show="{{ (isset($error) || session('error')) ? '1' : '0' }}">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        {{ $error ?? '' }}
+        {{ $error ?? (session('error') ?? '') }}
     </div>
 
-    <div class="relative h-full flex flex-col">
+    <div class="relative min-h-screen flex flex-col pb-16">
         <!-- Background Image -->
-        <div class="relative h-[250px]">
+        <div class="relative h-[250px] w-full flex-shrink-0">
             @php
-                $birth_date = $user->profile->date_of_birth;
+                $currentUser = $user ?? auth()->user();
+                $birth_date = $currentUser?->profile?->date_of_birth;
                 $today = now()->format('m-d');
-                $userBirth = \Carbon\Carbon::parse($birth_date)->format('m-d');
+                $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
+                $currentDay = $day_now ?? \App\Utils\DateNow::getCurrentDay();
+                $currentDate = $date_now ?? \App\Utils\DateNow::getCurrentDate();
             @endphp
 
             @if ($today === $userBirth)
@@ -74,8 +77,8 @@
                     class="absolute bottom-4 left-4 md:left-10 flex items-center space-x-2 md:space-x-4 text-white z-20 bg-black p-1 md:p-3 bg-opacity-50 rounded-3xl">
                     <i class="fas fa-user-circle text-2xl md:text-3xl"></i>
                     <div class="text-xs md:text-sm">
-                        <div class="font-bold text-xs md:text-sm">{{ $user->profile->full_name }}</div>
-                        <div class="text-xs md:text-sm">{{ $user->profile->NIP }}</div>
+                        <div class="font-bold text-xs md:text-sm">{{ $currentUser?->profile?->full_name ?? ($currentUser?->name ?? 'User') }}</div>
+                        <div class="text-xs md:text-sm">{{ $currentUser?->profile?->NIP ?? '-' }}</div>
                     </div>
                 </div>
 
@@ -90,15 +93,19 @@
             <div
                 class="absolute top-4 left-4 md:left-10 flex items-center space-x-1 md:space-x-2 text-white z-20 text-xs md:text-2xl p-1 md:p-3">
                 <i class="fas fa-calendar-day text-xs md:text-2xl"></i>
-                <span class="text-xs md:text-2xl">{{ $day_now }}, {{ $date_now }}</span>
+                <span class="text-xs md:text-2xl">{{ $currentDay }}, {{ $currentDate }}</span>
             </div>
 
             <!-- Real-time Clock -->
             <div class="absolute top-4 right-4 md:right-10 text-white z-20 text-xs md:text-2xl p-1 md:p-3 rounded-xl">
                 <span id="current-time" class="text-xs md:text-2xl">14:30:00</span>
             </div>
-            @yield('contents')
         </div>
+
+        <!-- Main Content -->
+        <main class="flex-1 w-full">
+            @yield('contents')
+        </main>
         <!-- Modal Logout -->
         <div id="logout-modal"
             class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -114,6 +121,7 @@
             </div>
         </div>
 
+        <script id="quotes-data" type="application/json">@json($quotes ?? [])</script>
         <script>
             function updateClock() {
                 const now = new Date();
@@ -138,7 +146,8 @@
             document.addEventListener('DOMContentLoaded', () => {
 
                 const typewriterTextElement = document.getElementById('typewriter-text');
-                const texts = @json($quotes);
+                const quotesDataEl = document.getElementById('quotes-data');
+                const texts = quotesDataEl ? JSON.parse(quotesDataEl.textContent || '[]') : [];
                 const delayBeforeChange = 10000;
 
                 function getRandomIndex(max) {
@@ -160,6 +169,7 @@
                 }
 
                 function changeText() {
+                    if (!texts || texts.length === 0) return;
                     const randomIndex = getRandomIndex(texts.length);
                     const formattedText = formatTextWithLineBreaks(texts[randomIndex]);
 
@@ -200,31 +210,36 @@
             document.addEventListener('DOMContentLoaded', function() {
                 function showBox(id) {
                     var box = document.getElementById(id);
+                    if (!box) return;
                     box.classList.remove('hidden');
                     box.classList.add('show');
                 }
 
                 function hideBox(id) {
                     var box = document.getElementById(id);
+                    if (!box) return;
                     box.classList.remove('show');
                     box.classList.add('hidden');
                 }
 
-                @if (isset($error))
+                var errorBox = document.getElementById('error-box');
+                if (errorBox && errorBox.getAttribute('data-show') === '1') {
                     showBox('error-box');
                     setTimeout(function() {
                         hideBox('error-box');
                     }, 3000);
-                @endif
+                }
 
-                @if (session('success'))
+                var successBox = document.getElementById('success-box');
+                if (successBox && successBox.getAttribute('data-show') === '1') {
                     showBox('success-box');
                     setTimeout(function() {
                         hideBox('success-box');
                     }, 3000);
-                @endif
+                }
             });
         </script>
+    @stack('scripts')
 </body>
 
 </html>

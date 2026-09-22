@@ -173,11 +173,12 @@
         </div>
     </div>
 
+    <script id="division-data" type="application/json">@json($division)</script>
     <script>
         $(document).ready(function() {
             const itemsPerPage = 5;
             let currentPage = 1;
-            let divisions = @json($division);
+            let divisions = JSON.parse(document.getElementById('division-data')?.textContent || '[]');
 
             function renderTable(page, filteredDivisions) {
                 const startIndex = (page - 1) * itemsPerPage;
@@ -318,7 +319,7 @@
 
                     // Set value pada formulir
                     $('#editDivisiId').val(divisiId);
-                    var actionUrl = '{{ route('divisions.update', ':id') }}';
+                    var actionUrl = "{{ route('divisions.update', ':id') }}";
                     actionUrl = actionUrl.replace(':id', divisiId);
                     $('#editDivisiForm').attr('action', actionUrl);
                     $('#editNamaDivisi').val(namaDivisi);
@@ -337,7 +338,7 @@
                     $('#deleteDivisiId').val(divisiId);
 
                     // Set the action URL dynamically
-                    const actionUrl = '{{ route('divisions.delete', ':id') }}'.replace(':id',
+                    const actionUrl = "{{ route('divisions.delete', ':id') }}".replace(':id',
                         divisiId);
                     $('#deleteDivisiForm').attr('action', actionUrl);
 

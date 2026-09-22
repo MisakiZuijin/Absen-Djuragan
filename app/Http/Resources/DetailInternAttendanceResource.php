@@ -5,8 +5,9 @@ namespace App\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class DetailInternAttendanceResource extends JsonResource {
-    protected $meta;
+class DetailInternAttendanceResource extends JsonResource
+{
+    protected mixed $meta;
 
     /**
      * Create a new resource instance.
@@ -15,7 +16,8 @@ class DetailInternAttendanceResource extends JsonResource {
      * @param  mixed  $meta
      * @return void
      */
-    public function __construct($resource, $meta = null) {
+    public function __construct($resource, $meta = null)
+    {
         parent::__construct($resource);
         $this->meta = $meta;
     }
@@ -25,7 +27,8 @@ class DetailInternAttendanceResource extends JsonResource {
      *
      * @return array<string, mixed>
      */
-    public function toArray(Request $request): array {
+    public function toArray(Request $request): array
+    {
         return [
             "status" => true,
             "status_code" => 200,

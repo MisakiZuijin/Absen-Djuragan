@@ -9,15 +9,18 @@ use function Sentry\captureException;
 use App\Http\Requests\StoreOfficeRequest;
 use App\Http\Requests\UpdateOfficeRequest;
 
-class OfficeService {
-    protected $officeRepository;
+class OfficeService
+{
+    protected OfficeRepository $officeRepository;
 
 
-    public function __construct(OfficeRepository $officeRepository) {
+    public function __construct(OfficeRepository $officeRepository)
+    {
         $this->officeRepository = $officeRepository;
     }
 
-    public function getAll(): ActionResult {
+    public function getAll(): ActionResult
+    {
         try {
             $result =  $this->officeRepository->getAll();
             return new ActionResult(true, "success retrive office data", $result);
@@ -27,7 +30,8 @@ class OfficeService {
         }
     }
 
-    public function create(StoreOfficeRequest $storeOfficeRequest) {
+    public function create(StoreOfficeRequest $storeOfficeRequest)
+    {
         try {
             $data = $storeOfficeRequest->validated();
 
@@ -67,7 +71,8 @@ class OfficeService {
         }
     }
 
-    public function update(UpdateOfficeRequest $updateOfficeRequest, $id) {
+    public function update(UpdateOfficeRequest $updateOfficeRequest, int $id)
+    {
         try {
             $data = $updateOfficeRequest->validated();
 
@@ -127,7 +132,8 @@ class OfficeService {
         }
     }
 
-    public function delete($id) {
+    public function delete(int $id)
+    {
         try {
             $result = $this->officeRepository->delete($id);
             return new ActionResult(true, "success delete quotes", $result);

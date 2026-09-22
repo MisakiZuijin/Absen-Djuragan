@@ -14,15 +14,18 @@ use App\Models\NameProjects;
 
 use function Sentry\captureException;
 
-class ProjectService {
+class ProjectService
+{
 
-    protected $projectRepository;
+    protected ProjectRepository $projectRepository;
 
-    public function __construct(ProjectRepository $projectRepository) {
+    public function __construct(ProjectRepository $projectRepository)
+    {
         $this->projectRepository = $projectRepository;
     }
 
-    public function create(StoreProjectRequest $StoreProjectRequest): ActionResult {
+    public function create(StoreProjectRequest $StoreProjectRequest): ActionResult
+    {
         try {
             $data = $StoreProjectRequest->validated();
 
@@ -48,7 +51,8 @@ class ProjectService {
         }
     }
 
-    public function createProject(Request $request): ActionResult {
+    public function createProject(Request $request): ActionResult
+    {
         try {
             $data['name'] = $request->input('new_project_name');
 
@@ -62,11 +66,14 @@ class ProjectService {
     }
 
 
-    public function update(UpdateProjectRequest $updateProjectRequest, $id): ActionResult {
+    public function update(UpdateProjectRequest $updateProjectRequest, int $id): ActionResult
+    {
         try {
             $data = $updateProjectRequest->validated();
 
-            // $data['name'] = $data['project_name'];
+            if (!empty($data['project_name'])) {
+                $data['name_project_id'] = $data['project_name'];
+            }
             $data['team'] = $data['team_name'];
             $data['description'] = $data['description'];
 
@@ -106,7 +113,8 @@ class ProjectService {
         }
     }
 
-    public function getAllProject(): ActionResult {
+    public function getAllProject(): ActionResult
+    {
         try {
             $data = $this->projectRepository->getAll();
             return new ActionResult(true, "success retrive data project", $data);
@@ -116,36 +124,33 @@ class ProjectService {
         }
     }
 
-    public function delete($id)
+    public function delete(int $id)
     {
         try {
             $project = Projects::find($id);
-    
+
             if (!$project) {
                 return new ActionResult(false, "Project not found", null);
             }
-    
+
             $nameProjectId = $project->name_project_id;
-    
+
             $project->detailProjects()->delete();
-    
+
             $project->delete();
-    
+
             if (!empty($nameProjectId)) {
                 $relatedDataCount = Projects::where('name_project_id', $nameProjectId)->count();
-    
+
                 if ($relatedDataCount === 0) {
                     NameProjects::where('id', $nameProjectId)->delete();
                 }
             }
-    
+
             return new ActionResult(true, "Project and related data deleted successfully", null);
         } catch (\Throwable $th) {
             captureException($th);
             return new ActionResult(false, "Failed to delete data, something went wrong", null);
         }
     }
-    
-    
-    
 }

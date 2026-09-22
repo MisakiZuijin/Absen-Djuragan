@@ -23,6 +23,12 @@
                     </a>
                 </li>
                 <li class="mb-3">
+                    <a href="{{ route('admin.pengaturan.meet') }}"
+                        class="{{ Request::is('*setting/meet*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
+                        <span class="ml-3">Link GMeet Presentasi</span>
+                    </a>
+                </li>
+                <li class="mb-3">
                     <a href="{{ route('admin.pengaturan.project') }}"
                         class="{{ Request::is('*project*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
                         <span class="ml-3">Manage Project</span>
@@ -43,10 +49,10 @@
                 <li class="mb-3">
                     <a href="{{ route('admin.pengaturan.holiday') }}"
                         class="{{ Request::is('*holiday*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
-                        <span class="ml-3">Manage Hari Libur</span>
+                        <span class="ml-3">Manage Info & Libur</span>
                     </a>
                 </li>
-                
+
                 {{-- ========================================================== --}}
                 {{-- [PERBAIKAN] Mengganti route, kondisi aktif, dan teks menu --}}
                 {{-- ========================================================== --}}
@@ -56,7 +62,14 @@
                         <span class="ml-3">Pengaturan Izin</span>
                     </a>
                 </li>
-                {{-- ========================================================== --}}
+
+                {{-- Setelah blok Pengaturan Izin yang sudah ada, tambahkan: --}}
+                <li class="mb-3">
+                    <a href="{{ route('admin.pengaturan.checkin-message') }}"
+                        class="{{ Request::is('*setting/checkin-message*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
+                        <span class="ml-3">Popup Check-in</span>
+                    </a>
+                </li>
 
                 <li class="mb-3">
                     <a href="{{ route('admin.pengaturan.broadcast') }}"

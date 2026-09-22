@@ -21,7 +21,7 @@ class UpdateShiftRequest extends FormRequest
         return [
             'nama_Shift' => 'required',
             'jamMulai' => 'required',
-            'jamMulai' => 'required',
+            'jamBerakhir' => 'required',
             'edit_start_break_time' => 'required',
             'edit_end_break_time' => 'required',
             'edit_adt_start_break_time' => 'nullable',

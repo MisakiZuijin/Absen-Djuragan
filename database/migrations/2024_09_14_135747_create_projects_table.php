@@ -16,6 +16,7 @@ return new class extends Migration
             $table->unsignedBigInteger('name_project_id'); 
             $table->string("team");
             $table->string("description");
+            $table->string('repository_url', 500)->nullable();
             $table->enum('status', ['progress', 'done']);
 
 

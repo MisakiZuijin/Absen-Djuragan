@@ -11,21 +11,24 @@ use App\Services\HolidayService;
 use Illuminate\Http\Request;
 use App\Models\Intern;
 
-class ScheduleController extends Controller {
-    protected $scheduleService;
-    protected $shiftService;
-    protected $officeService;
-    protected $holidayService;
+class ScheduleController extends Controller
+{
+    protected ScheduleService $scheduleService;
+    protected ShiftService $shiftService;
+    protected OfficeService $officeService;
+    protected HolidayService $holidayService;
 
 
-    public function __construct(ScheduleService $scheduleService, ShiftService $shiftService, OfficeService $officeService, HolidayService $holidayService) {
+    public function __construct(ScheduleService $scheduleService, ShiftService $shiftService, OfficeService $officeService, HolidayService $holidayService)
+    {
         $this->scheduleService = $scheduleService;
         $this->shiftService = $shiftService;
         $this->officeService = $officeService;
         $this->holidayService = $holidayService;
     }
 
-    public function createSchedule(InternScheduleRequest $request) {
+    public function createSchedule(InternScheduleRequest $request)
+    {
         $data = $this->scheduleService->createSchedule($request);
 
         if ($data->isSuccess()) return back()->with('success', 'Data Anggota berhasil diperbarui!');
@@ -35,7 +38,8 @@ class ScheduleController extends Controller {
 
 
 
-    public function updateSchedule(Request $request, $id) {
+    public function updateSchedule(Request $request, int $id)
+    {
         $validatedData = $request->validate([
             'shift_id' => 'required|integer',
         ]);
@@ -50,7 +54,8 @@ class ScheduleController extends Controller {
     }
 
 
-    public function scheduleUpdateView(Request $request, $internId) {
+    public function scheduleUpdateView(Request $request, int $internId)
+    {
         $workType = ["wfo", "wfh"];
         $shiftData  = $this->shiftService->getAllShift();
         $officeData = $this->officeService->getAll();
@@ -59,7 +64,7 @@ class ScheduleController extends Controller {
 
         $intern = Intern::with('user.profile')->find($internId);
         $fullName = $intern->user->profile->full_name ?? 'Nama tidak tersedia';
-        
+
         $data = [
             "name" => $fullName,
             "holiday_data" => $holidayData->isSuccess() ? $holidayData->getData() : [],
@@ -73,7 +78,8 @@ class ScheduleController extends Controller {
     }
 
 
-    public function scheduleUpdateSingle(Request $request, $internId) {
+    public function scheduleUpdateSingle(Request $request, int $internId)
+    {
 
         $requestData = $request->validate([
             'date' => 'required|date_format:d',
@@ -93,7 +99,8 @@ class ScheduleController extends Controller {
     }
 
 
-    public function scheduleUpdateMulti(Request $request, $internId) {
+    public function scheduleUpdateMulti(Request $request, int $internId)
+    {
 
 
         $requestData = $request->validate([

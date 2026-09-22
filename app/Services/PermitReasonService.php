@@ -8,18 +8,21 @@ use App\Repositories\Interface\PermitReasonRepository;
 
 use function Sentry\captureException;
 
-class PermitReasonService {
-    protected $permitReasonRepository;
-    protected $permitCategoryRepository;
+class PermitReasonService
+{
+    protected PermitReasonRepository $permitReasonRepository;
+    protected PermitCategoryRepository $permitCategoryRepository;
 
 
-    public function __construct(PermitReasonRepository $permitRepository, PermitCategoryRepository $permitCategory) {
+    public function __construct(PermitReasonRepository $permitRepository, PermitCategoryRepository $permitCategory)
+    {
         $this->permitReasonRepository = $permitRepository;
         $this->permitCategoryRepository = $permitCategory;
     }
 
 
-    public function getAllPermitCategory(): ActionResult {
+    public function getAllPermitCategory(): ActionResult
+    {
         try {
             $value =  $this->permitCategoryRepository->findAll();
             return new ActionResult(true, "success retrive category data", $value);

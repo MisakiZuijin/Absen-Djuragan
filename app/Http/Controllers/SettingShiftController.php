@@ -13,8 +13,8 @@ use App\Models\Shift; // <-- PERUBAHAN 1: Tambahkan ini untuk mengakses model Sh
 
 class SettingShiftController extends Controller
 {
-    protected $userService;
-    protected $shiftService;
+    protected UserService $userService;
+    protected ShiftService $shiftService;
 
     public function __construct(UserService $userService, ShiftService $shiftService)
     {
@@ -41,7 +41,7 @@ class SettingShiftController extends Controller
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil ditambahkan!');
     }
 
-    public function updateShift(UpdateShiftRequest $updateShiftRequest, $id)
+    public function updateShift(UpdateShiftRequest $updateShiftRequest, int $id)
     {
         $this->shiftService->updateShift($updateShiftRequest, $id);
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil diperbarui!');
@@ -50,7 +50,7 @@ class SettingShiftController extends Controller
     /**
      * PERBAIKAN UTAMA ADA DI METHOD INI
      */
-    public function deleteShift($id)
+    public function deleteShift(int $id)
     {
         // Langkah 1: Cari shift dan hitung berapa banyak jadwal yang masih menggunakannya.
         // `withCount('detailSchedules')` sangat efisien untuk ini.

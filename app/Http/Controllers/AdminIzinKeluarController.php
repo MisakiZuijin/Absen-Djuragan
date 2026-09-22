@@ -25,7 +25,7 @@ class AdminIzinKeluarController extends Controller
     public function index()
     {
         // Tentukan jumlah item per halaman.
-        $perPage = 25;
+        $perPage = 5;
 
         // Panggil service dengan parameter jumlah item per halaman.
         $paginatedInterns = $this->leavePermitService->getTodayInternsWithLeavePermits($perPage);

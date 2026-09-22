@@ -80,6 +80,7 @@
     {{-- Scripts --}}
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="{{ asset('js/admin/raise-hand-notifications.js') }}"></script>
 </body>
 
 </html>

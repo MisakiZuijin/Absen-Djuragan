@@ -4,57 +4,63 @@ namespace App\Repositories\Implementation;
 
 use App\Models\Intern;
 use App\Repositories\Interface\InternRepository;
-
 use Illuminate\Support\Facades\DB;
 
+class InternRepositoryIMPL implements InternRepository
+{
+    protected Intern $model;
 
-class InternRepositoryIMPL implements InternRepository {
-    protected $model;
-
-    public function __construct(Intern $internModel) {
+    public function __construct(Intern $internModel)
+    {
         $this->model = $internModel;
     }
 
-    public function store($data) {
+    public function store(array $data)
+    {
         $this->model->create($data);
     }
 
-    public function update($id, $data) {
-
+    public function update(int $id, array $data)
+    {
         $intern = $this->model->find($id);
-
         $intern->update($data);
-
         return $intern;
     }
 
-    public function getById($id) {
+    public function getById(int $id)
+    {
         return $this->model->find($id);
     }
 
-    public function getBySchoolId($schoolId) {
+    public function getBySchoolId(int $schoolId)
+    {
         return $this->model->where("school_id", $schoolId)->get();
     }
 
-    public function getByProfileId($profile_id) {
+    public function getByProfileId(int $profile_id)
+    {
         return $this->model->where("profile_id", $profile_id)->first();
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         return $this->model->get();
     }
 
-    public function getAllWithPaggination($pagination, $currentPage) {
+    public function getAllWithPaggination(int $pagination, int $currentPage)
+    {
         $skip = $pagination * ($currentPage - 1);
         $query = $this->model->skip($skip)->take($pagination)->get();
         return $query;
     }
 
-    public function count() {
+    public function count()
+    {
         return $this->model->count();
     }
 
-    public function countByInternRole() {
+    public function countByInternRole()
+    {
         return $this->model
             ->join('users', 'users.id', '=', 'interns.user_id')
             ->where("users.role_id", '=', 3)
@@ -63,25 +69,28 @@ class InternRepositoryIMPL implements InternRepository {
             ->get();
     }
 
-
-
-    public function countBySchool($schoolId) {
+    public function countBySchool(int $schoolId)
+    {
         return $this->model->where("school_id", $schoolId)->count();
     }
 
-    public function countByDivision($divisionId) {
+    public function countByDivision(int $divisionId)
+    {
         return $this->model->where("division_id", $divisionId)->count();
     }
 
-    public function getWithoutDivision() {
+    public function getWithoutDivision()
+    {
         return $this->model->where("division_id", null)->get();
     }
 
-    public function getByDivisionId($id) {
+    public function getByDivisionId(int $id)
+    {
         return $this->model->where("division_id", $id)->get();
     }
 
-    public function getMultiByNamePagination($name, $pagnt, $currentPage) {
+    public function getMultiByNamePagination(string $name, int $pagnt, int $currentPage)
+    {
         $currentPage = max(1, $currentPage);
         $skip = $pagnt * ($currentPage - 1);
 

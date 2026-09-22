@@ -56,10 +56,28 @@ class AttendanceOutState implements AttendanceState
                 return new ActionResult(false, "Data shift tidak ditemukan");
             }
 
+            // ✅ Validasi data lokasi sebelum dipakai
+            $latitude = $data->getLatitude();
+            $longitude = $data->getLongitude();
+
+            if ($latitude === null || $longitude === null) {
+                return new ActionResult(
+                    false,
+                    "Data lokasi tidak tersedia. Pastikan Anda mengizinkan akses GPS/lokasi pada perangkat Anda."
+                );
+            }
+
+            if (!is_numeric($latitude) || !is_numeric($longitude)) {
+                return new ActionResult(
+                    false,
+                    "Format data lokasi tidak valid."
+                );
+            }
+
             // Location validation
             $mapsTrack = $this->locationService->checkIsInOfficeArea(
-                $data->getLatitude(),
-                $data->getLongitude()
+                (float) $latitude,
+                (float) $longitude
             );
 
             if (!$mapsTrack->isInArea) {
@@ -75,7 +93,7 @@ class AttendanceOutState implements AttendanceState
             if ($currentTime->lt($shiftEndTime)) {
                 return new ActionResult(
                     false,
-                    "Anda tidak dapat pulang sebelum jam shift berakhir (Jam pulang: ".$shift->end_time.")"
+                    "Anda tidak dapat pulang sebelum jam shift berakhir (Jam pulang: " . $shift->end_time . ")"
                 );
             }
 
@@ -91,8 +109,8 @@ class AttendanceOutState implements AttendanceState
                 "total_hours" => $totalHours,
                 "end_time_status" => $this->getClockOutStatus($timeNow, $shift->end_time),
                 "end_time_message" => $data->getDescription(),
-                "latitude_end" => $data->getLatitude(),
-                "longitude_end" => $data->getLongitude(),
+                "latitude_end" => $latitude,
+                "longitude_end" => $longitude,
                 "attd_status_id" => 2 // Present status
             ];
 
@@ -110,7 +128,6 @@ class AttendanceOutState implements AttendanceState
                     "shift" => $shift
                 ]
             );
-
         } catch (\Throwable $e) {
             Log::error("Error in AttendanceOutState: " . $e->getMessage(), [
                 'file' => $e->getFile(),

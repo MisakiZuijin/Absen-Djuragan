@@ -2,10 +2,11 @@
 
 namespace App\Repositories\Interface;
 
-interface AdjustableAttdRepository {
+interface AdjustableAttdRepository
+{
     function store(array $data);
     function getById(int $id);
-    function getByScheduleIdAndDate(int $scheduleId, $date);
+    function getByScheduleIdAndDate(int $scheduleId, string $date);
     function getAll();
     function countByDetailScheduleId(int $id);
     function update(int $id, array $data);

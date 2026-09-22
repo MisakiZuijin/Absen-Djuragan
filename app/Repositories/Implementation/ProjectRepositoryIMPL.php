@@ -7,18 +7,22 @@ use App\Models\Projects;
 use App\Models\NameProjects;
 use App\Repositories\Interface\ProjectRepository;
 
-class ProjectRepositoryIMPL implements ProjectRepository {
-    protected $model;
+class ProjectRepositoryIMPL implements ProjectRepository
+{
+    protected Projects $model;
 
-    public function __construct(Projects $model) {
+    public function __construct(Projects $model)
+    {
         $this->model = $model;
     }
 
-    public function create($data) {
+    public function create(array $data)
+    {
         return Projects::create($data);
     }
 
-    public function update($id, $data) {
+    public function update(int $id, array $data)
+    {
         $project = $this->model->find($id);
         if ($project) {
             $project->update($data);
@@ -27,15 +31,18 @@ class ProjectRepositoryIMPL implements ProjectRepository {
         return null;
     }
 
-    public function createProject($data) {
+    public function createProject(array $data)
+    {
         return NameProjects::create($data);
     }
 
-    public function delete($id) {
+    public function delete(int $id)
+    {
         return Projects::destroy($id);
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         $result = $this->model->get();
         return $result;
     }

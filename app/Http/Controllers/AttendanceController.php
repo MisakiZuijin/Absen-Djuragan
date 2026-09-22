@@ -34,12 +34,13 @@ use App\Http\Requests\UpdatePermitPresenceRequest;
 use App\Http\Requests\UpdateTimeAttendanceRequest;
 use App\Http\Requests\UpdateStatusAttendanceRequest;
 use App\Http\Resources\DetailInternAttendanceResource;
+use App\Models\CheckinMessage; // [BARU] Import model CheckinMessage
 
 class AttendanceController extends Controller
 {
-    protected $attendanceService;
-    protected $shiftRepository;
-    protected $userService;
+    protected AttendanceService $attendanceService;
+    protected ShiftRepository $shiftRepository;
+    protected UserService $userService;
     protected AdjustableService $adjustableService;
     protected NotificationService $notificationService;
 
@@ -69,170 +70,195 @@ class AttendanceController extends Controller
             ], 400);
         }
 
-    try {
-        $absenData = $result->getData()['absenceHistory'];
-        $attendanceId = $absenData->id;
-        $shiftId = $absenData->shift_id;
+        // [BARU] Variabel untuk menyimpan data popup check-in
+        $checkinPopupData = null;
 
-        // Validasi data yang diperlukan
-        if (!$shiftId || !$absenData->start_time) {
-            Log::warning('Data shift atau start_time tidak tersedia', [
-                'shift_id' => $shiftId,
-                'start_time' => $absenData->start_time
-            ]);
-            return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
-        }
+        try {
+            $absenData = $result->getData()['absenceHistory'];
+            $attendanceId = $absenData->id;
+            $shiftId = $absenData->shift_id;
 
-        // Dapatkan shift
-        $shift = \App\Models\Shift::find($shiftId);
-        if (!$shift) {
-            Log::warning('Shift tidak ditemukan', ['shift_id' => $shiftId]);
-            return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
-        }
+            // Validasi data yang diperlukan
+            if (!$shiftId || !$absenData->start_time) {
+                Log::warning('Data shift atau start_time tidak tersedia', [
+                    'shift_id' => $shiftId,
+                    'start_time' => $absenData->start_time
+                ]);
+                return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
+            }
 
-        // PERBAIKAN UTAMA: Parse waktu dengan benar
-        $timezone = config('app.timezone', 'Asia/Jakarta');
+            // Dapatkan shift
+            $shift = \App\Models\Shift::find($shiftId);
+            if (!$shift) {
+                Log::warning('Shift tidak ditemukan', ['shift_id' => $shiftId]);
+                return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
+            }
 
-        // Parse waktu absen masuk
-        $absenTime = Carbon::parse($absenData->start_time)->setTimezone($timezone);
+            // PERBAIKAN UTAMA: Parse waktu dengan benar
+            $timezone = config('app.timezone', 'Asia/Jakarta');
 
-        // Parse tanggal absen
-        $attendanceDate = Carbon::parse($absenData->date)->setTimezone($timezone);
+            // Parse waktu absen masuk
+            $absenTime = Carbon::parse($absenData->start_time)->setTimezone($timezone);
 
-        // Buat waktu mulai shift untuk tanggal yang sama dengan absen
-        $shiftStartTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . $shift->start_time, $timezone);
+            // Parse tanggal absen
+            $attendanceDate = Carbon::parse($absenData->date)->setTimezone($timezone);
 
-        Log::debug('Perbandingan waktu untuk deteksi keterlambatan:', [
-            'attendance_id' => $attendanceId,
-            'absen_time' => $absenTime->format('Y-m-d H:i:s'),
-            'shift_start_time' => $shiftStartTime->format('Y-m-d H:i:s'),
-            'shift_name' => $shift->name
-        ]);
+            // Buat waktu mulai shift untuk tanggal yang sama dengan absen
+            $shiftStartTime = Carbon::parse($attendanceDate->format('Y-m-d') . ' ' . $shift->start_time, $timezone);
 
-        // Toleransi keterlambatan
-        $toleranceMinutes = 5;
-
-        // PERBAIKAN: Hitung selisih waktu dengan benar
-        // Jika absenTime lebih besar dari shiftStartTime = telat
-        if ($absenTime->greaterThan($shiftStartTime)) {
-            $differenceMinutes = $absenTime->diffInMinutes($shiftStartTime);
-            $isLate = $differenceMinutes > $toleranceMinutes;
-        } else {
-            // Absen lebih awal atau tepat waktu
-            $differenceMinutes = 0;
-            $isLate = false;
-        }
-
-        Log::debug('Hasil perhitungan keterlambatan:', [
-            'difference_minutes' => $differenceMinutes,
-            'tolerance_minutes' => $toleranceMinutes,
-            'is_late' => $isLate,
-            'absen_vs_shift' => $absenTime->format('H:i:s') . ' vs ' . $shiftStartTime->format('H:i:s')
-        ]);
-
-        if ($isLate) {
-        // Durasi telat = selisih waktu dikurangi toleransi
-        $lateMinutes = $differenceMinutes - $toleranceMinutes;
-
-        // Cek apakah sudah ada record untuk attendance ini
-        $existingLateAbsence = LateAbsence::where('attendance_id', $attendanceId)->first();
-
-        if (!$existingLateAbsence) {
-            $lateAbsence = LateAbsence::create([
-                'intern_id' => $absenData->intern_id,
-                'shift_id' => $shift->id,
+            Log::debug('Perbandingan waktu untuk deteksi keterlambatan:', [
                 'attendance_id' => $attendanceId,
-                'date' => $attendanceDate->format('Y-m-d'), // REQUIRED FIELD
-                'absen_time' => $absenTime,
-                'scheduled_time' => $shift->start_time, // REQUIRED FIELD
-                'late_minutes' => $lateMinutes,
-                'status' => 'telat',
-                'type' => 'checkin' // REQUIRED FIELD
+                'absen_time' => $absenTime->format('Y-m-d H:i:s'),
+                'shift_start_time' => $shiftStartTime->format('Y-m-d H:i:s'),
+                'shift_name' => $shift->name
             ]);
 
-            Log::info('Data keterlambatan berhasil disimpan:', [
-                'late_absence_id' => $lateAbsence->id,
-                'intern_id' => $absenData->intern_id,
-                'attendance_id' => $attendanceId,
-                'date' => $attendanceDate->format('Y-m-d'),
-                'late_minutes' => $lateMinutes,
-                'shift_start' => $shiftStartTime->format('H:i:s'),
-                'actual_time' => $absenTime->format('H:i:s'),
-                'difference' => $differenceMinutes . ' menit'
+            // Toleransi keterlambatan
+            $toleranceMinutes = 5;
+
+            // PERBAIKAN: Hitung selisih waktu dengan benar
+            // Jika absenTime lebih besar dari shiftStartTime = telat
+            if ($absenTime->greaterThan($shiftStartTime)) {
+                $differenceMinutes = $absenTime->diffInMinutes($shiftStartTime);
+                $isLate = $differenceMinutes > $toleranceMinutes;
+            } else {
+                // Absen lebih awal atau tepat waktu
+                $differenceMinutes = 0;
+                $isLate = false;
+            }
+
+            Log::debug('Hasil perhitungan keterlambatan:', [
+                'difference_minutes' => $differenceMinutes,
+                'tolerance_minutes' => $toleranceMinutes,
+                'is_late' => $isLate,
+                'absen_vs_shift' => $absenTime->format('H:i:s') . ' vs ' . $shiftStartTime->format('H:i:s')
             ]);
 
-            // Kirim notifikasi jika ada
-            $this->sendLateNotification($lateAbsence);
-        } else {
-            Log::info('Data keterlambatan sudah ada', [
-                'attendance_id' => $attendanceId,
-                'existing_id' => $existingLateAbsence->id
+            // ============================================================
+            // [BARU] Siapkan data popup check-in berdasarkan status
+            // ============================================================
+            $popupMsg = $isLate
+                ? CheckinMessage::getLateMessage()
+                : CheckinMessage::getOnTimeMessage();
+
+            if ($popupMsg) {
+                $checkinPopupData = [
+                    'type'    => $isLate ? 'late' : 'on_time',
+                    'message' => $popupMsg->message,
+                    'image'   => $popupMsg->image ? asset('checkin-images/' . $popupMsg->image) : null,
+                ];
+            } else {
+                // Fallback jika belum ada setting di database
+                $checkinPopupData = [
+                    'type'    => $isLate ? 'late' : 'on_time',
+                    'message' => $isLate
+                        ? 'Anda terlambat hari ini. Harap datang tepat waktu!'
+                        : 'Selamat datang! Anda tepat waktu hari ini 🎉',
+                    'image'   => null,
+                ];
+            }
+            // ============================================================
+
+            if ($isLate) {
+                // Durasi telat = selisih waktu dikurangi toleransi
+                $lateMinutes = $differenceMinutes - $toleranceMinutes;
+
+                // Cek apakah sudah ada record untuk attendance ini
+                $existingLateAbsence = LateAbsence::where('attendance_id', $attendanceId)->first();
+
+                if (!$existingLateAbsence) {
+                    $lateAbsence = LateAbsence::create([
+                        'intern_id' => $absenData->intern_id,
+                        'shift_id' => $shift->id,
+                        'attendance_id' => $attendanceId,
+                        'date' => $attendanceDate->format('Y-m-d'),
+                        'absen_time' => $absenTime,
+                        'scheduled_time' => $shift->start_time,
+                        'late_minutes' => $lateMinutes,
+                        'status' => 'telat',
+                        'type' => 'checkin'
+                    ]);
+
+                    Log::info('Data keterlambatan berhasil disimpan:', [
+                        'late_absence_id' => $lateAbsence->id,
+                        'intern_id' => $absenData->intern_id,
+                        'attendance_id' => $attendanceId,
+                        'date' => $attendanceDate->format('Y-m-d'),
+                        'late_minutes' => $lateMinutes,
+                        'shift_start' => $shiftStartTime->format('H:i:s'),
+                        'actual_time' => $absenTime->format('H:i:s'),
+                        'difference' => $differenceMinutes . ' menit'
+                    ]);
+
+                    // Kirim notifikasi jika ada
+                    $this->sendLateNotification($lateAbsence);
+                } else {
+                    Log::info('Data keterlambatan sudah ada', [
+                        'attendance_id' => $attendanceId,
+                        'existing_id' => $existingLateAbsence->id
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error dalam proses keterlambatan: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ]);
         }
-}
 
-    } catch (\Exception $e) {
-        Log::error('Error dalam proses keterlambatan: ' . $e->getMessage(), [
-            'trace' => $e->getTraceAsString(),
-            'file' => $e->getFile(),
-            'line' => $e->getLine()
-        ]);
-}
-
-    return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
-}
-
-// Method untuk mengirim notifikasi keterlambatan
-private function sendLateNotification(LateAbsence $lateAbsence)
-{
-    try {
-        // Dapatkan data intern
-        $intern = $lateAbsence->intern;
-        $shift = $lateAbsence->shift;
-
-        if (!$intern || !$shift) {
-            Log::warning('Data intern atau shift tidak ditemukan untuk notifikasi', [
-                'late_absence_id' => $lateAbsence->id
-            ]);
-            return;
+        // ============================================================
+        // [BARU] Flash data popup ke session agar tampil di view
+        // ============================================================
+        if ($checkinPopupData) {
+            session()->flash('checkin_popup', $checkinPopupData);
         }
+        // ============================================================
 
-        // Format pesan notifikasi
-        $message = "⚠️ Peringatan Keterlambatan!\n" .
-                  "Nama: " . ($intern->user->profile->full_name ?? 'Unknown') . "\n" .
-                  "Shift: " . $shift->name . " (" . $shift->start_time . " - " . $shift->end_time . ")\n" .
-                  "Waktu Absen: " . $lateAbsence->absen_time->format('H:i:s') . "\n" .
-                  "Terlambat: " . $lateAbsence->late_minutes . " menit\n" .
-                  "Tanggal: " . $lateAbsence->absen_time->format('d-m-Y');
-
-        // Di sini Anda bisa mengintegrasikan dengan:
-        // - WhatsApp API
-        // - Email Notification
-        // - Push Notification
-        // - Database Notification
-
-        Log::info('Notifikasi keterlambatan: ' . $message);
-
-        // Contoh: Simpan notifikasi ke database
-        Notification::create([
-            'user_id' => $intern->user_id,
-            'type' => 'late_attendance',
-            'message' => $message,
-            'data' => [
-                'late_absence_id' => $lateAbsence->id,
-                'late_minutes' => $lateAbsence->late_minutes
-            ]
-        ]);
-
-    } catch (\Exception $e) {
-        Log::error('Gagal mengirim notifikasi keterlambatan: ' . $e->getMessage());
+        return response()->json(['success' => true, 'message' => $result->getMessage(), 'data' => $result->getData()], 200);
     }
-}
 
-
-public function actionAttendaceReport(Request $request)
+    // Method untuk mengirim notifikasi keterlambatan
+    private function sendLateNotification(LateAbsence $lateAbsence)
     {
+        try {
+            // Dapatkan data intern
+            $intern = $lateAbsence->intern;
+            $shift = $lateAbsence->shift;
 
+            if (!$intern || !$shift) {
+                Log::warning('Data intern atau shift tidak ditemukan untuk notifikasi', [
+                    'late_absence_id' => $lateAbsence->id
+                ]);
+                return;
+            }
+
+            // Format pesan notifikasi
+            $message = "⚠️ Peringatan Keterlambatan!\n" .
+                "Nama: " . ($intern->user->profile->full_name ?? 'Unknown') . "\n" .
+                "Shift: " . $shift->name . " (" . $shift->start_time . " - " . $shift->end_time . ")\n" .
+                "Waktu Absen: " . $lateAbsence->absen_time->format('H:i:s') . "\n" .
+                "Terlambat: " . $lateAbsence->late_minutes . " menit\n" .
+                "Tanggal: " . $lateAbsence->absen_time->format('d-m-Y');
+
+            Log::info('Notifikasi keterlambatan: ' . $message);
+
+            Notification::create([
+                'user_id' => $intern->user_id,
+                'type' => 'late_attendance',
+                'message' => $message,
+                'data' => [
+                    'late_absence_id' => $lateAbsence->id,
+                    'late_minutes' => $lateAbsence->late_minutes
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Gagal mengirim notifikasi keterlambatan: ' . $e->getMessage());
+        }
+    }
+
+    public function actionAttendaceReport(Request $request)
+    {
         $result = $this->attendanceService->attendanceReport($request);
 
         $data = [
@@ -248,7 +274,7 @@ public function actionAttendaceReport(Request $request)
         return response()->json($data);
     }
 
-    public function updateTime(UpdateTimeAttendanceRequest $updateTimeAttendanceRequest, $id)
+    public function updateTime(UpdateTimeAttendanceRequest $updateTimeAttendanceRequest, int $id)
     {
         $result = $this->attendanceService->updateTime($updateTimeAttendanceRequest, $id);
 
@@ -259,14 +285,14 @@ public function actionAttendaceReport(Request $request)
         }
     }
 
-    public function updateStatus(UpdateStatusAttendanceRequest $updateStatusAttendanceRequest, $id)
+    public function updateStatus(UpdateStatusAttendanceRequest $updateStatusAttendanceRequest, int $id)
     {
         $this->attendanceService->updateStatus($updateStatusAttendanceRequest, $id);
 
         return redirect()->back()->with('status', 'Data Status berhasil diupdate!');
     }
 
-    public function updateStatusAdjustable(Request $request, $id)
+    public function updateStatusAdjustable(Request $request, int $id)
     {
         $request->validate([
             'is_approved' => 'required',
@@ -287,10 +313,11 @@ public function actionAttendaceReport(Request $request)
 
     public function attendaceAdmin(Request $request)
     {
+        $this->attendanceService->markMissedSchedulesAsAlpha();
+
         $attendanceTotalToday = $this->attendanceService->getTotalInternAbsence($request);
         $listAttendaceToday = $this->attendanceService->getInternAttendance($request);
         $resultValue = $listAttendaceToday->isSuccess() ? $listAttendaceToday->getData() : null;
-
 
         $data = [
             "listAttendance" => $resultValue["data"] ?? [],
@@ -303,39 +330,37 @@ public function actionAttendaceReport(Request $request)
     }
 
     public function attendanceDetailAdmin(Request $request)
-{
-    // Add logging to see what's being received
-    Log::info('Attendance detail request received:', [
-        'intern_id' => $request->get('intern_id'),
-        'page' => $request->get('page'),
-        'per_page' => $request->get('per_page'),
-        'all_params' => $request->all()
-    ]);
-
-    try {
-        $result = $this->attendanceService->detailAttendanceReport($request);
-
-        Log::info('Service result:', [
-            'is_success' => $result->isSuccess(),
-            'message' => $result->getMessage(),
-            'has_data' => $result->getData() !== null
+    {
+        Log::info('Attendance detail request received:', [
+            'intern_id' => $request->get('intern_id'),
+            'page' => $request->get('page'),
+            'per_page' => $request->get('per_page'),
+            'all_params' => $request->all()
         ]);
 
-        if (!$result->isSuccess()) {
-            Log::error('Service returned error:', [
-                'message' => $result->getMessage()
-            ]);
-            return response()->json([
-                'status' => false,
-                'status_code' => 400,
+        try {
+            $result = $this->attendanceService->detailAttendanceReport($request);
+
+            Log::info('Service result:', [
+                'is_success' => $result->isSuccess(),
                 'message' => $result->getMessage(),
-                'data' => null,
-                'meta' => null,
-            ], 400);
-        }
+                'has_data' => $result->getData() !== null
+            ]);
 
-        return new DetailInternAttendanceResource($result->getData());
+            if (!$result->isSuccess()) {
+                Log::error('Service returned error:', [
+                    'message' => $result->getMessage()
+                ]);
+                return response()->json([
+                    'status' => false,
+                    'status_code' => 400,
+                    'message' => $result->getMessage(),
+                    'data' => null,
+                    'meta' => null,
+                ], 400);
+            }
 
+            return new DetailInternAttendanceResource($result->getData());
         } catch (\Exception $e) {
             Log::error('Exception in attendanceDetailAdmin:', [
                 'message' => $e->getMessage(),
@@ -355,40 +380,37 @@ public function actionAttendaceReport(Request $request)
     }
 
     public function testDetail(Request $request)
-{
-    try {
-        $internId = $request->get('intern_id');
+    {
+        try {
+            $internId = $request->get('intern_id');
 
-        // Test if intern exists
-        $intern = \App\Models\Intern::find($internId);
-        if (!$intern) {
+            $intern = \App\Models\Intern::find($internId);
+            if (!$intern) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Intern not found',
+                    'intern_id' => $internId
+                ]);
+            }
+
+            $attendances = \App\Models\Attendance::where('intern_id', $internId)
+                ->limit(5)
+                ->get();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Test successful',
+                'intern' => $intern,
+                'attendances_count' => $attendances->count(),
+                'attendances' => $attendances
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'status' => false,
-                'message' => 'Intern not found',
-                'intern_id' => $internId
+                'message' => 'Error: ' . $e->getMessage()
             ]);
         }
-
-        // Test basic attendance query
-        $attendances = \App\Models\Attendance::where('intern_id', $internId)
-            ->limit(5)
-            ->get();
-
-        return response()->json([
-            'status' => true,
-            'message' => 'Test successful',
-            'intern' => $intern,
-            'attendances_count' => $attendances->count(),
-            'attendances' => $attendances
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => false,
-            'message' => 'Error: ' . $e->getMessage()
-        ]);
     }
-}
 
     public function updatePermitPresence(UpdatePermitPresenceRequest $updatePermitPresenceRequest)
     {
@@ -406,7 +428,6 @@ public function actionAttendaceReport(Request $request)
 
     public function locationUser(Request $request)
     {
-
         $office_id = $request->query('office_id');
 
         $coordinates = Coordinate::where('office_id', $office_id)
@@ -431,14 +452,14 @@ public function actionAttendaceReport(Request $request)
         return redirect()->back()->with('status', 'Data Shift berhasil diperbarui!');
     }
 
-    public function storeNote(Request $request, $id)
+    public function storeNote(Request $request, int $id)
     {
         $this->attendanceService->storeNote($request, $id);
 
         return redirect()->back()->with('status', 'Catatan berhasil ditambahkan.');
     }
 
-    public function show($internId)
+    public function show(int $internId)
     {
         $intern = Intern::with(['schedules.detailSchedules.logActivity'])
             ->findOrFail($internId);
@@ -458,7 +479,7 @@ public function actionAttendaceReport(Request $request)
         return view('admin.log-activity', compact('logActivities', 'internId', 'profileName'));
     }
 
-    public function reportUserPDF($internId)
+    public function reportUserPDF(int $internId)
     {
         $attdStatusId = request('attd_status_id');
 
@@ -496,9 +517,15 @@ public function actionAttendaceReport(Request $request)
                 $totalMin = $attendance->total_min ?? 0;
                 $totalBreakMin = $attendance->total_break_min ?? 0;
 
-                $workingMinutes = $totalMin - $totalBreakMin;
+                $isExcused = \App\Helper\TimeHelper::isApprovedExcusedLeave($detailSchedule);
 
-                $difference = $shiftMinutes - $workingMinutes;
+                if ($isExcused) {
+                    $workingMinutes = $shiftMinutes;
+                    $difference = 0;
+                } else {
+                    $workingMinutes = $totalMin - $totalBreakMin;
+                    $difference = $shiftMinutes - $workingMinutes;
+                }
 
                 $hours = floor($workingMinutes / 60);
                 $minutes = $workingMinutes % 60;
@@ -511,13 +538,11 @@ public function actionAttendaceReport(Request $request)
                         ? '+' . floor(abs($difference) / 60) . 'j ' . (abs($difference) % 60) . 'm'
                         : '0j 0m');
 
-
                 $adjustableData = $adjustableAttendance->map(function ($adj) {
                     $totalMin = $adj->total_min;
                     $totalBreakMin = $adj->total_break_min;
                     $workingMinutes = $totalMin - $totalBreakMin;
 
-                    // Hitung format jam dan menit
                     $hours = floor($workingMinutes / 60);
                     $minutes = $workingMinutes % 60;
                     $formattedWorkingTime = "{$hours}j {$minutes}m";
@@ -533,8 +558,8 @@ public function actionAttendaceReport(Request $request)
 
                 $attdStatus = $detailSchedule->attdStatus->name ?? '-';
 
-                if ($detailSchedule->attdStatus->id == 3) {
-                    if ($detailSchedule->isChangeSchedule == 1) {
+                if ($detailSchedule->attdStatus && $detailSchedule->attdStatus->id == 3) {
+                    if ($detailSchedule->isChangeSchedule == 1 || $isExcused) {
                         $attdStatus = 'Izin (Tidak Ganti Jam)';
                     } elseif ($detailSchedule->isChangeSchedule == 2) {
                         $attdStatus = 'Izin (Ganti Jam)';
@@ -619,9 +644,15 @@ public function actionAttendaceReport(Request $request)
                     $totalMin = $attendance->total_min ?? 0;
                     $totalBreakMin = $attendance->total_break_min ?? 0;
 
-                    $workingMinutes = $totalMin - $totalBreakMin;
+                    $isExcused = \App\Helper\TimeHelper::isApprovedExcusedLeave($detailSchedule);
 
-                    $difference = $shiftMinutes - $workingMinutes;
+                    if ($isExcused) {
+                        $workingMinutes = $shiftMinutes;
+                        $difference = 0;
+                    } else {
+                        $workingMinutes = $totalMin - $totalBreakMin;
+                        $difference = $shiftMinutes - $workingMinutes;
+                    }
 
                     $hours = floor($workingMinutes / 60);
                     $minutes = $workingMinutes % 60;
@@ -639,7 +670,6 @@ public function actionAttendaceReport(Request $request)
                         $totalBreakMin = $adj->total_break_min;
                         $workingMinutes = $totalMin - $totalBreakMin;
 
-                        // Hitung format jam dan menit
                         $hours = floor($workingMinutes / 60);
                         $minutes = $workingMinutes % 60;
                         $formattedWorkingTime = "{$hours}j {$minutes}m";
@@ -656,8 +686,8 @@ public function actionAttendaceReport(Request $request)
 
                     $attdStatus = $detailSchedule->attdStatus->name ?? '-';
 
-                    if ($detailSchedule->attdStatus->id == 3) {
-                        if ($detailSchedule->isChangeSchedule == 1) {
+                    if ($detailSchedule->attdStatus && $detailSchedule->attdStatus->id == 3) {
+                        if ($detailSchedule->isChangeSchedule == 1 || $isExcused) {
                             $attdStatus = 'Izin (Tidak Ganti Jam)';
                         } elseif ($detailSchedule->isChangeSchedule == 2) {
                             $attdStatus = 'Izin (Ganti Jam)';
@@ -686,8 +716,7 @@ public function actionAttendaceReport(Request $request)
         return $pdf->download("report-{$date}.pdf");
     }
 
-
-    public function detailAutoAttendance($id)
+    public function detailAutoAttendance(int $id)
     {
         $userData = $this->userService->getUserLoggedData();
         $autoResult = $this->attendanceService->shortAutomaticAttendance(name: $id);
@@ -701,7 +730,8 @@ public function actionAttendaceReport(Request $request)
 
         return view("admin.detail_auto_attendance")->with($data);
     }
-    public function updatestatusattd($id)
+
+    public function updatestatusattd(int $id)
     {
         $detailSchedule = DetailSchedule::find($id);
         if (!$detailSchedule) {
@@ -716,7 +746,8 @@ public function actionAttendaceReport(Request $request)
 
         return redirect()->back()->with('status', 'Status berhasil diperbarui!');
     }
-    public function reset($id)
+
+    public function reset(int $id)
     {
         Attendance::where('id', $id)->update([
             'start_time' => null,
@@ -743,40 +774,36 @@ public function actionAttendaceReport(Request $request)
         return redirect()->back()->with('status', 'Data berhasil direset!');
     }
 
-   public function delete($id)
-{
-    try {
-        // Mulai database transaction untuk memastikan data konsisten
-        DB::beginTransaction();
+    public function delete(int $id)
+    {
+        try {
+            DB::beginTransaction();
 
-        $detailSchedule = DetailSchedule::find($id);
-        if (!$detailSchedule) {
-            return redirect()->back()->with('error', 'Data tidak ditemukan!');
+            $detailSchedule = DetailSchedule::find($id);
+            if (!$detailSchedule) {
+                return redirect()->back()->with('error', 'Data tidak ditemukan!');
+            }
+
+            $attendanceId = $detailSchedule->attendance_id;
+
+            AdjustableAttd::where('detail_schedule_id', $id)->delete();
+
+            $detailSchedule->delete();
+
+            if ($attendanceId) {
+                Attendance::where('id', $attendanceId)->delete();
+            }
+
+            DB::commit();
+            return redirect()->back()->with('status', 'Data berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error deleting schedule: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
         }
-
-        $attendanceId = $detailSchedule->attendance_id;
-
-        // Hapus semua record adjustable_attds yang terkait dengan detail_schedule ini
-        AdjustableAttd::where('detail_schedule_id', $id)->delete();
-
-        // Kemudian hapus detail schedule
-        $detailSchedule->delete();
-
-        // Terakhir, hapus record attendance jika ada
-        if ($attendanceId) {
-            Attendance::where('id', $attendanceId)->delete();
-        }
-
-        DB::commit();
-        return redirect()->back()->with('status', 'Data berhasil dihapus!');
-
-    } catch (\Exception $e) {
-        DB::rollback();
-        Log::error('Error deleting schedule: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Gagal menghapus data: ' . $e->getMessage());
     }
-}
-   public function sendAlphaNotification($id)
+
+    public function sendAlphaNotification(int $id)
     {
         $detailSchedule = DetailSchedule::find($id);
 
@@ -817,7 +844,7 @@ public function actionAttendaceReport(Request $request)
         ], $result->isSuccess() ? 200 : 500);
     }
 
-    public function sendPermitNotification($id)
+    public function sendPermitNotification(int $id)
     {
         $detailSchedule = DetailSchedule::find($id);
 
@@ -858,60 +885,50 @@ public function actionAttendaceReport(Request $request)
         ], $result->isSuccess() ? 200 : 500);
     }
 
-   public function deleteAdjustableAttendance($id)
-{
-    try {
-        DB::beginTransaction();
+    public function deleteAdjustableAttendance(int $id)
+    {
+        try {
+            DB::beginTransaction();
 
-        // Cari adjustable attendance berdasarkan ID
-        $adjustableAttd = AdjustableAttd::find($id);
-        
-        if (!$adjustableAttd) {
-            return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
+            $adjustableAttd = AdjustableAttd::find($id);
+
+            if (!$adjustableAttd) {
+                return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
+            }
+
+            $detailScheduleId = $adjustableAttd->detail_schedule_id;
+
+            $adjustableAttd->delete();
+
+            DB::commit();
+            return redirect()->back()->with('status', 'Data adjustable attendance berhasil dihapus!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error deleting adjustable attendance: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus data adjustable attendance: ' . $e->getMessage());
         }
-
-        // Simpan detail_schedule_id sebelum menghapus (jika diperlukan)
-        $detailScheduleId = $adjustableAttd->detail_schedule_id;
-
-        // Hapus adjustable attendance
-        $adjustableAttd->delete();
-
-        DB::commit();
-        return redirect()->back()->with('status', 'Data adjustable attendance berhasil dihapus!');
-
-    } catch (\Exception $e) {
-        DB::rollback();
-        Log::error('Error deleting adjustable attendance: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Gagal menghapus data adjustable attendance: ' . $e->getMessage());
     }
-}
 
-// TAMBAHKAN METHOD INI - untuk restore adjustable attendance
-public function restoreAdjustableAttendance($id)
-{
-    try {
-        DB::beginTransaction();
+    public function restoreAdjustableAttendance(int $id)
+    {
+        try {
+            DB::beginTransaction();
 
-        // Cari adjustable attendance berdasarkan ID
-        $adjustableAttd = AdjustableAttd::find($id);
-        
-        if (!$adjustableAttd) {
-            return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
+            $adjustableAttd = AdjustableAttd::find($id);
+
+            if (!$adjustableAttd) {
+                return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
+            }
+
+            $adjustableAttd->is_approved = null;
+            $adjustableAttd->save();
+
+            DB::commit();
+            return redirect()->back()->with('status', 'Data adjustable attendance berhasil di-restore!');
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error('Error restoring adjustable attendance: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal restore data adjustable attendance: ' . $e->getMessage());
         }
-
-        // Logic untuk restore (sesuaikan dengan kebutuhan)
-        // Contoh: reset status approval
-        $adjustableAttd->is_approved = null;
-        $adjustableAttd->save();
-
-        DB::commit();
-        return redirect()->back()->with('status', 'Data adjustable attendance berhasil di-restore!');
-
-    } catch (\Exception $e) {
-        DB::rollback();
-        Log::error('Error restoring adjustable attendance: ' . $e->getMessage());
-        return redirect()->back()->with('error', 'Gagal restore data adjustable attendance: ' . $e->getMessage());
     }
-}
-
 }

@@ -2,19 +2,20 @@
 
 namespace App\Repositories\Interface;
 
-interface InternRepository {
-    public function store($data);
-    public function update($id, $data);
-    public function getById($id);
+interface InternRepository
+{
+    public function store(array $data);
+    public function update(int $id, array $data);
+    public function getById(int $id);
     public function getWithoutDivision();
-    public function getBySchoolId($schoolId);
-    public function getByProfileId($id);
-    public function getByDivisionId($id);
+    public function getBySchoolId(int $schoolId);
+    public function getByProfileId(int $id);
+    public function getByDivisionId(int $id);
     public function getAll();
-    public function getAllWithPaggination($pagnt, $currentPage);
-    public function getMultiByNamePagination($name,  $pagnt, $currentPage);
+    public function getAllWithPaggination(int $pagnt, int $currentPage);
+    public function getMultiByNamePagination(string $name, int $pagnt, int $currentPage);
     public function count();
     public function countByInternRole();
-    public function countBySchool($schoolId);
-    public function countByDivision($divisionId);
+    public function countBySchool(int $schoolId);
+    public function countByDivision(int $divisionId);
 }

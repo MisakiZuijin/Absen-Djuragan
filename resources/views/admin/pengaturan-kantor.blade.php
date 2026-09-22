@@ -96,9 +96,10 @@
         </div>
     </div>
 
+    <script id="office-data" type="application/json">@json($office)</script>
     <script>
         $(document).ready(function() {
-            let offices = @json($office); 
+            let offices = JSON.parse(document.getElementById('office-data')?.textContent || '[]'); 
             let filteredOffices = offices; 
             let itemsPerPage = 5;
             let currentPage = 1;

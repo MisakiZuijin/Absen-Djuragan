@@ -48,11 +48,13 @@ use App\Repositories\Implementation\AdjustableAttdRepositoryIMPL;
 use App\Repositories\Implementation\DetailScheduleRepositoryIMPL;
 use App\Repositories\Implementation\PermitCategoryRepositoryIMPL;
 
-class AppServiceProvider extends ServiceProvider {
+class AppServiceProvider extends ServiceProvider
+{
     /**
      * Register any application services.
      */
-    public function register(): void {
+    public function register(): void
+    {
         $this->app->singleton(UserRepository::class, UserRepositoryIMPL::class);
         $this->app->singleton(ProfileRepository::class, ProfileRepositoryIMPL::class);
         $this->app->singleton(SchoolRepository::class, SchoolRepositoryIMPL::class);
@@ -74,17 +76,16 @@ class AppServiceProvider extends ServiceProvider {
         $this->app->singleton(DiscountTimeRepository::class, DiscountTimeRepositoryIMPL::class);
         $this->app->singleton(AdjustableAttdRepository::class, AdjustableAttdRepositoryIMPL::class);
         $this->app->bind(LateAbsenceService::class, function ($app) {
-        return new LateAbsenceService($app->make(LateAbsenceRepository::class));
-});
+            return new LateAbsenceService($app->make(LateAbsenceRepository::class));
+        });
     }
 
 
     /**
      * Bootstrap any application services.
      */
-    public function boot(): void {
+    public function boot(): void
+    {
         Outsider::observe(OutsiderObserver::class);
     }
-
-
 }

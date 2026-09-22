@@ -44,6 +44,7 @@ class AdminController extends Controller
 
     public function homeView(): View
     {
+        $this->attendanceService->markMissedSchedulesAsAlpha();
         $userData = $this->userService->getUserLoggedData();
         $internTotal = $this->internService->internTotal();
         $attendanceTotalToday = $this->attendanceService->getTotalInternAbsenceHome();

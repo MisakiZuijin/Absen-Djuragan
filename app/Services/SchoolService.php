@@ -13,8 +13,8 @@ use function Sentry\captureException;
 
 class SchoolService
 {
-    protected $schoolRepository;
-    protected $internRepository;
+    protected SchoolRepository $schoolRepository;
+    protected InternRepository $internRepository;
 
     public function __construct(SchoolRepository $schoolRepositor, InternRepository $internRepository)
     {
@@ -22,7 +22,7 @@ class SchoolService
         $this->internRepository = $internRepository;
     }
 
-    public function getTeamBySchoolId($schoolId): ActionResult
+    public function getTeamBySchoolId(int $schoolId): ActionResult
     {
         try {
 
@@ -86,7 +86,7 @@ class SchoolService
         }
     }
 
-    public function update(UpdateSchoolRequest $updateSchoolRequest, $id): ActionResult
+    public function update(UpdateSchoolRequest $updateSchoolRequest, int $id): ActionResult
     {
         try {
             $data = $updateSchoolRequest->validated();
@@ -104,7 +104,7 @@ class SchoolService
         }
     }
 
-    public function delete($id)
+    public function delete(int $id)
     {
         try {
             $result = $this->schoolRepository->delete($id);

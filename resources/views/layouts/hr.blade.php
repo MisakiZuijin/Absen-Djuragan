@@ -58,7 +58,7 @@
                         </div>
                         <div>
                             <h1 class="text-2xl font-bold text-slate-800">HR Monitoring</h1>
-                            <p class="text-sm text-slate-500 font-medium">{{ $day_now }}, {{ $date_now }}</p>
+                            <p class="text-sm text-slate-500 font-medium">{{ $day_now ?? \App\Utils\DateNow::getCurrentDay() }}, {{ $date_now ?? \App\Utils\DateNow::getCurrentDate() }}</p>
                         </div>
                     </div>
 

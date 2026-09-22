@@ -88,6 +88,9 @@ class DivisionController extends Controller
 
         if ($teamData->isSuccess()) {
             $team = $teamData->getData();
+            if ($team->intern) {
+                $team->intern->loadMissing(['account', 'division']);
+            }
             $teamProject = $team->intern->detailProject;
             foreach ($teamProject as $project) {
                 if ($project->is_done == false) {

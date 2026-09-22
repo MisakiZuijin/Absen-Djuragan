@@ -75,6 +75,16 @@
                 </a>
             </li>
 
+            <!-- Menu Item: Portofolio Project -->
+            <li>
+                <a href="{{ route('admin.projects.completed') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-lg transition-all duration-300 {{ Request::is('admin/portofolio-project*') ? 'bg-gradient-to-r font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1' }}">
+                    <i
+                        class="fa-solid fa-briefcase w-5 text-center transition-transform duration-300 {{ Request::is('admin/portofolio-project*') ? 'scale-110' : '' }}"></i>
+                    <span>Portofolio Project</span>
+                </a>
+            </li>
+
             <!-- Menu Item: Sekolah -->
             <li>
                 <a href="{{ url('/admin/sekolah') }}"
@@ -109,6 +119,22 @@
                     <i class="fa-solid fa-chevron-down text-xs transition-transform duration-300"></i>
                 </a>
                 <ul class="submenu pt-2 pl-8 space-y-2">
+                    <li>
+                        <a href="{{ route('admin.permitSakit.index') }}"
+                            class="flex items-center gap-x-3 py-2 rounded-lg transition-all duration-300 {{ Request::is('admin/izin-sakit*') ? 'text-white font-semibold bg-gray-700 px-2' : 'hover:text-white hover:translate-x-1' }}">
+                            <i
+                                class="fa-solid fa-notes-medical fa-2xs transition-transform duration-300 {{ Request::is('admin/izin-sakit*') ? 'scale-125' : '' }}"></i>
+                            Izin Sakit
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('admin.permitKeperluan.index') }}"
+                            class="flex items-center gap-x-3 py-2 rounded-lg transition-all duration-300 {{ Request::is('admin/izin-tidak-hadir*') ? 'text-white font-semibold bg-gray-700 px-2' : 'hover:text-white hover:translate-x-1' }}">
+                            <i
+                                class="fa-solid fa-user-clock fa-2xs transition-transform duration-300 {{ Request::is('admin/izin-tidak-hadir*') ? 'scale-125' : '' }}"></i>
+                            Izin Tidak Hadir
+                        </a>
+                    </li>
                     <li>
                         <a href="{{ route('admin.izinKeluar.index') }}"
                             class="flex items-center gap-x-3 py-2 rounded-lg transition-all duration-300 {{ Request::is('admin/izin-keluar*') ? 'text-white font-semibold bg-gray-700 px-2' : 'hover:text-white hover:translate-x-1' }}">

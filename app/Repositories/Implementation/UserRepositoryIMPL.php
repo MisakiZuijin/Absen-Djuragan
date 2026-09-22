@@ -8,51 +8,62 @@ use App\Repositories\Interface\UserRepository;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
 
-class UserRepositoryIMPL implements UserRepository {
-    protected $model;
-    protected $profil;
+class UserRepositoryIMPL implements UserRepository
+{
+    protected User $model;
 
-    public function __construct(User $user) {
+    public function __construct(User $user)
+    {
         $this->model = $user;
     }
 
-    public function attemptLogin($credentials) {
+    public function attemptLogin(mixed $credentials)
+    {
         return Auth::login($credentials);
     }
 
-    public function getAuthenticatedUser() {
+    public function getAuthenticatedUser()
+    {
         return Auth::user();
     }
 
-    public function deleteAuthenticatedUser() {
+    public function deleteAuthenticatedUser()
+    {
         Auth::logout();
     }
 
-    public function store(array $data) {
+    public function store(array $data)
+    {
         return $this->model->create($data);
     }
 
-    public function findByEmail(string $email) {
+    public function findByEmail(string $email)
+    {
         return $this->model->where('email', $email)->first();
     }
 
-    public function findByUsername(string $username) {
+    public function findByUsername(string $username)
+    {
         return $this->model->where('username', $username)->first();
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         return $this->model->all();
     }
 
-    public function findById(int $id) {
+    public function findById(int $id)
+    {
         return $this->model->find($id);
     }
 
-    public function deleteById(int $id) {
+    public function deleteById(int $id)
+    {
         return $this->model->where('id', $id)->delete();
     }
 
-    public function update(int $id, array $data) {
+    public function update(int $id, array $data)
+    {
         $entity = $this->model->find($id);
 
         if (!$entity) {
@@ -66,6 +77,5 @@ class UserRepositoryIMPL implements UserRepository {
         return $entity;
     }
 
-    public function createPermitPresence() {
-    }
+    public function createPermitPresence(mixed $data) {}
 }

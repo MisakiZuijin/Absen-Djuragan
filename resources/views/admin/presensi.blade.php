@@ -214,55 +214,6 @@
         </div>
     </main>
 
-    <!-- Modal untuk Status Kehadiran -->
-    <div id="modal-presence" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
-            <h2 class="text-2xl font-semibold mb-4 text-center">Status Kehadiran</h2>
-            <form id="permit-form" method="POST" action="">
-                @csrf
-                <input type="hidden" id="id" name="id" />
-                <input type="hidden" id="id-schedule" name="id-schedule" />
-                <input type="hidden" id="id-shift" name="id-shift" />
-                <div class="mb-4">
-                    <label for="keterangan" class="block text-gray-700 mb-2">Keterangan Ketidakhadiran<span
-                            class="text-red-500">*</span></label>
-                    <textarea id="keterangan" name="keterangan" rows="4"
-                        class="w-full h-20 border border-gray-300 rounded-lg p-2" required></textarea>
-                </div>
-                <div class="mb-4">
-                    <label for="link-google-drive" class="block text-gray-700 mb-2">Link Google Drive<span
-                            class="text-red-500">*</span></label>
-                    <input type="url" id="link-google-drive" name="link-google-drive"
-                        class="w-full border border-gray-300 rounded-lg p-2" required />
-                </div>
-                <div class="mb-4">
-                    <label for="kategori-izin" class="block text-gray-700 mb-2">Kategori Izin<span
-                            class="text-red-500">*</span></label>
-                    <select id="kategori-izin" name="kategori-izin" class="w-full border border-gray-300 rounded-lg p-2"
-                        required>
-                        @foreach ($listPermitCategory as $category)
-                            <option value="{{ $category['id'] }}">{{ $category['name'] }}</option>
-                        @endforeach
-                    </select>
-                </div>
-
-                <div class="mb-4">
-                    <label for="jam-option" class="block text-gray-700 mb-2">Status<span
-                            class="text-red-500">*</span></label>
-                    <select id="jam-option" name="jam-option" class="w-full border border-gray-800 rounded-lg p-2" required>
-                        <option value="1">Tidak Ganti Jam</option>
-                        <option value="2">Ganti Jam</option>
-                    </select>
-                </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Simpan</button>
-                </div>
-            </form>
-            <button id="close-modal" class="absolute top-2 right-2 text-gray-700 hover:text-gray-900">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-    </div>
 
     <!-- Modal untuk Edit Presensi -->
     <div id="editModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
@@ -594,69 +545,58 @@
                 return actionIcons;
             }
 
-            // Fungsi untuk generate attendance type dengan validasi
+            // Fungsi untuk generate attendance type dengan status jelas dan tanpa modal
             function generateAttendanceType(item, rowspan) {
                 const attdStatus = item.attd_status || {};
-                let content;
-
-                // Validasi data untuk menghindari error
                 const scheduleId = item.detail_schedule_id || '';
-                const shiftId = item.shift_id || '';
                 const permitData = item.permit_data || {};
-                const permitId = permitData.id || '';
-                const description = permitData.description || 'Tidak ada keterangan';
-                const proofUrl = permitData.proof_url || 'Tidak ada link';
                 const permitCategoryId = permitData.permit_category_id || '';
-                const ischangeSchedule = item.ischange_schedule || '';
+                const description = (permitData.description || '').toLowerCase();
 
-                switch (attdStatus.id) {
-                    case 1:
-                    case 2:
-                    case 5:
-                        content = `<button class="open-modal-presence hover:underline" data-schedule-id="${scheduleId}" data-shift-id="${shiftId}">${attdStatus.name || ''} <i class="fa-solid fa-circle-info text-gray-800"></i></button>`;
-                        break;
-                    case 3:
-                        content = `<button class="open-modal-presence hover:underline"
-                                data-schedule-id="${scheduleId}"
-                                data-shift-id="${shiftId}"
-                                data-permit-id="${permitId}"
-                                data-description="${description}"
-                                data-proof-url="${proofUrl}"
-                                data-permit-category-id="${permitCategoryId}"
-                                data-ischange-schedule="${ischangeSchedule}">
-                                ${attdStatus.name || ''} <i class="fa-solid fa-circle-info"></i>
-                            </button>`;
-                        break;
-                    default:
-                        content = attdStatus.name || '';
+                let statusBadge = '';
+                const statusId = parseInt(attdStatus.id);
+
+                if (statusId === 1 || statusId === 2) {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Hadir</span>`;
+                } else if (statusId === 3) {
+                    const isSakit = (permitCategoryId == 1 || permitCategoryId == 2 || description.includes('sakit'));
+                    if (isSakit) {
+                        statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">Izin Sakit</span>`;
+                    } else {
+                        statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">Izin Keperluan</span>`;
+                    }
+                } else if (statusId === 5) {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Alpha</span>`;
+                } else {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">${attdStatus.name || '-'}</span>`;
                 }
 
                 let notificationIcon = '';
-                if (attdStatus.id === 5) { // Jika statusnya Alpha
+                if (statusId === 5) { // Jika statusnya Alpha
                     if (item.is_notification_sent) {
                         notificationIcon = `<span class="ml-2 text-green-500" title="Notifikasi Alpha sudah dikirim"><i class="fas fa-check-circle"></i></span>`;
                     } else {
                         notificationIcon = `
-                                <form action="/admin/attendance/notify-alpha/${scheduleId}" method="POST" class="inline ajax-form">
-                                    @csrf
-                                    <button type="submit" class="bg-transparent border-none p-0 ml-1 text-red-600 hover:text-red-700" title="Kirim Notifikasi Alpha"><i class="fab fa-whatsapp"></i></button>
-                                </form>
-                            `;
+                            <form action="/admin/attendance/notify-alpha/${scheduleId}" method="POST" class="inline ajax-form">
+                                @csrf
+                                <button type="submit" class="bg-transparent border-none p-0 ml-1.5 text-red-600 hover:text-red-700 cursor-pointer" title="Kirim Notifikasi Alpha via WhatsApp"><i class="fab fa-whatsapp text-sm"></i></button>
+                            </form>
+                        `;
                     }
-                } else if (attdStatus.id === 3) { // Jika statusnya Izin
+                } else if (statusId === 3) { // Jika statusnya Izin
                     if (item.is_notification_sent) {
                         notificationIcon = `<span class="ml-2 text-green-500" title="Notifikasi Izin sudah dikirim"><i class="fas fa-check-circle"></i></span>`;
                     } else {
                         notificationIcon = `
-                                <form action="/admin/attendance/notify-permit/${scheduleId}" method="POST" class="inline ajax-form">
-                                    @csrf
-                                    <button type="submit" class="bg-transparent border-none p-0 ml-1 text-yellow-500 hover:text-yellow-600" title="Kirim Notifikasi Izin"><i class="fab fa-whatsapp"></i></button>
-                                </form>
-                            `;
+                            <form action="/admin/attendance/notify-permit/${scheduleId}" method="POST" class="inline ajax-form">
+                                @csrf
+                                <button type="submit" class="bg-transparent border-none p-0 ml-1.5 text-emerald-600 hover:text-emerald-700 cursor-pointer" title="Kirim Notifikasi Izin via WhatsApp"><i class="fab fa-whatsapp text-sm"></i></button>
+                            </form>
+                        `;
                     }
                 }
 
-                return `<td rowspan="${rowspan}" class="px-4 py-2 border-t text-center align-middle">${content}${notificationIcon}</td>`;
+                return `<td rowspan="${rowspan}" class="px-4 py-2 border-t text-center align-middle whitespace-nowrap">${statusBadge}${notificationIcon}</td>`;
             }
 
             // FUNGSI UTAMA LOAD DATA DENGAN ERROR HANDLING
@@ -855,48 +795,7 @@
                 }
             });
 
-            // EVENT HANDLER UNTUK MODAL PRESENCE - DIPINDAHKAN KE DALAM DOCUMENT READY
-            function openModalPresence(scheduleId, shiftId, permitId, description, proofUrl, permitCategoryId, isChangeScheduleId) {
-                $('#id-schedule').val(scheduleId);
-                $('#id').val(permitId);
-                $('#isChangeSchedule').val(isChangeScheduleId);
-                $('#id-shift').val(shiftId);
-                $('#keterangan').val(description);
-                $('#link-google-drive').val(proofUrl);
-                $('#kategori-izin').val(permitCategoryId);
-                $('#jam-option').val(isChangeScheduleId);
 
-                if (permitId && description !== 'Tidak ada keterangan') {
-                    $('#permit-form').attr('action', "{{ route('attendance.updatePermitPresence') }}");
-                } else {
-                    $('#permit-form').attr('action', "{{ route('attendance.addPermitPresenceadmin') }}");
-                }
-                $('#modal-presence').removeClass('hidden');
-            }
-
-            function closeModalPresence() {
-                $('#modal-presence').addClass('hidden');
-            }
-
-            // Event listener untuk modal presence
-            $(document).on('click', '.open-modal-presence', function () {
-                const scheduleId = $(this).data('schedule-id') || '';
-                const permitId = $(this).data('permit-id') || '';
-                const shiftId = $(this).data('shift-id') || '';
-                const description = $(this).data('description') || 'Tidak ada keterangan';
-                const proofUrl = $(this).data('proof-url') || 'Tidak ada link';
-                const permitCategoryId = $(this).data('permit-category-id') || '';
-                const isChangeScheduleId = $(this).data('ischange-schedule') || '';
-
-                openModalPresence(scheduleId, shiftId, permitId, description, proofUrl, permitCategoryId, isChangeScheduleId);
-            });
-
-            $('#close-modal').on('click', closeModalPresence);
-            $('#modal-presence').on('click', function (event) {
-                if (event.target === this) {
-                    closeModalPresence();
-                }
-            });
 
             // Make loadData and currentPage available globally
             window.loadData = loadData;

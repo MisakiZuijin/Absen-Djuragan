@@ -2,14 +2,12 @@
 
 namespace App\Repositories\Interface;
 
-interface CoordinateRepository {
-    public function create($data);
-
+interface CoordinateRepository
+{
+    public function create(mixed $data);
     public function getAll();
-    public function getById($id);
-    public function getByOfficeId($officeId);
-
-    public function update($id, $data);
-
-    public function delete($id);
+    public function getById(int $id);
+    public function getByOfficeId(int $officeId);
+    public function update(int $id, array $data);
+    public function delete(int $id);
 }

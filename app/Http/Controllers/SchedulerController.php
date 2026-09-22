@@ -8,11 +8,13 @@ use Carbon\Carbon;
 use App\Services\AttendanceService;
 use Illuminate\Support\Facades\Log;
 
-class SchedulerController extends Controller {
-    protected $shiftRepository;
-    protected $attendanceService;
+class SchedulerController extends Controller
+{
+    protected ShiftRepository $shiftRepository;
+    protected AttendanceService $attendanceService;
 
-    public function __construct(ShiftRepository $shiftRepository, AttendanceService $attendanceService) {
+    public function __construct(ShiftRepository $shiftRepository, AttendanceService $attendanceService)
+    {
         $this->shiftRepository = $shiftRepository;
         $this->attendanceService = $attendanceService;
     }
@@ -20,7 +22,8 @@ class SchedulerController extends Controller {
     /**
      * Schedule attendance for shifts
      */
-    public function scheduleAttendance() {
+    public function scheduleAttendance()
+    {
         try {
             $now = Carbon::now('Asia/Jakarta');
 

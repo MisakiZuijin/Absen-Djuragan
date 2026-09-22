@@ -24,7 +24,12 @@ class UpdateOfficeRequest extends FormRequest {
             'latitulefttop' => 'required|string|max:255',
             'longitudelefttop' => 'required|string|max:255',
             'latiturightbottom' => 'required|string|max:255',
-            'longituderightbottom' => 'required|string|max:255'
+            'longituderightbottom' => 'required|string|max:255',
+            'sop_url' => 'nullable|string|max:1000',
+            'rules_url' => 'nullable|string|max:1000',
+            'rules_description' => 'nullable|string',
+            'piket_url' => 'nullable|string|max:1000',
+            'piket_description' => 'nullable|string',
         ];
     }
 }

@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\LogActivity;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Collection;
 
 class OutsiderDashboardController extends Controller
 {
@@ -28,20 +29,20 @@ class OutsiderDashboardController extends Controller
         $internIds = $user->outsider->interns()->pluck('interns.id');
 
         // Ambil data presensi hari ini
-        $presensiHariIni = DetailSchedule::whereHas('schedule', function($query) use ($internIds) {
+        $presensiHariIni = DetailSchedule::whereHas('schedule', function ($query) use ($internIds) {
             $query->whereIn('intern_id', $internIds);
         })
-        ->whereDate('date', Carbon::today())
-        ->with([
-            'schedule.intern.user.profile',
-            'schedule.intern.school',
-            'schedule.office',
-            'attendance',
-            'attdStatus',
-            'shift',
-            'logActivity'
-        ])
-        ->get();
+            ->whereDate('date', Carbon::today())
+            ->with([
+                'schedule.intern.user.profile',
+                'schedule.intern.school',
+                'schedule.office',
+                'attendance',
+                'attdStatus',
+                'shift',
+                'logActivity'
+            ])
+            ->get();
 
         // Hitung jumlah berdasarkan status kehadiran
         $totalHadir = $presensiHariIni->where('attd_status_id', 2)->count();
@@ -51,12 +52,12 @@ class OutsiderDashboardController extends Controller
         // Hitung jumlah berdasarkan gender dari presensi hari ini
         $jumlahLaki = $presensiHariIni->filter(function ($detail) {
             return optional($detail->schedule->intern->user)->profile &&
-                   $detail->schedule->intern->user->profile->gender === 'Laki-laki';
+                $detail->schedule->intern->user->profile->gender === 'Laki-laki';
         })->count();
 
         $jumlahPerempuan = $presensiHariIni->filter(function ($detail) {
             return optional($detail->schedule->intern->user)->profile &&
-                   $detail->schedule->intern->user->profile->gender === 'Perempuan';
+                $detail->schedule->intern->user->profile->gender === 'Perempuan';
         })->count();
 
         $dateNow = Carbon::today()->translatedFormat('d F Y');
@@ -89,10 +90,10 @@ class OutsiderDashboardController extends Controller
     /**
      * Menampilkan detail presensi untuk satu mahasiswa.
      */
-   /**
- * Menampilkan detail presensi untuk satu mahasiswa.
- */
-    public function show($intern_id, Request $request)
+    /**
+     * Menampilkan detail presensi untuk satu mahasiswa.
+     */
+    public function show(int $intern_id, Request $request)
     {
         $user = auth()->user();
         if (!$user->outsider) {
@@ -119,9 +120,18 @@ class OutsiderDashboardController extends Controller
         }
 
         $months = [
-            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
-            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
-            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
+            '01' => 'Januari',
+            '02' => 'Februari',
+            '03' => 'Maret',
+            '04' => 'April',
+            '05' => 'Mei',
+            '06' => 'Juni',
+            '07' => 'Juli',
+            '08' => 'Agustus',
+            '09' => 'September',
+            '10' => 'Oktober',
+            '11' => 'November',
+            '12' => 'Desember'
         ];
 
         $currentYear = Carbon::now()->format('Y');
@@ -147,18 +157,18 @@ class OutsiderDashboardController extends Controller
         $endDate = $startDate->copy()->endOfMonth();
 
         // Ambil jadwal yang sudah ada
-        $riwayatPresensi = DetailSchedule::whereHas('schedule', function($query) use ($intern_id) {
+        $riwayatPresensi = DetailSchedule::whereHas('schedule', function ($query) use ($intern_id) {
             $query->where('intern_id', $intern_id);
         })
-        ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
-        ->with([
-            'schedule.office',
-            'attendance',
-            'attdStatus',
-            'shift'
-        ])
-        ->orderBy('date', 'desc')
-        ->get();
+            ->whereBetween('date', [$startDate->format('Y-m-d'), $endDate->format('Y-m-d')])
+            ->with([
+                'schedule.office',
+                'attendance',
+                'attdStatus',
+                'shift'
+            ])
+            ->orderBy('date', 'desc')
+            ->get();
 
         // Generate semua hari dalam bulan tersebut untuk memastikan tampilan lengkap
         $allDaysInMonth = collect();
@@ -212,61 +222,61 @@ class OutsiderDashboardController extends Controller
     /**
      * Hitung statistik presensi
      */
-   /**
- * Hitung statistik presensi (tidak termasuk hari Minggu)
- */
-private function hitungStatistikPresensi($riwayatPresensi)
-{
-    $total = 0;
-    $hadir = 0;
-    $izin = 0;
-    $sakit = 0;
-    $tidakHadir = 0;
-    $libur = 0; // Menghitung hari Minggu sebagai libur
-    $currentDate = Carbon::now();
+    /**
+     * Hitung statistik presensi (tidak termasuk hari Minggu)
+     */
+    private function hitungStatistikPresensi(Collection $riwayatPresensi)
+    {
+        $total = 0;
+        $hadir = 0;
+        $izin = 0;
+        $sakit = 0;
+        $tidakHadir = 0;
+        $libur = 0; // Menghitung hari Minggu sebagai libur
+        $currentDate = Carbon::now();
 
-    foreach ($riwayatPresensi as $presensi) {
-        $presensiDate = Carbon::parse($presensi->date);
-        $isSunday = $presensiDate->isSunday(); // Cek apakah hari Minggu
+        foreach ($riwayatPresensi as $presensi) {
+            $presensiDate = Carbon::parse($presensi->date);
+            $isSunday = $presensiDate->isSunday(); // Cek apakah hari Minggu
 
-        // Abaikan hari Minggu (libur)
-        if ($isSunday) {
-            $libur++;
-            continue;
-        }
+            // Abaikan hari Minggu (libur)
+            if ($isSunday) {
+                $libur++;
+                continue;
+            }
 
-        $isFuture = $presensiDate->isFuture();
+            $isFuture = $presensiDate->isFuture();
 
-        // Hanya hitung hari yang sudah lewat atau hari ini (bukan hari Minggu)
-        if (!$isFuture) {
-            $total++;
+            // Hanya hitung hari yang sudah lewat atau hari ini (bukan hari Minggu)
+            if (!$isFuture) {
+                $total++;
 
-            if ($presensi->attd_status_id == 2) {
-                $hadir++;
-            } elseif ($presensi->attd_status_id == 3) {
-                $izin++;
-            } elseif ($presensi->attd_status_id == 4) {
-                $sakit++;
-            } elseif ($presensi->attd_status_id == 5) {
-                $tidakHadir++;
-            } else {
-                // Jika tidak ada status dan sudah lewat dari hari ini
-                if ($presensiDate->isPast()) {
+                if ($presensi->attd_status_id == 2) {
+                    $hadir++;
+                } elseif ($presensi->attd_status_id == 3) {
+                    $izin++;
+                } elseif ($presensi->attd_status_id == 4) {
+                    $sakit++;
+                } elseif ($presensi->attd_status_id == 5) {
                     $tidakHadir++;
+                } else {
+                    // Jika tidak ada status dan sudah lewat dari hari ini
+                    if ($presensiDate->isPast()) {
+                        $tidakHadir++;
+                    }
                 }
             }
         }
-    }
 
-    return [
-        'total' => $total,
-        'hadir' => $hadir,
-        'izin' => $izin,
-        'sakit' => $sakit,
-        'tidak_hadir' => $tidakHadir,
-        'libur' => $libur
-    ];
-}
+        return [
+            'total' => $total,
+            'hadir' => $hadir,
+            'izin' => $izin,
+            'sakit' => $sakit,
+            'tidak_hadir' => $tidakHadir,
+            'libur' => $libur
+        ];
+    }
     /**
      * API endpoint untuk memfilter data presensi secara dinamis (AJAX).
      */
@@ -279,7 +289,7 @@ private function hitungStatistikPresensi($riwayatPresensi)
 
         $internIds = $user->outsider->interns()->pluck('interns.id');
 
-        $query = DetailSchedule::query()->whereHas('schedule', function($q) use ($internIds) {
+        $query = DetailSchedule::query()->whereHas('schedule', function ($q) use ($internIds) {
             $q->whereIn('intern_id', $internIds);
         });
 
@@ -299,7 +309,7 @@ private function hitungStatistikPresensi($riwayatPresensi)
 
         // Filter berdasarkan kantor
         if ($request->filled('office_id')) {
-            $query->whereHas('schedule', function($q) use ($request) {
+            $query->whereHas('schedule', function ($q) use ($request) {
                 $q->where('office_id', $request->input('office_id'));
             });
         }
@@ -307,7 +317,7 @@ private function hitungStatistikPresensi($riwayatPresensi)
         // Filter berdasarkan nama
         if ($request->filled('name')) {
             $name = $request->input('name');
-            $query->whereHas('schedule.intern.user.profile', function($q) use ($name) {
+            $query->whereHas('schedule.intern.user.profile', function ($q) use ($name) {
                 $q->where('full_name', 'LIKE', '%' . $name . '%');
             });
         }
@@ -329,14 +339,14 @@ private function hitungStatistikPresensi($riwayatPresensi)
         $totalAlpha = $presensi->where('attd_status_id', 5)->count();
 
         // Hitung berdasarkan gender
-        $maleCount = $presensi->filter(function($p) {
+        $maleCount = $presensi->filter(function ($p) {
             return optional($p->schedule->intern->user)->profile &&
-                   $p->schedule->intern->user->profile->gender === 'Laki-laki';
+                $p->schedule->intern->user->profile->gender === 'Laki-laki';
         })->count();
 
-        $femaleCount = $presensi->filter(function($p) {
+        $femaleCount = $presensi->filter(function ($p) {
             return optional($p->schedule->intern->user)->profile &&
-                   $p->schedule->intern->user->profile->gender === 'Perempuan';
+                $p->schedule->intern->user->profile->gender === 'Perempuan';
         })->count();
 
         return response()->json([
@@ -351,7 +361,7 @@ private function hitungStatistikPresensi($riwayatPresensi)
         ]);
     }
 
-    public function showLogActivity($internId)
+    public function showLogActivity(int $internId)
     {
         $user = auth()->user();
         $intern = Intern::with(['user.profile'])->findOrFail($internId);
@@ -366,9 +376,9 @@ private function hitungStatistikPresensi($riwayatPresensi)
         $logs = LogActivity::whereHas('detailSchedule.schedule', function ($query) use ($internId) {
             $query->where('intern_id', $internId);
         })
-        ->where('is_approved', true)
-        ->latest('date')
-        ->paginate(15);
+            ->where('is_approved', true)
+            ->latest('date')
+            ->paginate(15);
 
         // Kirim data user yang login untuk digunakan di layout
         return view('outsiders.presensi.log', compact('user', 'intern', 'logs'));

@@ -6,14 +6,17 @@ use App\Helper\LogConsole;
 use App\Models\LogActivity;
 use App\Repositories\Interface\LogActivityRepository;
 
-class LogActivityRepositoryIMPL implements LogActivityRepository {
-    protected $model;
+class LogActivityRepositoryIMPL implements LogActivityRepository
+{
+    protected LogActivity $model;
 
-    public function __construct(LogActivity $logActivity) {
+    public function __construct(LogActivity $logActivity)
+    {
         $this->model = $logActivity;
     }
 
-    public function store($data) {
+    public function store(array $data)
+    {
         $created = $this->model->create($data);
 
         if (!$created) {
@@ -23,7 +26,8 @@ class LogActivityRepositoryIMPL implements LogActivityRepository {
         return $created;
     }
 
-    public function update($id, $data) {
+    public function update(int $id, array $data)
+    {
         $logActivity = $this->model->find($id);
 
         if (!$logActivity) {
@@ -39,32 +43,35 @@ class LogActivityRepositoryIMPL implements LogActivityRepository {
         return $updated;
     }
 
-    public function updateStatus($id, $status_id) {
+    public function updateStatus(int $id, int $status_id)
+    {
         $logActivity = $this->model->find($id);
 
         if (!$logActivity) {
             return false;
         }
 
-
-
         $logActivity->update(["status_id" => $status_id]);
         return true;
     }
 
-    public function findById($id) {
+    public function findById(int $id)
+    {
         return $this->model->find($id);
     }
 
-    public function findAll() {
+    public function findAll()
+    {
         return $this->model->all();
     }
 
-    public function count() {
+    public function count()
+    {
         return $this->model->count();
     }
 
-    public function findByInternId($internId) {
+    public function findByInternId(int $internId)
+    {
         return $this->model
             ->whereHas('detailSchedule.schedule', function ($query) use ($internId) {
                 $query->where('intern_id', $internId);

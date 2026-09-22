@@ -2,38 +2,38 @@
 
 namespace App\Repositories\Interface;
 
-interface AttendanceRepository {
-    public function create($data);
-    public function update($id, $data);
-    public function getById($id);
-    public function getByDate($date, $perPage, $currentPage);
-    public function getByName($name, $perPage, $currentPage);
-    public function getByNameAndDate($name, $date,  $perPage, $currentPage);
-    public function getByInternIdAndDate($userId, $date);
+interface AttendanceRepository
+{
+    public function create(array $data);
+    public function update(int $id, array $data);
+    public function getById(int $id);
+    public function getByDate(string $date, int $perPage, int $currentPage);
+    public function getByName(string $name, int $perPage, int $currentPage);
+    public function getByNameAndDate(string $name, string $date, int $perPage, int $currentPage);
+    public function getByInternIdAndDate(int $userId, string $date);
     public function getAll();
-    public function getByWeek($userId, $date);
-    public function getByMonth($userId, $month);
-    public function getDateBetween($internId, $start, $end);
-    public function countAbsenceByDay($date);
-    public function updateStatus($id, $status_id);
-    public function updateStatusByShiftandDate($status, $shift_id, $dateNow, $timeNow);
-    public function updateEndTimeAll($dateNow, $shift_id,  $end_time);
-    public function createPermitPresence($data);
-    public function updatePermitPresence($data);
+    public function getByWeek(int $userId, string $date);
+    public function getByMonth(int $userId, int $month);
+    public function getDateBetween(int $internId, string $start, string $end);
+    public function countAbsenceByDay(string $date);
+    public function updateStatus(int $id, int $status_id);
+    public function updateStatusByShiftandDate(int $status, int $shift_id, string $dateNow, ?string $timeNow = null);
+    public function updateEndTimeAll(string $dateNow, int $shift_id, string $end_time);
+    public function createPermitPresence(array $data);
+    public function updatePermitPresence(array $data);
 
-    public function updateTime($id, $data);
-    public function updateAdjustableTime($id, $data);
-    public function calculateTotalMinutes($startTime, $endTime);
-    public function calculateBreakMinutes($breakTime, $backTime);
+    public function updateTime(int $id, array $data);
+    public function updateAdjustableTime(int $id, array $data);
+    public function calculateTotalMinutes(?string $startTime, ?string $endTime);
+    public function calculateBreakMinutes(?string $breakTime, ?string $backTime);
     public function updateShift();
     public function storeNote();
-    // public function getAllChangeTime($internId);
     public function getByIdAndAutomaticalyStatus(int $id, int $perPage = 10, int $currentPage = 1);
     public function getAllAutoEnd(int $perPage = 10, int $currentPage = 1);
-    public function getAutoEndStatusByName($name, int $perPage = 10, int $currentPage = 1);
-    public function getAutoEndStatusByDate($date, int $perPage = 10, int $currentPage = 1);
-    public function getAutoEndStatusByDateAndName($name, $date, int $perPage = 10, int $currentPage = 1);
-    public function getTotalCount($name = null, $date_start = null, $date_end = null);
+    public function getAutoEndStatusByName(string $name, int $perPage = 10, int $currentPage = 1);
+    public function getAutoEndStatusByDate(string $date, int $perPage = 10, int $currentPage = 1);
+    public function getAutoEndStatusByDateAndName(string $name, string $date, int $perPage = 10, int $currentPage = 1);
+    public function getTotalCount(?string $name = null, ?string $date_start = null, ?string $date_end = null);
 
-    public function getAttendanceStillNotBack($date, $shift_id);
+    public function getAttendanceStillNotBack(string $date, int $shift_id);
 }

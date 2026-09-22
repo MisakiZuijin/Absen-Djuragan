@@ -6,46 +6,54 @@ use App\Helper\LogConsole;
 use App\Models\Shift;
 use App\Repositories\Interface\ShiftRepository;
 
-class ShiftRepositoryIMPL implements ShiftRepository {
+class ShiftRepositoryIMPL implements ShiftRepository
+{
 
-     public function getWhere(string $column, $value)
+    protected Shift $model;
+
+    public function __construct(Shift $shift)
     {
-        return Shift::where($column, $value)->get();
-    }
-    protected $model;
-
-    public function __construct(Shift $shift) {
         $this->model = $shift;
     }
 
-    public function create($data) {
+    public function getWhere(string $column, mixed $value)
+    {
+        return Shift::where($column, $value)->get();
+    }
+
+    public function create(array $data)
+    {
         return $this->model->create($data);
     }
 
-    public function update(array $data, $id) {
+    public function update(array $data, int $id)
+    {
         $shift = $this->model->find($id);
 
         if (isset($data['id'])) {
             unset($data['id']);
         }
-        
+
         if ($shift) {
             $shift->update($data);
             return $shift;
         }
-        
+
         return null;
     }
 
-    public function getById($id) {
+    public function getById(int $id)
+    {
         return $this->model->find($id);
     }
 
-    public function getAll() {
+    public function getAll()
+    {
         return $this->model->where('id', '!=', 1)->get();
     }
 
-    public function delete($id) {
+    public function delete(int $id)
+    {
         $shift = $this->model->find($id);
         if ($shift) {
             $shift->delete();
@@ -54,20 +62,18 @@ class ShiftRepositoryIMPL implements ShiftRepository {
         return false;
     }
 
-    public function getByTimeRange($time) {
+    public function getByTimeRange(string $time)
+    {
         $shift = $this->model
             ->where(function ($query) use ($time) {
-                // Kondisi untuk waktu sekarang sebelum start_time tetapi dalam rentang 1 jam sebelumnya
                 $query->where('start_time', '>=', date('H:i', strtotime($time . ' -1 hour')))
                     ->where('start_time', '<=', $time);
             })
             ->orWhere(function ($query) use ($time) {
-                // Kondisi untuk waktu sekarang berada di antara start_time dan end_time
                 $query->where('start_time', '<=', $time)
                     ->where('end_time', '>=', $time);
             })
             ->orWhere(function ($query) use ($time) {
-                // Kondisi untuk waktu sekarang sebelum start_time tetapi dalam hari yang sama
                 $query->where('start_time', '>=', $time)
                     ->where('start_time', '<=', date('H:i', strtotime($time . ' +1 hour')));
             })

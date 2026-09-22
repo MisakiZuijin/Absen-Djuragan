@@ -105,7 +105,8 @@
             <!-- Kartu Izin Shalat -->
             <div
                 class="hover:shadow-xl relative bg-purple-600 text-white p-6 rounded-lg shadow-lg flex items-start justify-start h-60 cursor-pointer"
-                onclick="window.location.href='{{ route('admin.izinShalat.index') }}'">
+                data-href="{{ route('admin.izinShalat.index') }}"
+                onclick="window.location.href=this.dataset.href">
                 <div class="absolute top-4 left-4">
                     <h2 class="text-2xl font-semibold mb-3">Izin Shalat</h2>
                     <p class="text-5xl font-bold">{{ $prayerRequestsCount ?? 0 }}</p>
@@ -117,7 +118,8 @@
             <!-- Kartu Izin Keluar -->
             <div
                 class="hover:shadow-xl relative bg-pink-600 text-white p-6 rounded-lg shadow-lg flex items-start justify-start h-60 cursor-pointer"
-                onclick="window.location.href='{{ route('admin.izinKeluar.index') }}'">
+                data-href="{{ route('admin.izinKeluar.index') }}"
+                onclick="window.location.href=this.dataset.href">
                 <div class="absolute top-4 left-4">
                     <h2 class="text-2xl font-semibold mb-3">Izin Keluar</h2>
                     <p class="text-5xl font-bold">{{ $leaveRequestsCount ?? 0 }}</p>
@@ -129,7 +131,8 @@
             <!-- Kartu Izin ke Toilet -->
             <div
                 class="hover:shadow-xl relative bg-teal-600 text-white p-6 rounded-lg shadow-lg flex items-start justify-start h-60 cursor-pointer"
-                onclick="window.location.href='{{ route('admin.izinToilet.index') }}'">
+                data-href="{{ route('admin.izinToilet.index') }}"
+                onclick="window.location.href=this.dataset.href">
                 <div class="absolute top-4 left-4">
                     <h2 class="text-2xl font-semibold mb-3">Izin ke Toilet</h2>
                     <p class="text-5xl font-bold">{{ $toiletPermitsCount ?? 0 }}</p>

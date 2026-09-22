@@ -180,9 +180,10 @@
         </div>
     </div>
 
+    <script id="school-data" type="application/json">@json($schoolList)</script>
     <script>
         $(document).ready(function() {
-            const schoolList = @json($schoolList);
+            const schoolList = JSON.parse(document.getElementById('school-data')?.textContent || '[]');
             const itemsPerPage = 5;
             let currentPage = 1;
             let filteredData = schoolList; 
@@ -277,7 +278,7 @@
                 $('#schoolType').val(schoolType);
 
                 // Update form action URL
-                var actionUrl = '{{ route('schools.update', ':id') }}';
+                var actionUrl = "{{ route('schools.update', ':id') }}";
                 actionUrl = actionUrl.replace(':id', schoolId);
                 $('#editSchoolForm').attr('action', actionUrl);
 
@@ -293,7 +294,7 @@
             $(document).on('click', '.deleteSchool', function() {
                 var schoolId = $(this).data('id');
 
-                var actionUrl = '{{ route('schools.delete', ':id') }}';
+                var actionUrl = "{{ route('schools.delete', ':id') }}";
                 actionUrl = actionUrl.replace(':id', schoolId);
                 $('#deleteSchoolForm').attr('action', actionUrl);
 

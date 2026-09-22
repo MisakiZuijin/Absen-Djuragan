@@ -12,6 +12,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 use Carbon\Carbon;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 
 class User extends Authenticatable
 {
@@ -38,7 +40,7 @@ class User extends Authenticatable
         'password'
     ];
 
-    public function setPasswordAttribute($value)
+    public function setPasswordAttribute(string $value)
     {
         if (!empty($value)) {
             $this->attributes['password'] = Hash::make($value);
@@ -96,7 +98,7 @@ class User extends Authenticatable
         return $this->hasOne(HandRaise::class, 'user_id');
     }
 
-    public function scopeIntern($query)
+    public function scopeIntern(EloquentBuilder $query)
     {
         return $query->where('role_id', 3);
     }
@@ -131,5 +133,51 @@ class User extends Authenticatable
         }
 
         return trim($duration) ?: '0 menit';
+    }
+
+    /**
+     * Cek apakah pemagang memiliki tugas atau project aktif.
+     *
+     * @return bool
+     */
+    public function hasActiveTasks(): bool
+    {
+        return $this->getActiveTasksCount() > 0;
+    }
+
+    /**
+     * Hitung total tugas & project aktif pemagang yang belum selesai.
+     *
+     * @return int
+     */
+    public function getActiveTasksCount(): int
+    {
+        $internId = $this->intern?->id;
+        $activeProjectsCount = 0;
+
+        if ($internId) {
+            $activeProjectsCount = DetailProjects::where('intern_id', $internId)
+                ->whereHas('project', function ($q) {
+                    $q->where('status', '!=', 'done');
+                })
+                ->count();
+        }
+
+        $activeMentorTasksCount = HandRaise::where('user_id', $this->id)
+            ->where('type', 'new_task')
+            ->where('status', '!=', 'done')
+            ->where(function ($q) {
+                $q->whereNull('project_id')
+                    ->orWhereHas('project', function ($pq) {
+                        $pq->where('status', '!=', 'done');
+                    });
+            })
+            ->where(function ($q) {
+                $q->where('status', 'in_progress')
+                    ->orWhereNotNull('admin_response');
+            })
+            ->count();
+
+        return $activeProjectsCount + $activeMentorTasksCount;
     }
 }

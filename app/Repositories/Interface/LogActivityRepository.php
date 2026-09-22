@@ -2,13 +2,13 @@
 
 namespace App\Repositories\Interface;
 
-interface LogActivityRepository {
-
-    public function store($data);
-    public function update($id, $data);
-    public function updateStatus($id, $status_id);
-    public function findById($id);
-    public function findByInternId($internId);
+interface LogActivityRepository
+{
+    public function store(array $data);
+    public function update(int $id, array $data);
+    public function updateStatus(int $id, int $status_id);
+    public function findById(int $id);
+    public function findByInternId(int $internId);
     public function findAll();
     public function count();
 }

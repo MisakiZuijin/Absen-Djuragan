@@ -20,13 +20,14 @@ use Throwable;
 
 use function Sentry\captureException;
 
-class ScheduleService {
-    protected $detailScheduleRepository;
-    protected $scheduleRepository;
-    protected $attendanceRepository;
-    protected $logActivityRepository;
-    protected $internRepository;
-    protected $userRepository;
+class ScheduleService
+{
+    protected DetailScheduleRepository $detailScheduleRepository;
+    protected ScheduleRepository $scheduleRepository;
+    protected AttendanceRepository $attendanceRepository;
+    protected LogActivityRepository $logActivityRepository;
+    protected InternRepository $internRepository;
+    protected UserRepository $userRepository;
 
     public function __construct(
         ScheduleRepository $scheduleRepository,
@@ -44,7 +45,8 @@ class ScheduleService {
         $this->userRepository = $userRepository;
     }
 
-    public function getScheduleByInternId($internId) {
+    public function getScheduleByInternId(int $internId)
+    {
         try {
             $result = $this->scheduleRepository->findByInternId($internId);
             $data = [
@@ -59,7 +61,8 @@ class ScheduleService {
         }
     }
 
-    public function getShiftSchedule($internId) {
+    public function getShiftSchedule(int $internId)
+    {
         try {
             $date = DateNow::getCurrentDateYMD();
 
@@ -74,7 +77,8 @@ class ScheduleService {
         }
     }
 
-    public function createSchedule(InternScheduleRequest $request) {
+    public function createSchedule(InternScheduleRequest $request)
+    {
         try {
             DB::beginTransaction();
 
@@ -150,7 +154,8 @@ class ScheduleService {
     }
 
 
-    private function isNextShift(array $indexShift, int $currentShift) {
+    private function isNextShift(array $indexShift, int $currentShift)
+    {
         $currentIndex = array_search($currentShift, $indexShift);
 
         if ($currentIndex === false) {
@@ -164,7 +169,8 @@ class ScheduleService {
     }
 
 
-    public function weekSchedules($internId, $date): ActionResult {
+    public function weekSchedules(int $internId, string $date): ActionResult
+    {
         try {
 
             $resultSchedules = $this->detailScheduleRepository->findByInternIdAndWeek($internId, $date);
@@ -177,7 +183,8 @@ class ScheduleService {
         }
     }
 
-    public function updateShift($id, $shiftId) {
+    public function updateShift(int $id, int $shiftId)
+    {
         try {
             $this->detailScheduleRepository->updateShift($id, $shiftId);
             return new ActionResult(true, "success update shift");
@@ -188,7 +195,8 @@ class ScheduleService {
     }
 
 
-    public function updateScheduleSingleData($internId, $date, $data): ActionResult {
+    public function updateScheduleSingleData(int $internId, string $date, array $data): ActionResult
+    {
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
             $existData = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $date);
@@ -230,7 +238,8 @@ class ScheduleService {
         }
     }
 
-    public function updateScheduleMultiData($internId, $data) {
+    public function updateScheduleMultiData(int $internId, array $data)
+    {
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
 

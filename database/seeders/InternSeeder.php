@@ -13,9 +13,9 @@ class InternSeeder extends Seeder
     {
         $interns = [
             [
-                'username' => 'intern_arya',
-                'email' => 'arya@intern.com',
-                'password' => 'password123',
+                'username' => 'intern_theo',
+                'email' => 'theo@intern.com',
+                'password' => 'password',
                 'role_id' => 3,
                 'os' => 'Windows',
                 'browser' => 'Chrome',
@@ -25,8 +25,8 @@ class InternSeeder extends Seeder
                 'school_id' => 1,
                 'division_id' => 1,
                 'nim' => 'NIM001',
-                'start_date' => '2025-07-01',
-                'end_date' => '2025-08-31',
+                'start_date' => '2026-08-01',
+                'end_date' => '2026-10-31',
             ],
             [
                 'username' => 'intern_bella',
@@ -82,9 +82,9 @@ class InternSeeder extends Seeder
             $user->profile()->create([
                 'NIP' => null,
                 'full_name' => ucfirst(str_replace('_', ' ', $intern['username'])),
-                'address' => 'Jl. Dummy No. ' . ($i+1),
-                'phone' => '0812345678' . ($i+1),
-                'date_of_birth' => '2000-01-0' . (($i%9)+1),
+                'address' => 'Jl. Dummy No. ' . ($i + 1),
+                'phone' => '0812345678' . ($i + 1),
+                'date_of_birth' => '2000-01-0' . (($i % 9) + 1),
                 'birth_place' => 'Jakarta',
             ]);
 

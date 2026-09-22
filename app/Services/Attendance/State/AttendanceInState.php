@@ -23,13 +23,14 @@ use Carbon\Carbon;
 
 use function Sentry\captureException;
 
-class AttendanceInState implements AttendanceState {
-    private $attendanceRepository;
-    private $scheduleRepository;
-    private $shiftRepository;
-    private $detailScheduleRepository;
-    private $userRepository;
-    private $officeRepository;
+class AttendanceInState implements AttendanceState
+{
+    private AttendanceRepository $attendanceRepository;
+    private ScheduleRepository $scheduleRepository;
+    private ShiftRepository $shiftRepository;
+    private DetailScheduleRepository $detailScheduleRepository;
+    private UserRepository $userRepository;
+    private OfficeRepository $officeRepository;
     private WhatsappService $whatsappService;
 
     public function __construct(
@@ -50,7 +51,8 @@ class AttendanceInState implements AttendanceState {
         $this->whatsappService = $whatsappService;
     }
 
-    public function handle(AttendanceDTO $data): ActionResult {
+    public function handle(AttendanceDTO $data): ActionResult
+    {
         try {
             DB::beginTransaction();
 
@@ -171,8 +173,8 @@ class AttendanceInState implements AttendanceState {
                     $time = Carbon::parse($timeToCheck)->format('H:i');
 
                     $message = "*Notifikasi Presensi*\n\n" .
-                            "Ananda *{$internName}* telah melakukan presensi *{$status}* pada pukul *{$time}*.\n\n" .
-                            "Terima kasih.";
+                        "Ananda *{$internName}* telah melakukan presensi *{$status}* pada pukul *{$time}*.\n\n" .
+                        "Terima kasih.";
 
                     try {
                         $this->whatsappService->sendNotificationToAllTargets($intern, $message);
@@ -196,7 +198,8 @@ class AttendanceInState implements AttendanceState {
         }
     }
     // this function is duplicate, next need to make it reusable
-    private function createSchedule(ScheduleDTO $data) {
+    private function createSchedule(ScheduleDTO $data)
+    {
         try {
             $data = [
                 "intern_id" => $data->getInternId(),
@@ -212,7 +215,8 @@ class AttendanceInState implements AttendanceState {
         }
     }
 
-    private function checkIsInOfficeArea($latitude, $longitude): object {
+    private function checkIsInOfficeArea(float $latitude, float $longitude): object
+    {
         $result = new \stdClass();
         $offices = $this->officeRepository->getAll();
         $isInOfficeArea = false;

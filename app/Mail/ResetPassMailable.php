@@ -9,22 +9,25 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class ResetPassMailable extends Mailable {
+class ResetPassMailable extends Mailable
+{
     use Queueable, SerializesModels;
 
-    public $details; // Declare a public property to hold the details
+    public array $details; // Declare a public property to hold the details
 
     /**
      * Create a new message instance.
      */
-    public function __construct($details) {
+    public function __construct(array $details)
+    {
         $this->details = $details; // Assign details to the property
     }
 
     /**
      * Get the message envelope.
      */
-    public function envelope(): Envelope {
+    public function envelope(): Envelope
+    {
         return new Envelope(
             subject: 'Seven Inc Attendance website Change Password',
         );
@@ -33,10 +36,11 @@ class ResetPassMailable extends Mailable {
     /**
      * Get the message content definition.
      */
-    public function content(): Content {
+    public function content(): Content
+    {
         return new Content(
-            view: 'reset-pass-template', 
-            with: ['details' => $this->details], 
+            view: 'reset-pass-template',
+            with: ['details' => $this->details],
         );
     }
 
@@ -45,7 +49,8 @@ class ResetPassMailable extends Mailable {
      *
      * @return array<int, \Illuminate\Mail\Mailables\Attachment>
      */
-    public function attachments(): array {
+    public function attachments(): array
+    {
         return [];
     }
 }
