@@ -11,6 +11,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use App\Models\PermitSetting;
 use App\Models\CheckinMessage;
+use Illuminate\Support\Facades\File;
 
 class SettingController extends Controller
 {
@@ -123,27 +124,41 @@ class SettingController extends Controller
             'late_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // [FIX] Pastikan folder upload ada — move() gagal (500) jika folder belum ada
+        $uploadDir = public_path('checkin-images');
+        if (!is_dir($uploadDir)) {
+            mkdir($uploadDir, 0755, true);
+        }
+
         foreach (['on_time', 'late'] as $type) {
             $msg = CheckinMessage::firstOrCreate(['type' => $type]);
-            $msg->message = $request->input("{$type}_message");
+            $msg->message = $request->input("{$type}_message", $msg->message);
+            $msg->is_active = $request->boolean("{$type}_is_active");
 
+            // [PERBAIKAN] Logika hapus gambar yang akurat (boolean atau '1')
+            $shouldRemove = $request->boolean("remove_{$type}_image") || $request->input("remove_{$type}_image") === '1';
+            if ($shouldRemove) {
+                if ($msg->image) {
+                    $oldPath = $uploadDir . '/' . $msg->image;
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
+                    $msg->image = null;
+                }
+            }
+
+            // [PERBAIKAN] Upload gambar baru dan hapus gambar lama jika ada
             if ($request->hasFile("{$type}_image")) {
-                // Hapus gambar lama jika ada
-                if ($msg->image && file_exists(public_path('checkin-images/' . $msg->image))) {
-                    unlink(public_path('checkin-images/' . $msg->image));
+                if ($msg->image) {
+                    $oldPath = $uploadDir . '/' . $msg->image;
+                    if (File::exists($oldPath)) {
+                        File::delete($oldPath);
+                    }
                 }
                 $file = $request->file("{$type}_image");
                 $filename = $type . '_' . time() . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('checkin-images'), $filename);
+                $file->move($uploadDir, $filename);
                 $msg->image = $filename;
-            }
-
-            // Jika admin ingin menghapus gambar
-            if ($request->has("remove_{$type}_image")) {
-                if ($msg->image && file_exists(public_path('checkin-images/' . $msg->image))) {
-                    unlink(public_path('checkin-images/' . $msg->image));
-                }
-                $msg->image = null;
             }
 
             $msg->save();

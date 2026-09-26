@@ -8,6 +8,7 @@ use App\Models\PermitCategory;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class AdminPermitAbsenceController extends Controller
@@ -46,7 +47,7 @@ class AdminPermitAbsenceController extends Controller
         if (!empty($search)) {
             $query->whereHas('schedule.intern', function ($internQuery) use ($search) {
                 $internQuery->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%")
+                    $userQuery->where('username', 'like', "%{$search}%")
                         ->orWhereHas('profile', function ($profileQuery) use ($search) {
                             $profileQuery->where('full_name', 'like', "%{$search}%");
                         });
@@ -146,12 +147,16 @@ class AdminPermitAbsenceController extends Controller
      */
     public function approveLunas(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 1, // 1 = Bebas Ganti Jam / Lunas
             'is_change_schedule_approved' => 1,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+        $adminName = auth()->user()?->name ?? 'Admin';
+        \App\Helper\ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menyetujui izin pemagang {$internName} (Bebas Ganti Jam / Lunas)", ['detail_schedule_id' => $id]);
 
         return redirect()->back()->with('success', 'Izin berhasil disetujui dengan status: Bebas Ganti Jam (Lunas).');
     }
@@ -161,12 +166,16 @@ class AdminPermitAbsenceController extends Controller
      */
     public function approveGantiJam(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 2, // 2 = Wajib Ganti Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+        $adminName = auth()->user()?->name ?? 'Admin';
+        \App\Helper\ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menetapkan izin pemagang {$internName}: Wajib Ganti Jam", ['detail_schedule_id' => $id]);
 
         return redirect()->back()->with('success', 'Izin berhasil disetujui dengan status: Wajib Ganti Jam.');
     }
@@ -176,12 +185,16 @@ class AdminPermitAbsenceController extends Controller
      */
     public function setAlpha(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 5, // Tidak Hadir / Alpha
             'isChangeSchedule' => 2, // Wajib Ganti Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+        $adminName = auth()->user()?->name ?? 'Admin';
+        \App\Helper\ActivityLogger::log('UPDATE', 'Izin', "Admin {$adminName} menetapkan status pemagang {$internName} menjadi Alpha (Wajib Ganti Jam Penuh)", ['detail_schedule_id' => $id]);
 
         return redirect()->back()->with('success', 'Status berhasil diubah menjadi Alpha (Tidak Hadir). Otomatis masuk hutang jam kerja penuh.');
     }
@@ -193,12 +206,19 @@ class AdminPermitAbsenceController extends Controller
     {
         $validated = $request->validate([
             'description' => 'required|string|max:1000',
-            'proof_url' => 'nullable|url|max:500',
+            'proof_url' => [
+                'nullable',
+                'url',
+                'max:500',
+                Rule::requiredIf(in_array((int) $request->input('permit_category_id'), [3, 4], true)),
+            ],
             'permit_category_id' => 'required|integer',
             'jam_option' => 'required|in:1,2',
+        ], [
+            'proof_url.required' => 'Link Google Drive bukti keperluan wajib diisi.',
         ]);
 
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
 
         if ($detailSchedule->permit_reason_id && $detailSchedule->permit_reason_id > 0) {
             $permitReason = PermitReason::find($detailSchedule->permit_reason_id);
@@ -221,6 +241,10 @@ class AdminPermitAbsenceController extends Controller
         $detailSchedule->attd_status_id = 3; // Izin
         $detailSchedule->isChangeSchedule = (int) $validated['jam_option'];
         $detailSchedule->save();
+
+        $internName = $detailSchedule->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+        $adminName = auth()->user()?->name ?? 'Admin';
+        \App\Helper\ActivityLogger::log('UPDATE', 'Izin', "Admin {$adminName} memperbarui keterangan izin pemagang {$internName}", ['detail_schedule_id' => $id]);
 
         return redirect()->back()->with('success', 'Data izin berhasil diperbarui.');
     }

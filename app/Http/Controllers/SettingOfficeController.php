@@ -42,6 +42,8 @@ class SettingOfficeController extends Controller
     {
         $this->officeService->create($storeOfficeRequest);
 
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan lokasi kantor baru: {$storeOfficeRequest->input('namaKantor')}");
+
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil ditambahkan!');
     }
 
@@ -49,20 +51,27 @@ class SettingOfficeController extends Controller
     {
         $this->officeService->update($updateOfficeRequest, $id);
 
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data lokasi kantor: {$updateOfficeRequest->input('namaKantor')}");
+
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil diperbarui!');
     }
 
     public function deleteOffice(int $id)
     {
+        $office = Office::find($id);
+        $officeName = $office ? $office->name : "ID {$id}";
+
         $this->officeService->delete($id);
+
+        \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus lokasi kantor: {$officeName}");
 
         return redirect()->route('admin.pengaturan.kantor')->with('success', 'Data kantor berhasil dihapus!');
     }
 
     public function showEditLocation(int $id)
     {
-        $office = Office::with('coordinate')->findOrFail($id);
-        $coordinates = Coordinate::where('office_id', $id)->get();
+        $office = Office::with('coordinates')->findOrFail($id);
+        $coordinates = $office->coordinates;
 
         return view('admin.edit-maps-location', compact('office', 'coordinates'));
     }

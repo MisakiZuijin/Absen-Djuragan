@@ -38,12 +38,18 @@ class SettingShiftController extends Controller
     public function storeShift(StoreShiftRequest $storeShiftRequest)
     {
         $this->shiftService->createShift($storeShiftRequest);
+
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan shift kerja baru: {$storeShiftRequest->input('name')}");
+
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil ditambahkan!');
     }
 
     public function updateShift(UpdateShiftRequest $updateShiftRequest, int $id)
     {
         $this->shiftService->updateShift($updateShiftRequest, $id);
+
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data shift kerja: {$updateShiftRequest->input('name')}");
+
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil diperbarui!');
     }
 
@@ -69,8 +75,12 @@ class SettingShiftController extends Controller
             return redirect()->back()->with('error', $errorMessage);
         }
 
+        $shiftName = $shift->name;
+
         // Langkah 4: Jika aman (count == 0), baru panggil service untuk menghapus.
         $this->shiftService->deleteShift($id);
+
+        \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus shift kerja: {$shiftName}");
 
         return redirect()->back()->with('success', 'Data Shift berhasil dihapus!');
     }

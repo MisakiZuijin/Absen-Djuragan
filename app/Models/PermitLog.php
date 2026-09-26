@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\DB;
 
 class PermitLog extends Model
 {
@@ -30,6 +31,9 @@ class PermitLog extends Model
         'start_time',
         'end_time',
         'duration_in_minutes',
+        'agreed_duration_minutes',
+        'is_mandatory_replace',
+        'approval_status',
     ];
 
     /**
@@ -40,6 +44,8 @@ class PermitLog extends Model
     protected $casts = [
         'start_time' => 'datetime',
         'end_time' => 'datetime',
+        'agreed_duration_minutes' => 'integer',
+        'is_mandatory_replace' => 'boolean',
     ];
 
     /**
@@ -48,5 +54,23 @@ class PermitLog extends Model
     public function attendance(): BelongsTo
     {
         return $this->belongsTo(Attendance::class);
+    }
+
+    /**
+     * Menutup izin keluar yang sudah melewati waktu kesepakatan.
+     * end_time diisi dengan jam mulai + agreed_duration_minutes agar
+     * riwayat menampilkan jam selesai sesuai kesepakatan, bukan jam tutup.
+     */
+    public static function closeExpiredLeavePermits(): void
+    {
+        static::where('type', 'leave')
+            ->whereNull('end_time')
+            ->whereNotNull('agreed_duration_minutes')
+            ->whereRaw('TIMESTAMPADD(MINUTE, agreed_duration_minutes, start_time) <= NOW()')
+            ->update([
+                'end_time'            => DB::raw('TIMESTAMPADD(MINUTE, agreed_duration_minutes, start_time)'),
+                'duration_in_minutes' => DB::raw('agreed_duration_minutes'),
+                'updated_at'          => now(),
+            ]);
     }
 }

@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Models\Outsider;
 use App\Observers\OutsiderObserver;
-use App\Services\LateAbsenceService;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Interface\UserRepository;
 use App\Repositories\Interface\ShiftRepository;
@@ -19,7 +18,6 @@ use App\Repositories\Interface\DivisionRepository;
 use App\Repositories\Interface\ScheduleRepository;
 use App\Repositories\Interface\AttendanceRepository;
 use App\Repositories\Interface\CoordinateRepository;
-use App\Repositories\Interface\LateAbsenceRepository;
 use App\Repositories\Interface\LogActivityRepository;
 use App\Repositories\Interface\DiscountTimeRepository;
 use App\Repositories\Interface\PermitReasonRepository;
@@ -75,11 +73,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(HolidayRepository::class, HolidayRepositoryIMPL::class);
         $this->app->singleton(DiscountTimeRepository::class, DiscountTimeRepositoryIMPL::class);
         $this->app->singleton(AdjustableAttdRepository::class, AdjustableAttdRepositoryIMPL::class);
-        $this->app->bind(LateAbsenceService::class, function ($app) {
-            return new LateAbsenceService($app->make(LateAbsenceRepository::class));
-        });
     }
-
 
     /**
      * Bootstrap any application services.

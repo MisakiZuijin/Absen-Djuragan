@@ -17,12 +17,7 @@ use App\Services\SchoolService;
 class SettingDivisionController extends Controller
 {
     protected UserService $userService;
-    protected QuotesService $quoteService;
     protected DivisionService $divisionService;
-    protected OfficeService $officeService;
-    protected SchoolService $schoolService;
-    protected ShiftController $shiftService;
-    protected InternController $internService;
 
     public function __construct(UserService $userService, DivisionService $divisionService)
     {
@@ -48,6 +43,8 @@ class SettingDivisionController extends Controller
     {
         $this->divisionService->create($storeDivisionRequest);
 
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan Divisi baru: {$storeDivisionRequest->input('name')}");
+
         return redirect()->route('admin.pengaturan.divisi')->with('success', 'Data Divisi berhasil ditambahkan!');
     }
 
@@ -55,12 +52,16 @@ class SettingDivisionController extends Controller
     {
         $this->divisionService->update($updateDivisionRequest, $id);
 
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data Divisi: {$updateDivisionRequest->input('name')}", ['division_id' => $id]);
+
         return redirect()->route('admin.pengaturan.divisi')->with('success', 'Data Divisi berhasil diperbarui!');
     }
 
     public function deleteDivision(int $id)
     {
         $this->divisionService->delete($id);
+
+        \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus data Divisi ID: {$id}", ['division_id' => $id]);
 
         return redirect()->route('admin.pengaturan.divisi')->with('success', 'Data Divisi berhasil dihapus!');
     }

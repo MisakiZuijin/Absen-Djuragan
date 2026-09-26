@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\HandRaiseController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SchedulerController;
 use App\Http\Controllers\ShiftController;
@@ -31,6 +32,9 @@ Route::get('/report-attendance', [AttendanceController::class, 'actionAttendaceR
 
 // Scheduler API Routes
 Route::get('/scheduler', [SchedulerController::class, 'scheduleAttendance']);
+
+// Raise Hand API Routes
+Route::get('/raise-hand/latest', [HandRaiseController::class, 'latest']);
 
 // Schedule API Routes
 Route::patch('/schedule/shift/update/{id}', [ScheduleController::class, 'updateSchedule']);

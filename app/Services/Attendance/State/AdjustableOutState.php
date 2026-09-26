@@ -4,7 +4,6 @@ namespace App\Services\Attendance\State;
 
 use App\DTO\AttendanceDTO;
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Repositories\Interface\AdjustableAttdRepository;
 use App\Repositories\Interface\AttendanceRepository;
 use App\Services\Attendance\AttendanceState;
@@ -12,6 +11,7 @@ use App\Services\LocationService;
 use App\Services\WhatsappService;
 use App\Utils\AttendanceStatus;
 use App\Utils\DateNow;
+use Illuminate\Support\Facades\Log;
 
 class AdjustableOutState implements AttendanceState {
     private AdjustableAttdRepository $adjustableAttdRepository;
@@ -40,16 +40,26 @@ class AdjustableOutState implements AttendanceState {
 
             $adjustableOld = $this->adjustableAttdRepository->getByid($data->getAdjustableId());
             if (!$adjustableOld) {
-                LogConsole::info("Adjustable attendance data not found for ID: " . $data->getAdjustableId());
                 return new ActionResult(false, "Data adjustable attendance tidak ditemukan");
             }
 
-            $allAdjustable = $this->adjustableAttdRepository->getAll();
+            $user = \Illuminate\Support\Facades\Auth::user();
+            $shift = $adjustableOld->detailSchedule?->shift ?? null;
+            $isWfhSchedule = $adjustableOld->detailSchedule && strtolower($adjustableOld->detailSchedule->work_type ?? '') === 'wfh';
+            $isGpsRequired = ($user && $user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
 
-            $mapsTrack = $this->locationService->checkIsInOfficeArea($data->getLatitude(), $data->getLongitude());
+            $latitude = $data->getLatitude();
+            $longitude = $data->getLongitude();
 
-            if ($mapsTrack->isInArea == false) {
-                return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
+            if ($isGpsRequired) {
+                if ($latitude === null || $longitude === null) {
+                    return new ActionResult(false, "Gagal mendapatkan lokasi GPS. Pastikan GPS aktif dan izinkan akses lokasi.");
+                }
+                $mapsTrack = $this->locationService->checkIsInOfficeArea((float) $latitude, (float) $longitude, true);
+
+                if ($mapsTrack->isInArea == false) {
+                    return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
+                }
             }
 
             // Calculate total minutes, accounting for break time
@@ -129,7 +139,7 @@ class AdjustableOutState implements AttendanceState {
                 "totalChangeTime" => $totalChangeTime
             ]);
         } catch (\Throwable $e) {
-            LogConsole::info("Error on AdjustableOutState: " . $e->getMessage());
+            Log::error("Error on AdjustableOutState: " . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return new ActionResult(false, "Gagal mengambil ganti jam.", null);
         }
     }

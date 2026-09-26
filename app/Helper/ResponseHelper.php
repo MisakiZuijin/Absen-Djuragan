@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Helpers;
+namespace App\Helper;
 
 class ResponseHelper {
     public static function jsonResponse($status, $message, $data = null, $statusCode = 200) {

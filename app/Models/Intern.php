@@ -20,6 +20,7 @@ class Intern extends Model
         "user_id",
         "school_id",
         "division_id",
+        "brand_id",
         "shift_id",
         "nim",
         "start_date",
@@ -39,6 +40,11 @@ class Intern extends Model
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class, "division_id", "id");
+    }
+
+    public function brand(): BelongsTo
+    {
+        return $this->belongsTo(Brand::class, "brand_id", "id");
     }
 
     public function school(): BelongsTo
@@ -104,16 +110,28 @@ class Intern extends Model
         return $this->hasOne(Attendance::class, 'intern_id');
     }
 
-        public function toiletPermits()
+    public function toiletPermits(): HasManyThrough
     {
-        return $this->hasMany(PermitLog::class, 'intern_id')
-                    ->where('permit_type', 'toilet');
+        return $this->hasManyThrough(
+            PermitLog::class,
+            Attendance::class,
+            'intern_id',
+            'attendance_id',
+            'id',
+            'id'
+        )->where('permit_logs.type', 'toilet');
     }
 
-    public function prayerPermits()
+    public function prayerPermits(): HasManyThrough
     {
-        return $this->hasMany(PermitLog::class, 'intern_id')
-                    ->where('permit_type', 'prayer');
+        return $this->hasManyThrough(
+            PermitLog::class,
+            Attendance::class,
+            'intern_id',
+            'attendance_id',
+            'id',
+            'id'
+        )->where('permit_logs.type', 'prayer');
     }
 
     // =========================================================================
@@ -162,5 +180,73 @@ class Intern extends Model
         ->whereDate('permit_logs.start_time', today())
         // 3. Ambil yang paling baru untuk menghindari duplikasi jika ada data error.
         ->latest('permit_logs.start_time');
+    }
+
+    /**
+     * Semua log izin keluar milik pemagang pada HARI INI
+     */
+    public function todayLeavePermits(): HasManyThrough
+    {
+        return $this->hasManyThrough(
+            PermitLog::class,
+            Attendance::class,
+            'intern_id',
+            'attendance_id',
+            'id',
+            'id'
+        )
+        ->where('permit_logs.type', 'leave')
+        ->whereDate('permit_logs.start_time', today())
+        ->orderBy('permit_logs.start_time', 'desc');
+    }
+
+    public function getTodayLeavePermitsCollectionAttribute()
+    {
+        return $this->relationLoaded('todayLeavePermits')
+            ? $this->todayLeavePermits
+            : $this->todayLeavePermits()->get();
+    }
+
+    public function getTodayActiveLeavePermitAttribute()
+    {
+        return $this->today_leave_permits_collection->firstWhere('end_time', null);
+    }
+
+    public function getTodayLatestLeavePermitAttribute()
+    {
+        return $this->today_leave_permits_collection->first();
+    }
+
+    public function getTodayTotalLeaveMinutesAttribute(): int
+    {
+        return (int) $this->today_leave_permits_collection->sum(function($log) {
+            if ($log->end_time) {
+                return (int) ($log->duration_in_minutes ?: max(0, ceil(\Carbon\Carbon::parse($log->start_time)->diffInMinutes($log->end_time))));
+            } else {
+                return max(0, (int) ceil(\Carbon\Carbon::parse($log->start_time)->diffInMinutes(now())));
+            }
+        });
+    }
+
+    public function getTodayLeaveFormattedDurationAttribute(): string
+    {
+        $minutes = $this->today_total_leave_minutes;
+        if ($minutes <= 0) return '0 Menit';
+        $hours = intdiv($minutes, 60);
+        $remMin = $minutes % 60;
+        if ($hours > 0 && $remMin > 0) {
+            return "{$hours} Jam {$remMin} Menit";
+        } elseif ($hours > 0) {
+            return "{$hours} Jam";
+        }
+        return "{$minutes} Menit";
+    }
+
+    /**
+     * Riwayat Absen Offline oleh Admin
+     */
+    public function offlineAttendances(): HasMany
+    {
+        return $this->hasMany(OfflineAttendance::class, 'intern_id');
     }
 }

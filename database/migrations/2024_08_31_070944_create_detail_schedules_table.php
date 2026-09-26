@@ -11,19 +11,26 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('detail_schedules', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("schedule_id");
-            $table->unsignedBigInteger("attendance_id")->nullable();
-            $table->unsignedBigInteger("shift_id")->nullable(true);
-            $table->unsignedBigInteger("office_id");
-            $table->unsignedBigInteger("log_activity_id")->nullable(true);
-            $table->date("date")->nullable(false);
-            $table->string("start_time", 12)->nullable(true);
-            $table->string("end_time", 12)->nullable(true);
+            $table->foreignId("schedule_id")->constrained("schedules");
+            $table->foreignId("attendance_id")->nullable()->constrained("attendances");
+            $table->foreignId("shift_id")->nullable()->constrained("shifts");
+            $table->foreignId("office_id")->constrained("offices");
+            $table->unsignedBigInteger("log_activity_id")->nullable();
+            $table->date("date");
+            $table->string("start_time", 12)->nullable();
+            $table->string("end_time", 12)->nullable();
             $table->boolean("is_break_first")->default(false);
+            $table->boolean("is_notification_sent")->default(false);
+            $table->foreignId("attd_status_id")->default(1)->constrained("attd_statuses");
+            $table->foreignId("permit_reason_id")->nullable()->constrained("permit_reasons");
+            $table->boolean("isChangeSchedule")->default(false);
+            $table->enum("work_type", ["wfo", "wfh"])->default("wfo");
+            $table->boolean("isBackFirst")->default(false);
+            $table->boolean("is_change_schedule_approved")->default(false);
 
-            $table->foreign("shift_id")->references("id")->on("shifts");
-            $table->foreign("attendance_id")->references("id")->on("attendances");
-            $table->foreign("office_id")->references("id")->on("offices");
+            $table->index('date');
+            $table->index('isChangeSchedule');
+            $table->index(['schedule_id', 'date']);
         });
     }
 

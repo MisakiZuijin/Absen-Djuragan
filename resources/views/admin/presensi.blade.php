@@ -3,97 +3,95 @@
 @section('title', 'Presensi')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar', ['user' => $user])
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
-        <div class="bg-gray-700 text-white p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
+        <div class="bg-gray-700 text-white p-4 sm:p-6 rounded-t-lg">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                 <!-- Left Column -->
-                <div class="flex flex-col space-y-4">
-                    <div class="text-4xl font-bold">Data Presensi</div>
-                    <div class="text-lg" id="date-display">Data per tanggal {{ $dateNow ?? '' }}</div>
+                <div class="flex flex-col space-y-1 sm:space-y-4">
+                    <div class="text-2xl sm:text-4xl font-bold">Data Presensi</div>
+                    <div class="text-sm sm:text-lg" id="date-display">Data per tanggal {{ $dateNow ?? '' }}</div>
                 </div>
 
                 <!-- Right Column -->
                 <div class="flex flex-col space-y-2">
-                    <label for="search-student" class="text-lg font-medium">Cari Mahasiswa</label>
+                    <label for="search-name" class="text-sm sm:text-lg font-medium">Cari Mahasiswa</label>
                     <div class="flex items-center border border-gray-300 rounded">
                         <div class="bg-white p-2 rounded-l">
                             <i class="ml-2 fa-solid fa-search text-gray-500"></i>
                         </div>
 
                         <input type="text" id="search-name"
-                            class="p-2 pl-3 pr-3 rounded-r text-gray-800 focus:outline-none focus:border-blue-500 w-full"
+                            class="p-2 pl-3 pr-3 rounded-r text-gray-800 focus:outline-none focus:border-blue-500 w-full text-sm sm:text-base"
                             placeholder="Masukkan nama mahasiswa">
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2">
+        <div class="grid grid-cols-1 lg:grid-cols-2 bg-white rounded-b-lg shadow-sm border border-t-0 border-gray-200">
             <!-- Left Side: Total Kehadiran -->
-            <div class="bg-white p-6 rounded-lg">
-                <div class="text-xl font-bold mb-2">Total Kehadiran</div>
+            <div class="bg-white p-3.5 sm:p-6 rounded-lg">
+                <div class="text-base sm:text-xl font-bold mb-2">Total Kehadiran</div>
                 <hr class="mb-2 border-gray-300">
-                <div class="flex gap-4 mb-2">
-                    <div class="flex-1 flex justify-start items-center">
-                        <span>Total Masuk</span>
+                <div class="grid grid-cols-3 gap-1.5 sm:gap-4 mb-2 text-center sm:text-left">
+                    <div class="p-2 sm:p-0 bg-green-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
+                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Masuk</span>
                         <span id="total_presence"
-                            class="px-3 py-2 text-xs font-medium text-center text-white bg-green-700 rounded-lg ml-2">0</span>
+                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-green-700 rounded-md sm:rounded-lg">0</span>
                     </div>
-                    <div class="flex-1 flex justify-start items-center">
-                        <span>Total Izin</span>
+                    <div class="p-2 sm:p-0 bg-yellow-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
+                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Izin</span>
                         <span id="total_permit"
-                            class="px-3 py-2 text-xs font-medium text-center text-white bg-yellow-600 rounded-lg ml-2">{{ $permitTotal ?? 0 }}</span>
+                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-yellow-600 rounded-md sm:rounded-lg">{{ $permitTotal ?? 0 }}</span>
                     </div>
-                    <div class="flex-1 flex justify-start items-center">
-                        <span>Total Tidak Masuk</span>
+                    <div class="p-2 sm:p-0 bg-red-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
+                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Alpha</span>
                         <span id="total_absence"
-                            class="px-3 py-2 text-xs font-medium text-center text-white bg-red-700 rounded-lg ml-1">{{ $absenceTotal ?? 0 }}</span>
+                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-red-700 rounded-md sm:rounded-lg">{{ $absenceTotal ?? 0 }}</span>
                     </div>
                 </div>
                 <hr class="mb-2 border-gray-300">
             </div>
 
             <!-- Right Side: Date Input and Filter -->
-            <div class="bg-white pr-5 pt-7 rounded-lg flex items-center gap-4">
-                <div class="flex flex-col space-y-2 w-64">
+            <div class="bg-white p-3.5 sm:pt-7 sm:pr-5 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div class="flex flex-col space-y-1 w-full sm:w-64">
                     <div class="flex items-center border border-gray-800 rounded-md">
                         <div class="bg-white p-2 rounded-l-md">
                             <i class="fas fa-search text-gray-500"></i>
                         </div>
 
                         <input type="date" id="date-target" value="{{ $dateNowYMD ?? '' }}"
-                            class="p-2 pl-2 w-full text-left text-gray-800 rounded-r-md focus:outline-none focus:border-blue-500">
+                            class="p-2 pl-2 w-full text-left text-gray-800 rounded-r-md focus:outline-none focus:border-blue-500 text-sm">
                     </div>
                 </div>
 
-                <select id="filter-status"
-                    class="p-2 w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500">
-                    <option value="" disabled selected>Filter Status</option>
-                    @foreach ($attd_statuses as $status)
-                        <option value="{{ $status->id }}">{{ $status->name }}</option>
-                    @endforeach
-                </select>
+                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <select id="filter-status"
+                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
+                        <option value="" disabled selected>Filter Status</option>
+                        @foreach ($attd_statuses as $status)
+                            <option value="{{ $status->id }}">{{ $status->name }}</option>
+                        @endforeach
+                    </select>
 
-                <select id="filter-shift"
-                    class="p-2 w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500">
-                    <option value="" disabled selected>Filter Shift</option>
-                    @foreach ($shifts as $shift)
-                        <option value="{{ $shift->id }}">{{ $shift->name }}</option>
-                    @endforeach
-                </select>
+                    <select id="filter-shift"
+                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
+                        <option value="" disabled selected>Filter Shift</option>
+                        @foreach ($shifts as $shift)
+                            <option value="{{ $shift->id }}">{{ $shift->name }}</option>
+                        @endforeach
+                    </select>
 
-                <select id="filter-office"
-                    class="p-2 w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500">
-                    <option value="" disabled selected>Filter Kantor</option>
-                    @foreach ($office as $officeItem)
-                        <option value="{{ $officeItem->id }}">{{ $officeItem->name }}</option>
-                    @endforeach
-                </select>
+                    <select id="filter-office"
+                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
+                        <option value="" disabled selected>Filter Kantor</option>
+                        @foreach ($office as $officeItem)
+                            <option value="{{ $officeItem->id }}">{{ $officeItem->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -122,64 +120,68 @@
             </div>
         @endif
 
-        <div class="mt-4 flex justify-end items-center gap-3">
-            <form action="./log-activity/yesall/{{ $dateNowYMD ?? '' }}" method="POST" id="yes-all-form">
+        <div class="mt-4 flex flex-col sm:flex-row sm:justify-end items-stretch sm:items-center gap-2 sm:gap-3">
+            <form action="./log-activity/yesall/{{ $dateNowYMD ?? '' }}" method="POST" id="yes-all-form" class="w-full sm:w-auto">
                 @csrf
                 <button id="open-modal-btn" type="submit"
-                    class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-200">
+                    class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-3 sm:px-4 text-xs sm:text-sm rounded-lg shadow-sm transition duration-200">
                     Yes to All
                 </button>
             </form>
 
-            <form id="bulk-permit-notify-form" class="ajax-form" action="{{ route('admin.attendance.notify.permit.bulk') }}"
-                method="POST">
-                @csrf
-                <input type="hidden" name="date" class="bulk-notify-date" value="{{ $dateNowYMD ?? '' }}">
-                <button type="submit"
-                    class="bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-200 flex items-center gap-2">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>Kirim Notif Izin</span>
-                </button>
-            </form>
+            <div class="grid grid-cols-2 sm:flex sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                <form id="bulk-permit-notify-form" class="ajax-form w-full sm:w-auto" action="{{ route('admin.attendance.notify.permit.bulk') }}"
+                    method="POST">
+                    @csrf
+                    <input type="hidden" name="date" class="bulk-notify-date" value="{{ $dateNowYMD ?? '' }}">
+                    <button type="submit"
+                        class="w-full sm:w-auto bg-yellow-500 hover:bg-yellow-600 text-white font-medium py-2 px-2.5 sm:px-4 text-xs sm:text-sm rounded-lg shadow-sm transition duration-200 flex items-center justify-center gap-1.5 sm:gap-2">
+                        <i class="fab fa-whatsapp"></i>
+                        <span class="truncate">Kirim Notif Izin</span>
+                    </button>
+                </form>
 
-            <form id="bulk-alpha-notify-form" class="ajax-form" action="{{ route('admin.attendance.notify.alpha.bulk') }}"
-                method="POST">
-                @csrf
-                <input type="hidden" name="date" class="bulk-notify-date" value="{{ $dateNowYMD ?? '' }}">
-                <button type="submit"
-                    class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-200 flex items-center gap-2">
-                    <i class="fab fa-whatsapp"></i>
-                    <span>Kirim Notif Alpha</span>
-                </button>
-            </form>
+                <form id="bulk-alpha-notify-form" class="ajax-form w-full sm:w-auto" action="{{ route('admin.attendance.notify.alpha.bulk') }}"
+                    method="POST">
+                    @csrf
+                    <input type="hidden" name="date" class="bulk-notify-date" value="{{ $dateNowYMD ?? '' }}">
+                    <button type="submit"
+                        class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-2.5 sm:px-4 text-xs sm:text-sm rounded-lg shadow-sm transition duration-200 flex items-center justify-center gap-1.5 sm:gap-2">
+                        <i class="fab fa-whatsapp"></i>
+                        <span class="truncate">Kirim Notif Alpha</span>
+                    </button>
+                </form>
+            </div>
         </div>
 
-        <table class="min-w-full shadow-md rounded-lg mt-2 border-separate border-spacing-1">
-            <thead>
-                <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
-                    <th rowspan="2" class="px-4 py-2 border">No</th>
-                    <th rowspan="2" class="px-4 py-2 text-center border">Nama</th>
-                    <th colspan="2" class="px-4 py-2 border">Jam Kerja</th>
-                    <th colspan="2" class="px-4 py-2 border">Jam Istirahat</th>
-                    <th colspan="2" class="px-4 py-2 border">Total Jam Kerja</th>
-                    <th rowspan="2" class="px-4 py-2 border">Status Kehadiran</th>
-                    <th rowspan="2" class="px-4 py-2 border">Log Activity</th>
-                    <th rowspan="2" class="px-4 py-2 border">Aksi</th>
-                </tr>
-                <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
-                    <!-- Sub-headings for the merged columns -->
-                    <th class="py-2 px-4 border">Masuk</th>
-                    <th class="py-2 px-4 border">Pulang</th>
-                    <th class="py-2 px-4 border">Mulai</th>
-                    <th class="py-2 px-4 border">Selesai</th>
-                    <th class="py-2 px-4 border">Total Jam</th>
-                    <th class="py-2 px-4 border">(+/-)</th>
-                </tr>
-            </thead>
+        <div class="overflow-x-auto w-full bg-white rounded-lg shadow-md mt-4 border border-gray-200">
+            <table class="min-w-full border-separate border-spacing-1">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
+                        <th rowspan="2" class="px-4 py-2 border">No</th>
+                        <th rowspan="2" class="px-4 py-2 text-center border">Nama</th>
+                        <th colspan="2" class="px-4 py-2 border">Jam Kerja</th>
+                        <th colspan="2" class="px-4 py-2 border">Jam Istirahat</th>
+                        <th colspan="2" class="px-4 py-2 border">Total Jam Kerja</th>
+                        <th rowspan="2" class="px-4 py-2 border">Status Kehadiran</th>
+                        <th rowspan="2" class="px-4 py-2 border">Log Activity</th>
+                        <th rowspan="2" class="px-4 py-2 border">Aksi</th>
+                    </tr>
+                    <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
+                        <!-- Sub-headings for the merged columns -->
+                        <th class="py-2 px-4 border">Masuk</th>
+                        <th class="py-2 px-4 border">Pulang</th>
+                        <th class="py-2 px-4 border">Mulai</th>
+                        <th class="py-2 px-4 border">Selesai</th>
+                        <th class="py-2 px-4 border">Total Jam</th>
+                        <th class="py-2 px-4 border">(+/-)</th>
+                    </tr>
+                </thead>
 
-            <tbody class="text-sm font-normal text-gray-800" id="report-tbody">
-            </tbody>
-        </table>
+                <tbody class="text-sm font-normal text-gray-800" id="report-tbody">
+                </tbody>
+            </table>
+        </div>
 
         <div id="loading-spinner" class="flex justify-center items-center py-4 ">
             <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-10 w-10"></div>
@@ -190,7 +192,7 @@
         </div>
 
         <!-- Pagination Controls -->
-        <div class="mt-4 flex justify-center items-center space-x-2 border rounded-md p-2">
+        <div class="mt-4 flex flex-wrap justify-center items-center gap-2 border rounded-md p-2">
             <button id="prev-page"
                 class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100" disabled>
                 Previous
@@ -207,7 +209,7 @@
         <!-- Download PDF Button -->
         <div class="mt-4 flex justify-end">
             <button id="download-pdf"
-                class="px-3 py-2 text-sm font-medium text-center text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+                class="px-3 py-2 text-sm font-medium text-center text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800 rounded-md">
                 <i class="fa-solid fa-download"></i>
                 <span>Download PDF</span>
             </button>
@@ -216,14 +218,14 @@
 
 
     <!-- Modal untuk Edit Presensi -->
-    <div id="editModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg overflow-hidden shadow-lg max-w-sm w-full">
-            <div class="px-6 py-4">
-                <h2 class="text-lg font-semibold mb-4 text-center">Edit Presensi</h2>
-                <p class="bg-red-300 p-2 rounded mb-5">
-                    Anda akan merubah presensi <span id="field1"></span> pada tanggal
-                    <span id="date-display1" class="font-semibold">---</span> atas nama:
-                    <span id="name-display" class="font-semibold">---</span>
+    <div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 p-4 hidden">
+        <div class="bg-white rounded-xl overflow-hidden shadow-2xl max-w-sm w-full mx-auto">
+            <div class="p-5 sm:p-6">
+                <h2 class="text-lg font-semibold mb-3 text-center text-gray-800">Edit Presensi</h2>
+                <p class="bg-red-50 text-red-700 border border-red-200 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                    Anda akan merubah presensi <span id="field1" class="font-bold"></span> pada tanggal
+                    <span id="date-display1" class="font-bold">---</span> atas nama:
+                    <span id="name-display" class="font-bold">---</span>
                 </p>
                 <form id="editForm" action="" method="POST">
                     @csrf
@@ -231,16 +233,16 @@
                     <input type="hidden" name="tipe" id="tipe">
                     <input type="hidden" name="attendance_id" id="attendanceId">
                     <div class="mb-4">
-                        <label for="time" class="block text-gray-700 text-sm font-bold mb-2">Waktu:</label>
+                        <label for="time" class="block text-gray-700 text-sm font-semibold mb-2">Waktu:</label>
                         <input type="time" name="time" id="time" step="1"
-                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
                             required>
                     </div>
-                    <div class="flex justify-end">
+                    <div class="flex justify-end gap-2">
                         <button type="button" onclick="closeModal()"
-                            class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 mr-2">Batal</button>
+                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition">Batal</button>
                         <button type="submit"
-                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Simpan</button>
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition">Simpan</button>
                     </div>
                 </form>
             </div>
@@ -248,21 +250,21 @@
     </div>
 
     <!-- Modal untuk Log Activity -->
-    <div id="modal-activity" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white p-4 rounded-lg w-11/12 max-w-xl">
-            <h2 class="text-lg font-semibold mb-4">Log Activity</h2>
+    <div id="modal-activity" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 hidden">
+        <div class="bg-white p-5 sm:p-6 rounded-xl w-full max-w-xl mx-auto shadow-2xl max-h-[90vh] flex flex-col">
+            <h2 class="text-lg font-semibold mb-3 text-gray-800">Log Activity</h2>
 
             <!-- Textarea -->
-            <div class="mb-4">
+            <div class="mb-4 flex-1">
                 <textarea id="log-activity"
-                    class="mt-1 p-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
-                    rows="4" readonly></textarea>
+                    class="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm font-mono"
+                    rows="6" readonly></textarea>
             </div>
 
             <!-- Tombol Tutup -->
             <div class="flex justify-end">
                 <button id="close-activity-modal-btn" onclick="closeModalActivity()"
-                    class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition">
                     Tutup
                 </button>
             </div>
@@ -441,15 +443,11 @@
                 const time = formatTimeWithSeconds(data[field] || '');
                 const id = data.id || '';
                 const dateNow = data.date || '';
-                const message = data[`${field}_message`] || '';
 
-                // Escape pesan untuk mencegah XSS
-                const escapedMessage = message ? escapeHtml(message) : '';
                 const escapedName = name ? escapeHtml(name) : '';
 
                 return `
                         <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${id}', '${dateNow}', '${escapedName}')" class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline">${time}</span>
-                        ${message ? `<span class="relative group"><i class="fa-solid fa-circle-info text-red-600 cursor-pointer text-sm"></i><div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-sm rounded px-2 py-1 z-10 min-w-max max-w-xs">${escapedMessage}</div></span>` : ''}
                     `;
             }
 

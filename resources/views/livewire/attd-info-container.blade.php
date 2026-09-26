@@ -10,7 +10,7 @@ return $time ? \Carbon\Carbon::parse($time)->format('H:i:s') : null;
 }
 @endphp
 
-<div class="grid grid-cols-2 gap-2 w-full mt-4 {{ $gridClass }}">
+<div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3 w-full mt-2 {{ $gridClass }}">
 
     @if ($isWithoutBreak)
     @include('users.component.attd_status_component', [

@@ -22,8 +22,19 @@ class Shift extends Model
         "start_break_time",
         "end_break_time",
         "adt_start_break_time",
-        "adt_end_break_time"
+        "adt_end_break_time",
+        "is_gps_active"
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_distinct_shift_names');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_distinct_shift_names');
+        });
+    }
 
     /**
      * --- PERUBAHAN UTAMA ADA DI SINI ---

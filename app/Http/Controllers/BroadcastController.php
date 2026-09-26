@@ -10,6 +10,7 @@ use App\Models\Division;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class BroadcastController extends Controller
@@ -19,11 +20,20 @@ class BroadcastController extends Controller
      */
     public function index()
     {
-        $broadcastlist = Broadcast::with('divisions', 'users', 'images')->latest()->paginate(10);
-        $divisions = Division::orderBy('name')->get();
-        $users = User::whereHas('intern')->with('profile')->get();
+        $broadcastlist = Broadcast::announcements()
+            ->with([
+                'divisions:id,name',
+                'users:id,username',
+                'users.profile:id,user_id,full_name',
+                'shifts:id,name',
+                'images:id,broadcast_id,image'
+            ])
+            ->latest()
+            ->paginate(10);
+        $divisions = Division::select('id', 'name')->orderBy('name')->get();
+        $users = User::select('id', 'username')->whereHas('intern')->with('profile:id,user_id,full_name')->get();
 
-       return view('admin.pengaturan-broadcast', compact('broadcastlist', 'divisions', 'users'));
+        return view('admin.pengaturan-broadcast', compact('broadcastlist', 'divisions', 'users'));
     }
 
     /**
@@ -44,6 +54,7 @@ class BroadcastController extends Controller
         DB::beginTransaction();
         try {
             $broadcast = Broadcast::create([
+                'category' => 'announcement',
                 'title' => $request->title,
                 'message' => $request->message,
                 'broadcast_type' => $request->broadcast_type,
@@ -65,12 +76,14 @@ class BroadcastController extends Controller
 
             DB::commit();
 
-            // [PERBAIKAN] Menggunakan URL absolut untuk redirect
+            \App\Helper\ActivityLogger::log('CREATE', 'Broadcast', "Admin membuat pengumuman baru: {$request->title}");
+
             return redirect()->to('/admin/broadcasts')->with('success', 'Pengumuman baru berhasil ditambahkan.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+            Log::error('Broadcast store error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan pengumuman. Silakan coba lagi.')->withInput();
         }
     }
 
@@ -128,12 +141,14 @@ class BroadcastController extends Controller
 
             DB::commit();
 
-            // [PERBAIKAN] Menggunakan URL absolut untuk redirect
+            \App\Helper\ActivityLogger::log('UPDATE', 'Broadcast', "Admin memperbarui pengumuman: {$broadcast->title}");
+
             return redirect()->to('/admin/broadcasts')->with('success', 'Pengumuman berhasil diperbarui.');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+            Log::error('Broadcast update error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat memperbarui pengumuman. Silakan coba lagi.')->withInput();
         }
     }
 
@@ -144,6 +159,7 @@ class BroadcastController extends Controller
     {
         DB::beginTransaction();
         try {
+            $broadcast->loadMissing('images');
             foreach ($broadcast->images as $image) {
                 $imagePath = public_path('broadcast-image/' . $image->image);
                 if (File::exists($imagePath)) {
@@ -151,11 +167,13 @@ class BroadcastController extends Controller
                 }
             }
             
+            $title = $broadcast->title;
             $broadcast->delete();
 
             DB::commit();
 
-            // [PERBAIKAN] Menggunakan URL absolut untuk redirect
+            \App\Helper\ActivityLogger::log('DELETE', 'Broadcast', "Admin menghapus pengumuman: {$title}");
+
             return redirect()->to('/admin/broadcasts')->with('success', 'Pengumuman berhasil dihapus.');
 
         } catch (\Exception $e) {

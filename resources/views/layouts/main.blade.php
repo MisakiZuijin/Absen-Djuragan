@@ -3,8 +3,15 @@
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- iOS / macOS Safari Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Absen Djuragan Admin" />
+
     <title>Halaman @yield('title') | Admin</title>
 
     {{-- Styles --}}
@@ -22,32 +29,16 @@
     @livewireStyles
 </head>
 
-<body class="flex bg-gray-100 min-h-screen">
+<body class="bg-gray-100 min-h-screen text-gray-800 antialiased w-full overflow-x-hidden min-w-0">
 
-    {{-- Sidebar Anda (Tidak ada perubahan) --}}
-    @include($sidebarView ?? 'layouts.sidebar')
+    {{-- Sidebar Global --}}
+    @include($sidebarView ?? (auth()->check() && (int) auth()->user()->role_id === 6 ? 'layouts.sidebar-assistant' : 'layouts.sidebar'))
 
-    {{-- ====================================================================== --}}
-    {{-- PERBAIKAN UTAMA DI SINI --}}
-    {{-- ====================================================================== --}}
-    
-    {{-- Pembungkus utama untuk Navbar dan Konten --}}
-    <div class="flex-1 flex flex-col h-screen">
-        
-        {{-- Navbar Anda, sekarang tidak 'fixed' di dalam sini --}}
-        {{-- Kita bungkus agar bisa diberi style jika perlu --}}
-        <div>
-            @include('layouts.navbar', ['user' => $user ?? null])
-        </div>
+    {{-- Navbar Global --}}
+    @include('layouts.navbar', ['user' => $user ?? null])
 
-        {{-- Konten Utama dengan scrolling internal --}}
-        <main class="flex-1 overflow-y-auto p-6">
-            @yield('contents')
-        </main>
-    </div>
-    {{-- ====================================================================== --}}
-    {{-- AKHIR DARI PERBAIKAN --}}
-    {{-- ====================================================================== --}}
+    {{-- Konten Utama --}}
+    @yield('contents')
     
 
     {{-- Modal Logout (Tidak ada perubahan) --}}
@@ -75,6 +66,48 @@
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="{{ asset('js/admin/raise-hand-notifications.js') }}"></script>
+    <script>
+        if (typeof $ !== 'undefined') {
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                statusCode: {
+                    419: function () {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Sesi Telah Berakhir',
+                                text: 'Sesi Anda telah kedaluwarsa. Halaman akan dimuat ulang.',
+                                confirmButtonText: 'Muat Ulang'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            alert('Sesi Anda telah berakhir. Halaman akan dimuat ulang.');
+                            window.location.reload();
+                        }
+                    },
+                    403: function () {
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Akses Ditolak',
+                                text: 'Anda tidak memiliki izin untuk melakukan tindakan ini.'
+                            });
+                        } else {
+                            alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+                        }
+                    }
+                }
+            });
+        }
+        window.addEventListener('unhandledrejection', function (event) {
+            if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
+                window.location.reload();
+            }
+        });
+    </script>
     @stack('scripts')
     @livewireScripts
 </body>

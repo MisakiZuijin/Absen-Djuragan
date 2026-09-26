@@ -32,7 +32,7 @@
     {{-- 2. Wrapper untuk konten utama DIBERI MARGIN KIRI --}}
     {{-- Margin ini mendorong konten ke kanan, memberi ruang untuk sidebar --}}
     {{-- Ini adalah cara yang benar untuk mengatasi konten yang "tenggelam" --}}
-    <div class="ml-32 md:ml-48 lg:ml-64">
+    <div class="ml-0 md:ml-64">
 
         {{-- 3. Semua konten lainnya berada di dalam wrapper ini --}}
         <div class="flex-1 flex flex-col min-h-screen">
@@ -41,7 +41,7 @@
             @include('layouts.navbar', ['user' => $user ?? null])
 
             {{-- Page Contents --}}
-            <main class="flex-1 p-6">
+            <main class="flex-1 p-3 sm:p-6">
                 {{-- Nama section kita standarkan menjadi 'contents' agar konsisten --}}
                 @yield('contents')
             </main>
@@ -81,6 +81,31 @@
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="{{ asset('js/admin/raise-hand-notifications.js') }}"></script>
+    <script>
+        if (typeof $ !== 'undefined') {
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                statusCode: {
+                    419: function () {
+                        alert('Sesi Anda telah berakhir. Halaman akan dimuat ulang.');
+                        window.location.reload();
+                    },
+                    403: function () {
+                        alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+                    }
+                }
+            });
+        }
+        window.addEventListener('unhandledrejection', function (event) {
+            if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
+                window.location.reload();
+            }
+        });
+    </script>
+    @stack('scripts')
+    @livewireScripts
 </body>
 
 </html>

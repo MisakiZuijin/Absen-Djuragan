@@ -3,10 +3,8 @@
 @section('title', 'Tambah Outsider')
 
 @section('contents')
-    @include('layouts.sidebar')
-    @include('layouts.navbar')
-
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <!-- Main Content -->
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
 
         <!-- Back Button -->
         <div class="mb-6">

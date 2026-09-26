@@ -3,28 +3,28 @@
 @section('title', 'Logbook Harian Pemagang')
 
 @section('contents')
-<div class="max-w-6xl mx-auto px-4 py-6 md:py-8 space-y-6">
+<div class="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
 
     <!-- Top Navigation / Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4">
         <a href="{{ route('user.home') }}"
-            class="inline-flex items-center text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors w-fit">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            class="inline-flex items-center text-xs sm:text-sm font-semibold text-gray-600 hover:text-blue-600 transition-colors w-fit">
+            <svg class="w-4 h-4 mr-2 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             <span>Kembali ke Beranda</span>
         </a>
 
-        <div class="flex flex-wrap items-center gap-2">
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-sm">
-                <svg class="w-3.5 h-3.5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex items-center gap-1.5 sm:gap-2 flex-nowrap overflow-x-auto pb-0.5 max-w-full">
+            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-2xs whitespace-nowrap shrink-0">
+                <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <span>Divisi: {{ $user->intern->division->name ?? 'Umum' }}</span>
             </span>
             @if($user->intern?->school)
-            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200">
-                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap shrink-0">
+                <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5" />
                 </svg>
                 <span>{{ $user->intern->school->name }}</span>
@@ -34,30 +34,30 @@
     </div>
 
     <!-- Banner Card -->
-    <div class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 text-white rounded-3xl p-6 md:p-8 shadow-xl relative overflow-hidden">
+    <div class="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 text-white rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 shadow-xl relative overflow-hidden">
         <div class="absolute -right-12 -bottom-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div class="space-y-2">
+        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6">
+            <div class="space-y-1.5 sm:space-y-2">
                 <div class="flex items-center gap-2 text-blue-300 text-xs font-bold uppercase tracking-wider">
                     <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
                     <span>Laporan Harian Kerja</span>
                 </div>
-                <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white leading-tight">
                     Logbook Harian Pemagang
                 </h1>
                 <p class="text-xs md:text-sm text-slate-300 max-w-xl leading-relaxed">
                     Catat rincian kegiatan kerja harian Anda secara rutin dan pantau histori logbook yang telah Anda laporkan.
                 </p>
             </div>
-            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-4 flex items-center gap-4 self-start md:self-center">
-                <div class="w-12 h-12 rounded-xl bg-blue-600/40 border border-blue-400/30 flex items-center justify-center text-blue-300">
-                    <i class="fa-regular fa-file-lines text-2xl"></i>
+            <div class="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-3.5 sm:p-4 flex items-center gap-3 sm:gap-4 self-stretch sm:self-start md:self-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-blue-600/40 border border-blue-400/30 flex items-center justify-center text-blue-300 flex-shrink-0">
+                    <i class="fa-regular fa-file-lines text-xl sm:text-2xl"></i>
                 </div>
                 <div>
                     <div class="text-[11px] text-slate-300 font-medium">Hari Ini</div>
-                    <div class="text-sm font-bold text-white">{{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y') }}</div>
+                    <div class="text-xs sm:text-sm font-bold text-white">{{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y') }}</div>
                 </div>
             </div>
         </div>
@@ -97,13 +97,15 @@
     <div class="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
 
         <!-- Tab Navigation -->
-        <div class="flex border-b border-gray-200 bg-gray-50 text-sm font-medium">
+        <div class="flex border-b border-gray-200 bg-gray-50 text-xs sm:text-sm font-medium">
             <button type="button" onclick="switchLogbookTab('tab-today')" id="btn-tab-today"
-                class="logbook-tab-btn flex-1 py-3.5 px-5 text-center border-b-2 border-blue-600 text-blue-600 font-semibold focus:outline-none flex items-center justify-center gap-2 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                </svg>
-                <span>Isi Laporan Hari Ini</span>
+                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-blue-600 text-blue-600 font-semibold focus:outline-none flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-colors cursor-pointer">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
+                    <span>Isi Laporan Hari Ini</span>
+                </div>
                 @if($hasFilledLogToday)
                 <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Sudah Diisi</span>
                 @else
@@ -111,17 +113,19 @@
                 @endif
             </button>
             <button type="button" onclick="switchLogbookTab('tab-history')" id="btn-tab-history"
-                class="logbook-tab-btn flex-1 py-3.5 px-5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex items-center justify-center gap-2 transition-colors cursor-pointer">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>
-                <span>Riwayat Logbook</span>
+                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-colors cursor-pointer">
+                <div class="flex items-center gap-1.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>Riwayat Logbook</span>
+                </div>
                 <span class="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-bold">{{ count($logActivityHistory ?? []) }} hari</span>
             </button>
         </div>
 
         <!-- Tab Body Content -->
-        <div class="p-6">
+        <div class="p-4 sm:p-6">
 
             <!-- ==================================================== -->
             <!-- TAB 1: LAPORAN HARI INI -->
@@ -164,13 +168,13 @@
                 @if($hasFilledLogToday)
                 <!-- TAMPILAN JIKA SUDAH MENGISI LOGBOOK HARI INI -->
                 <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="block font-bold text-gray-700 text-sm flex items-center gap-1.5">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label class="block font-bold text-gray-700 text-xs sm:text-sm flex items-center gap-1.5">
                             <i class="fa-solid fa-list-check text-blue-600"></i>
-                            Aktivitas yang Telah Dilaporkan:
+                            <span>Aktivitas yang Telah Dilaporkan:</span>
                         </label>
                         @if(($todaysLogActivity->status_id ?? 1) != 2)
-                        <button type="button" onclick="toggleTodayEditMode()" id="btn-toggle-today-edit" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-blue-50/50">
+                        <button type="button" onclick="toggleTodayEditMode()" id="btn-toggle-today-edit" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-blue-50/50 w-full sm:w-auto">
                             <i class="fa-solid fa-pen-to-square"></i>
                             <span id="text-toggle-today-edit">Edit Laporan</span>
                         </button>
@@ -178,7 +182,7 @@
                     </div>
 
                     <!-- Read-only view -->
-                    <div id="today-readonly-view" class="bg-gray-50 border border-gray-200 rounded-xl p-5 text-gray-800 text-sm whitespace-pre-line leading-relaxed min-h-[120px] shadow-inner">
+                    <div id="today-readonly-view" class="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5 text-gray-800 text-xs sm:text-sm whitespace-pre-line leading-relaxed min-h-[100px] sm:min-h-[120px] shadow-inner">
                         {!! nl2br(e($todaysLogActivity->activity ?? '')) !!}
                     </div>
 
@@ -188,31 +192,31 @@
                         @csrf
                         <input type="hidden" name="id" value="{{ $todaysLogActivity->id }}">
                         <div>
-                            <textarea class="border border-gray-300 rounded-xl p-4 w-full h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                            <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
                                 id="today_edit_activity" name="activity" required>{{ $todaysLogActivity->activity ?? '' }}</textarea>
-                            <p class="text-xs text-gray-500 mt-1">Anda dapat memperbarui poin kegiatan sebelum admin/mentor menyetujui logbook ini.</p>
+                            <p class="text-[11px] text-gray-500 mt-1">Anda dapat memperbarui poin kegiatan sebelum admin/mentor menyetujui logbook ini.</p>
                         </div>
-                        <div class="flex justify-end gap-2">
-                            <button type="button" onclick="toggleTodayEditMode()" class="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-100 transition">Batal</button>
-                            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-1.5">
+                        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
+                            <button type="button" onclick="toggleTodayEditMode()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition text-center">Batal</button>
+                            <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
                                 <i class="fa-solid fa-check"></i> Simpan Perubahan
                             </button>
                         </div>
                     </form>
                     @else
                     <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0"></i>
                         <span>Logbook hari ini sudah diverifikasi & disetujui oleh admin/mentor. Laporan sudah terkunci.</span>
                     </div>
                     @endif
 
                     <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
-                            <i class="fa-solid fa-circle-info text-blue-500 text-base"></i>
+                            <i class="fa-solid fa-circle-info text-blue-500 text-base flex-shrink-0"></i>
                             <span>Ingin melihat seluruh riwayat logbook hari-hari sebelumnya?</span>
                         </div>
-                        <button type="button" onclick="switchLogbookTab('tab-history')" class="text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1.5 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-white shrink-0 shadow-sm cursor-pointer">
-                            <i class="fa-solid fa-clock-rotate-left"></i> Buka Riwayat Logbook &rarr;
+                        <button type="button" onclick="switchLogbookTab('tab-history')" class="w-full sm:w-auto text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center gap-1.5 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-white shrink-0 shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-clock-rotate-left"></i> <span>Buka Riwayat Logbook &rarr;</span>
                         </button>
                     </div>
                 </div>
@@ -220,13 +224,13 @@
                 @else
                 <!-- FORM INPUT JIKA BELUM MENGISI HARI INI -->
                 <div class="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5"></i>
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 flex-shrink-0"></i>
                     <div>
                         <span class="font-bold">Perhatian:</span> Pastikan mengisi dan menyimpan logbook aktivitas sebelum Anda menekan tombol <strong>Pulang</strong> presensi.
                     </div>
                 </div>
 
-                <div class="flex items-center justify-between text-xs text-gray-500 pt-1 pb-1">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs text-gray-500 pt-1 pb-1">
                     <span>Sudah pernah mengisi logbook sebelumnya?</span>
                     <button type="button" onclick="switchLogbookTab('tab-history')" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 cursor-pointer">
                         <i class="fa-solid fa-clock-rotate-left"></i> Buka Riwayat Logbook &rarr;
@@ -237,18 +241,18 @@
                     @csrf
                     <input type="hidden" name="user_id" value="{{ $user->id }}">
                     <div>
-                        <label class="block font-bold text-gray-700 text-sm mb-1.5 flex items-center justify-between" for="activity">
+                        <label class="block font-bold text-gray-700 text-xs sm:text-sm mb-1.5 flex items-center justify-between" for="activity">
                             <span>Rincian Aktivitas Hari Ini <span class="text-red-500">*</span></span>
-                            <span class="text-xs font-normal text-gray-400" id="char-count">0 karakter</span>
+                            <span class="text-[11px] font-normal text-gray-400" id="char-count">0 karakter</span>
                         </label>
-                        <textarea class="border border-gray-300 rounded-xl p-4 w-full h-44 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                        <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-44 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed"
                             id="activity" name="activity"
                             placeholder="Contoh:&#10;1. Mengerjakan implementasi integrasi API&#10;2. Melakukan code review dan perbaikan logic tugas&#10;3. Menyelesaikan testing dan dokumentasi progress harian" required></textarea>
                         <div id="activity-error" class="text-red-500 text-xs mt-1.5 hidden"></div>
                     </div>
 
-                    <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                        <button id="submit-button" type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-sm hover:bg-blue-700 transition flex items-center gap-2 shadow-sm">
+                    <div class="flex justify-end pt-2 border-t border-gray-100">
+                        <button id="submit-button" type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
                             <i class="fa-regular fa-paper-plane"></i>
                             <span>Simpan Laporan Hari Ini</span>
                         </button>
@@ -264,15 +268,15 @@
             <div id="content-tab-history" class="logbook-tab-content hidden space-y-4">
 
                 <!-- Search Box -->
-                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2.5 sm:gap-3">
                     <div class="relative flex-1">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
                         <input type="text" id="search-logbook" placeholder="Cari tanggal atau rincian aktivitas..."
-                            class="w-full pl-10 pr-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                     </div>
-                    <div class="text-xs text-gray-500 flex items-center gap-1 self-end sm:self-center">
+                    <div class="text-xs text-gray-500 flex items-center justify-between sm:justify-start gap-1">
                         <span>Total Catatan:</span>
                         <span class="font-bold text-gray-800">{{ count($logActivityHistory ?? []) }} hari</span>
                     </div>
@@ -308,7 +312,7 @@
                                     <div class="text-[11px] text-gray-500">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('dddd') }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 max-w-xs md:max-w-md">
-                                    <p class="text-xs text-gray-700 whitespace-pre-line line-clamp-3 hover:line-clamp-none transition">
+                                    <p class="text-xs text-gray-700 whitespace-pre-line line-clamp-3 hover:line-clamp-none transition leading-relaxed">
                                         {{ $history->activity }}
                                     </p>
                                 </td>
@@ -352,7 +356,7 @@
                 </div>
 
                 <!-- Client-side Pagination Controls -->
-                <div id="history-pagination-container" class="flex flex-col sm:flex-row justify-between items-center gap-2 pt-3 text-xs text-gray-500">
+                <div id="history-pagination-container" class="flex flex-col sm:flex-row justify-between items-center gap-2.5 pt-3 text-xs text-gray-500">
                     <span id="history-page-info">Menampilkan halaman 1</span>
                     <div class="flex items-center gap-1">
                         <button type="button" id="btn-history-prev" onclick="changeHistoryPage(-1)"
@@ -371,15 +375,6 @@
 
         </div>
 
-        <!-- Card Footer -->
-        <div class="flex justify-between items-center px-6 py-4 border-t bg-gray-50/80">
-            <span class="text-xs text-gray-500 flex items-center gap-1.5">
-                <i class="fa-solid fa-shield-halved text-gray-400"></i> Absen Djuragan Intern System
-            </span>
-            <a href="{{ route('user.home') }}" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-xs font-semibold transition">
-                Kembali
-            </a>
-        </div>
     </div>
 
     <!-- SUB-MODAL: EDIT HISTORICAL LOGBOOK -->
@@ -401,15 +396,15 @@
                     <label class="block font-bold text-gray-700 text-xs mb-1.5" for="historical_edit_activity">
                         Rincian Aktivitas <span class="text-red-500">*</span>
                     </label>
-                    <textarea class="border border-gray-300 rounded-xl p-3 w-full h-36 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm transition"
+                    <textarea class="border border-gray-300 rounded-xl p-3 w-full h-36 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
                         id="historical_edit_activity" name="activity" required></textarea>
-                    <p class="text-xs text-gray-500 mt-1">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan.</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan.</p>
                 </div>
-                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button type="button" onclick="closeInlineEditLog()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-xs font-medium transition">
+                <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-gray-100">
+                    <button type="button" onclick="closeInlineEditLog()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-xs font-medium transition text-center">
                         Batal
                     </button>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition flex items-center gap-1">
+                    <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-1">
                         <i class="fa-solid fa-check"></i> Simpan Perubahan
                     </button>
                 </div>

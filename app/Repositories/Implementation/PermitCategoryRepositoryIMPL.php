@@ -21,7 +21,7 @@ class PermitCategoryRepositoryIMPL implements PermitCategoryRepository
 
     public function findAll()
     {
-        return $this->model->get();
+        return \Illuminate\Support\Facades\Cache::remember('permit_categories_all', 3600, fn() => $this->model->get());
     }
 
     public function findById(int $id)

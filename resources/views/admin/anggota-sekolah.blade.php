@@ -3,12 +3,8 @@
 @section('title', 'Anggota Sekolah')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar')
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
         <!-- Header -->
         <h1 class="text-2xl font-bold mb-2">Pengaturan Jadwal</h1>
         <p class="mb-6 text-gray-600">Menentukan jadwal shift dari setiap pengguna</p>

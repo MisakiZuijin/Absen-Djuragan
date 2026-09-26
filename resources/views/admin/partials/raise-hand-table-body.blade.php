@@ -32,8 +32,638 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                 $cleanResponse = addslashes(str_replace(["\r", "\n", "'"], [' ', ' ', ' '], $handRaise->admin_response ?? $handRaise->performance_notes ?? ''));
                 $shortCreatedAt = $formatShortTime($handRaise->created_at);
                 $internShiftText = $handRaise->shift_text;
+                $isAssistantAdmin = auth()->check() && (int) auth()->user()->role_id === 6;
                 @endphp
 
+                @if($tab === 'presentation')
+                <!-- Item Card Minimalis & Ringkas untuk Penjadwalan Presentasi -->
+                <div class="raise-hand-card bg-white rounded-2xl border {{ $isToday && $handRaise->is_raised ? 'border-rose-300 ring-2 ring-rose-200/80 shadow-xs' : 'border-slate-200 hover:border-slate-300 shadow-2xs' }} transition-all duration-150 p-4 sm:p-4.5 space-y-3"
+                    data-name="{{ strtolower($userName) }}"
+                    data-school="{{ strtolower($userSchool) }}"
+                    data-phone="{{ $userPhone }}"
+                    data-type="{{ $handRaise->type ?? 'presentation' }}"
+                    data-status="{{ $handRaise->status ?? 'pending' }}"
+                    data-notes="{{ strtolower($handRaise->notes ?? $handRaise->reason ?? '') }}"
+                    data-id="{{ $handRaise->id }}">
+                    
+                    <!-- 1. Header: Peserta & Status -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Avatar -->
+                            <div class="relative shrink-0">
+                                <div class="w-9 h-9 rounded-xl {{ $isToday && $handRaise->is_raised ? 'bg-rose-600 ring-2 ring-rose-200' : 'bg-slate-800' }} flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
+                                    {{ $initial }}
+                                </div>
+                                @if($handRaise->is_raised)
+                                    @if($handRaise->status === 'urgent' || $isToday)
+                                    <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white shadow-xs"></div>
+                                    @else
+                                    <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-white shadow-xs"></div>
+                                    @endif
+                                @else
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-xs"></div>
+                                @endif
+                            </div>
+
+                            <!-- Nama & Info Instansi -->
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-slate-900 user-name">{{ $userName }}</span>
+                                    @if($userDivision)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                                        {{ $userDivision }}
+                                    </span>
+                                    @endif
+                                    <span class="text-[11px] text-slate-400">
+                                        • Diajukan {{ $shortCreatedAt }} lalu
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                                    <span class="flex items-center gap-1 truncate max-w-[250px]">
+                                        <i class="fa-solid fa-graduation-cap text-slate-400 text-[11px] shrink-0"></i>
+                                        <span class="truncate">{{ $userSchool }}</span>
+                                    </span>
+                                    @if($userPhone && $userPhone !== '-')
+                                    <span class="flex items-center gap-1 text-slate-400">
+                                        <i class="fa-solid fa-phone text-[10px]"></i>
+                                        <span class="text-slate-500">{{ $userPhone }}</span>
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge (Kanan) -->
+                        <div class="flex items-center shrink-0 self-start sm:self-center">
+                            @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision', 'rescheduled']))
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-hourglass-start text-amber-600 text-[10px]"></i>
+                                <span>Menunggu Persetujuan</span>
+                            </span>
+                            @elseif($handRaise->status === 'rescheduled')
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-clock-rotate-left text-blue-600 text-[10px]"></i>
+                                <span>Jadwal Diubah</span>
+                            </span>
+                            @elseif($handRaise->status === 'accepted')
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-calendar-check text-emerald-600 text-[10px]"></i>
+                                <span>Jadwal Diterima</span>
+                            </span>
+                            @elseif($handRaise->status === 'needs_revision')
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-orange-50 text-orange-900 border border-orange-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-triangle-exclamation text-orange-600 text-[10px]"></i>
+                                <span>Perlu Perbaikan</span>
+                            </span>
+                            @elseif($handRaise->status === 'ready')
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
+                                <span>Lulus Valid</span>
+                            </span>
+                            @else
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 whitespace-nowrap">
+                                <i class="fa-regular fa-clock text-blue-500 text-[10px]"></i>
+                                <span>Terjadwal</span>
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- 2. Ringkasan Judul, Jadwal & Detail Tags -->
+                    <div class="space-y-2.5">
+                        <!-- Judul Materi & Link Tugas -->
+                        <div class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <div class="flex items-start gap-2 min-w-0">
+                                <i class="fa-solid fa-chalkboard-user text-slate-400 text-xs mt-1 shrink-0"></i>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-xs text-slate-900 leading-snug">
+                                        {{ $handRaise->notes ?? $handRaise->reason ?? 'Presentasi Modul Magang' }}
+                                    </div>
+                                </div>
+                            </div>
+
+                            @php
+                            $isFigma = str_contains(strtolower($gitRepoUrl ?? ''), 'figma.com');
+                            $isGit = str_contains(strtolower($gitRepoUrl ?? ''), 'github.com') || str_contains(strtolower($gitRepoUrl ?? ''), 'gitlab.com');
+                            $hasTaskLink = !empty($gitRepoUrl) && ($isProgrammerUser || $isUiUxUser);
+                            @endphp
+
+                            @if($hasTaskLink)
+                            <div class="flex items-center gap-1.5 shrink-0">
+                                <a href="{{ $gitRepoUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition shadow-2xs {{ $isFigma || $isUiUxUser ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200' : 'bg-slate-900 text-white hover:bg-black' }}"
+                                    title="Buka Link Tugas ({{ $gitRepoUrl }})">
+                                    @if($isFigma || $isUiUxUser)
+                                    <i class="fa-brands fa-figma text-purple-600 text-xs"></i>
+                                    @else
+                                    <i class="fa-brands fa-github text-emerald-400 text-xs"></i>
+                                    @endif
+                                    <span>Link Tugas</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] opacity-70"></i>
+                                </a>
+                            </div>
+                            @endif
+                        </div>
+
+                        <!-- Baris Jadwal Pelaksanaan & Shift (Compact Chips) -->
+                        <div class="flex items-center gap-2 flex-wrap text-xs bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/70">
+                            <!-- Tanggal -->
+                            <div class="flex items-center gap-1.5 font-bold {{ $isToday ? 'text-rose-600' : 'text-slate-800' }}">
+                                <i class="fa-regular fa-calendar {{ $isToday ? 'text-rose-500' : 'text-slate-400' }} text-xs shrink-0"></i>
+                                <span>{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('d M Y') : '-' }}</span>
+                            </div>
+
+                            @if($isToday)
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-rose-600 text-white tracking-wide shadow-2xs">
+                                HARI INI
+                            </span>
+                            @endif
+
+                            <span class="text-slate-300">•</span>
+
+                            <!-- Jam -->
+                            @if(!empty($handRaise->scheduled_time))
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                <i class="fa-solid fa-clock text-indigo-500 text-[9px]"></i>
+                                <span>{{ substr($handRaise->scheduled_time, 0, 5) }} WIB</span>
+                            </span>
+                            @else
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-50 text-amber-800 border border-amber-200 italic">
+                                <i class="fa-regular fa-clock text-amber-600 text-[9px]"></i>
+                                <span>Jam belum diatur</span>
+                            </span>
+                            @endif
+
+                            <span class="text-slate-300">•</span>
+
+                            <!-- Mode -->
+                            @if($handRaise->presentation_mode === 'online')
+                                @php
+                                $adminMeetUrl = $handRaise->meet_url ?: ($handRaise->user?->intern?->division?->meet_url ?? null);
+                                $isApproved = in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']);
+                                @endphp
+                                @if($adminMeetUrl && $isApproved)
+                                <a href="{{ $adminMeetUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-900 border border-sky-200 transition shadow-2xs group/meet"
+                                    title="Buka Ruang Google Meet: {{ $adminMeetUrl }}">
+                                    <i class="fa-solid fa-video text-sky-500 text-[10px]"></i>
+                                    <span>Online (Google Meet)</span>
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-[8px] text-sky-400 group-hover/meet:text-sky-700"></i>
+                                </a>
+                                @else
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
+                                    <i class="fa-solid fa-video text-sky-500 text-[9px]"></i>
+                                    <span>Online (GMeet{{ !$isApproved ? ' - Disiapkan' : '' }})</span>
+                                </span>
+                                @endif
+                            @else
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200/80 text-slate-700 border border-slate-300">
+                                <i class="fa-solid fa-building text-slate-500 text-[9px]"></i>
+                                <span>Tatap Muka Langsung</span>
+                            </span>
+                            @endif
+
+                            <!-- Shift -->
+                            @if($internShiftText)
+                            <span class="text-slate-300">•</span>
+                            <span class="text-[11px] text-slate-600 flex items-center gap-1 font-medium">
+                                <i class="fa-regular fa-clock text-amber-600 text-[10px]"></i>
+                                <span>Shift: <strong class="text-amber-950 font-bold">{{ $internShiftText }}</strong></span>
+                            </span>
+                            @endif
+                        </div>
+
+                        <!-- Catatan Revisi / Evaluasi (Jika ada) -->
+                        @if(!empty($handRaise->performance_notes))
+                        <div class="p-2 bg-amber-50 rounded-xl border border-amber-200 text-xs space-y-0.5">
+                            <span class="text-[10px] font-bold text-amber-800 flex items-center gap-1">
+                                <i class="fa-solid fa-clipboard-list text-amber-600"></i> Catatan Revisi Pemagang:
+                            </span>
+                            <p class="text-[11px] text-amber-950 leading-snug whitespace-pre-line">{{ trim($handRaise->performance_notes) }}</p>
+                        </div>
+                        @elseif(!empty($handRaise->admin_response))
+                        <div class="p-2 bg-orange-50/80 rounded-xl border border-orange-200 text-xs space-y-0.5">
+                            <span class="text-[10px] font-bold text-orange-800 flex items-center gap-1">
+                                <i class="fa-solid fa-clipboard-check text-orange-600"></i> Catatan Evaluasi Mentor:
+                            </span>
+                            <p class="text-[11px] text-orange-950 italic leading-snug">"{{ trim($handRaise->admin_response) }}"</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- 3. Footer: Tombol Aksi Lengkap & Ringkas -->
+                    <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <!-- Hint -->
+                        <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']))
+                            <i class="fa-solid fa-info-circle text-amber-500 text-xs shrink-0"></i>
+                            <span>Konfirmasi tanggal dan jam sebelum memulai presentasi.</span>
+                            @elseif($handRaise->status === 'accepted')
+                            <i class="fa-solid fa-circle-check text-emerald-500 text-xs shrink-0"></i>
+                            <span>Jadwal disetujui. Lakukan review saat sesi presentasi selesai.</span>
+                            @elseif($handRaise->status === 'ready')
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
+                            <span>Dinilai <strong class="text-emerald-700">Lulus Valid</strong>. Klik selesaikan untuk arsip nilai.</span>
+                            @elseif($handRaise->status === 'needs_revision')
+                            <i class="fa-solid fa-triangle-exclamation text-orange-500 text-xs shrink-0"></i>
+                            <span>Dinilai <strong class="text-orange-700">Perlu Perbaikan</strong> oleh pemagang.</span>
+                            @endif
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            @if($isAssistantAdmin)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200" title="Uji presentasi dan penilaian dilakukan oleh Admin / Pembimbing Utama">
+                                <i class="fa-solid fa-lock text-amber-600 text-xs"></i>
+                                <span>Wewenang Mentor</span>
+                            </span>
+                            @else
+                                @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']))
+                                <button type="button"
+                                    class="btn-trigger-approve-presentation inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                                    data-id="{{ $handRaise->id }}"
+                                    data-name="{{ $userName }}"
+                                    data-shift="{{ $internShiftText ?? 'Belum Diatur' }}"
+                                    data-title="{{ $cleanNotes }}"
+                                    data-mode="{{ $handRaise->presentation_mode ?? 'offline' }}"
+                                    data-date="{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('Y-m-d') : date('Y-m-d') }}"
+                                    data-time="{{ $handRaise->scheduled_time ? substr($handRaise->scheduled_time, 0, 5) : '' }}"
+                                    data-notes="{{ addslashes($handRaise->admin_response ?? '') }}"
+                                    onclick="if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes); }"
+                                    title="Konfirmasi Jadwal Presentasi">
+                                    <i class="fa-solid fa-calendar-check text-xs"></i>
+                                    <span>{{ $handRaise->status === 'rescheduled' ? 'Ubah Jadwal' : 'Konfirmasi Jadwal' }}</span>
+                                </button>
+                                @else
+                                <div class="relative inline-block text-left dropdown-action-container">
+                                    <button type="button"
+                                        onclick="toggleRowDropdown(event, this)"
+                                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer select-none whitespace-nowrap">
+                                        <i class="fa-solid fa-sliders text-[10px] text-slate-300"></i>
+                                        <span>Aksi</span>
+                                        <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 transition-transform duration-200"></i>
+                                    </button>
+
+                                    <div class="dropdown-menu-list hidden absolute right-0 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-fadeIn text-left">
+                                        <!-- 1. Review Presentasi -->
+                                        <button type="button"
+                                            class="btn-trigger-pre-review w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700 transition text-left cursor-pointer"
+                                            data-id="{{ $handRaise->id }}"
+                                            data-name="{{ $userName }}"
+                                            data-title="{{ $cleanNotes }}"
+                                            data-status="{{ $handRaise->status ?? 'pending' }}"
+                                            onclick="document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden')); if(window.openPrePresentationModal) { window.openPrePresentationModal(this.dataset.id, this.dataset.name, this.dataset.title, this.dataset.status); }">
+                                            <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
+                                                <i class="fa-solid fa-chalkboard-user text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Review Presentasi</div>
+                                                <div class="text-[10px] text-slate-500 font-normal">Tentukan kelulusan / revisi</div>
+                                            </div>
+                                        </button>
+
+                                        <!-- 2. Ubah Jadwal -->
+                                        <button type="button"
+                                            class="btn-trigger-approve-presentation w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition text-left cursor-pointer"
+                                            data-id="{{ $handRaise->id }}"
+                                            data-name="{{ $userName }}"
+                                            data-shift="{{ $internShiftText ?? 'Belum Diatur' }}"
+                                            data-title="{{ $cleanNotes }}"
+                                            data-mode="{{ $handRaise->presentation_mode ?? 'offline' }}"
+                                            data-date="{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('Y-m-d') : date('Y-m-d') }}"
+                                            data-time="{{ $handRaise->scheduled_time ? substr($handRaise->scheduled_time, 0, 5) : '' }}"
+                                            data-notes="{{ addslashes($handRaise->admin_response ?? '') }}"
+                                            onclick="document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden')); if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes); }">
+                                            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                                                <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <div class="font-bold text-slate-900">Ubah Jadwal</div>
+                                                <div class="text-[10px] text-slate-500 font-normal">Atur ulang jam & mode</div>
+                                            </div>
+                                        </button>
+
+                                        <div class="my-1 border-t border-slate-100"></div>
+
+                                        <!-- 3. Selesaikan Presentasi -->
+                                        <form method="POST" action="{{ route('admin.raiseHand.confirm', $handRaise->id) }}" class="m-0 p-0 block relative" data-status="{{ $handRaise->status ?? '' }}" onsubmit="return handleCompletePresentation(event, this.dataset.status, this);">
+                                            @csrf
+                                            <input type="hidden" name="action" value="complete_presentation">
+                                            <input type="hidden" name="tab" value="presentation">
+                                            <button type="submit"
+                                                onclick="return handleCompletePresentation(event, this.form.dataset.status, this);"
+                                                class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition text-left cursor-pointer">
+                                                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                                    <i class="fa-solid fa-check text-xs"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="font-bold text-slate-900">Selesaikan</div>
+                                                    <div class="text-[10px] text-slate-500 font-normal">Arsip nilai ke riwayat</div>
+                                                </div>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                                @endif
+                            @endif
+                        </div>
+                    </div>
+                </div>
+                @elseif($tab === 'question')
+                @php
+                $isResponded = ($handRaise->status === 'responded') || !empty($handRaise->admin_response);
+                @endphp
+                <!-- Item Card untuk Bertanya / Bantuan Kendala -->
+                <div class="raise-hand-card bg-white rounded-2xl border {{ $isResponded ? 'border-emerald-200 hover:border-emerald-300' : 'border-slate-200 hover:border-blue-300' }} shadow-2xs transition-all duration-150 p-4 sm:p-4.5 space-y-3"
+                    data-name="{{ strtolower($userName) }}"
+                    data-school="{{ strtolower($userSchool) }}"
+                    data-phone="{{ $userPhone }}"
+                    data-type="{{ $handRaise->type ?? 'question' }}"
+                    data-status="{{ $handRaise->status ?? 'pending' }}"
+                    data-notes="{{ strtolower($handRaise->notes ?? $handRaise->reason ?? '') }}"
+                    data-id="{{ $handRaise->id }}">
+
+                    <!-- 1. Header: Peserta & Status -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Avatar -->
+                            <div class="relative shrink-0">
+                                <div class="w-9 h-9 rounded-xl {{ $isResponded ? 'bg-emerald-600' : 'bg-blue-600' }} flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
+                                    {{ $initial }}
+                                </div>
+                                @if($handRaise->is_raised)
+                                    @if($isResponded)
+                                    <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white shadow-xs"></div>
+                                    @else
+                                    <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white shadow-xs"></div>
+                                    @endif
+                                @else
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-gray-400 rounded-full border-2 border-white shadow-xs"></div>
+                                @endif
+                            </div>
+
+                            <!-- Nama & Info Instansi -->
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-slate-900 user-name">{{ $userName }}</span>
+                                    @if($userDivision)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200/80">
+                                        {{ $userDivision }}
+                                    </span>
+                                    @endif
+                                    <span class="text-[11px] text-slate-400">
+                                        • Diajukan {{ $shortCreatedAt }} lalu
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                                    <span class="flex items-center gap-1 truncate max-w-[250px]">
+                                        <i class="fa-solid fa-graduation-cap text-slate-400 text-[11px] shrink-0"></i>
+                                        <span class="truncate">{{ $userSchool }}</span>
+                                    </span>
+                                    @if($userPhone && $userPhone !== '-')
+                                    <span class="flex items-center gap-1 text-slate-400">
+                                        <i class="fa-solid fa-phone text-[10px]"></i>
+                                        <span class="text-slate-500">{{ $userPhone }}</span>
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge (Kanan) -->
+                        <div class="flex items-center shrink-0 self-start sm:self-center">
+                            @if($isResponded)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
+                                <span>Sudah Ditanggapi</span>
+                            </span>
+                            @else
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-800 border border-blue-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-hand-paper text-blue-600 animate-pulse text-[10px]"></i>
+                                <span>Menunggu Bantuan</span>
+                            </span>
+                            @endif
+                        </div>
+                    </div>
+
+                    <!-- 2. Ringkasan & Pertanyaan / Kendala -->
+                    <div class="space-y-2.5">
+                        @if($internShiftText)
+                        <div class="flex items-center gap-2 flex-wrap text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/70">
+                            <span class="text-[11px] text-slate-600 flex items-center gap-1 font-medium">
+                                <i class="fa-regular fa-clock text-amber-600 text-[11px]"></i>
+                                <span>Shift Kerja: <strong class="text-amber-950 font-bold">{{ $internShiftText }}</strong></span>
+                            </span>
+                        </div>
+                        @endif
+
+                        @if($isResponded && !empty($handRaise->admin_response))
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <!-- Detail Pertanyaan (Kiri) -->
+                            <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-800 space-y-1">
+                                <div class="flex items-center gap-1 text-[11px] font-bold text-blue-700 uppercase tracking-wider">
+                                    <i class="fa-solid fa-circle-question text-[10px]"></i>
+                                    <span>Detail Pertanyaan / Kendala:</span>
+                                </div>
+                                <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed break-words">{{ trim($handRaise->notes ?? $handRaise->reason ?? 'Tidak ada keterangan detail') }}</p>
+                            </div>
+
+                            <!-- Tanggapan Mentor (Kanan) -->
+                            <div class="p-3 bg-emerald-50/90 rounded-xl border border-emerald-200/90 text-xs text-slate-800 space-y-1">
+                                <div class="flex items-center gap-1 text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
+                                    <i class="fa-solid fa-reply text-[10px]"></i>
+                                    <span>Tanggapan / Solusi Anda:</span>
+                                </div>
+                                <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed italic break-words">"{{ trim($handRaise->admin_response) }}"</p>
+                            </div>
+                        </div>
+                        @else
+                        <!-- Kotak Detail Pertanyaan / Kendala (Full Width) -->
+                        <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-800 space-y-1">
+                            <div class="flex items-center gap-1 text-[11px] font-bold text-blue-700 uppercase tracking-wider">
+                                <i class="fa-solid fa-circle-question text-[10px]"></i>
+                                <span>Detail Pertanyaan / Kendala:</span>
+                            </div>
+                            <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed break-words">{{ trim($handRaise->notes ?? $handRaise->reason ?? 'Tidak ada keterangan detail') }}</p>
+                        </div>
+                        @endif
+                    </div>
+
+                    <!-- 3. Footer: Tombol Aksi -->
+                    <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <!-- Hint -->
+                        <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            @if($isResponded)
+                            <i class="fa-solid fa-circle-info text-emerald-500 text-xs shrink-0"></i>
+                            <span>Tanggapan telah terkirim. Menunggu pemagang membaca atau Anda dapat menyelesaikannya.</span>
+                            @else
+                            <i class="fa-solid fa-info-circle text-blue-500 text-xs shrink-0"></i>
+                            <span>Bantu pemagang menyelesaikan kendala teknis atau berikan tanggapan solusi.</span>
+                            @endif
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            @php
+                            $questionConfirmRoute = $isAssistantAdmin
+                                ? route('assistant.raisehand.confirm', $handRaise->id)
+                                : route('admin.raiseHand.confirm', $handRaise->id);
+                            @endphp
+
+                            <!-- Tombol Beri Tanggapan / Edit Tanggapan (Modal) -->
+                            <button type="button"
+                                class="btn-trigger-process inline-flex items-center gap-1.5 px-3.5 py-1.5 {{ $isResponded ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                                data-id="{{ $handRaise->id }}"
+                                data-name="{{ $userName }}"
+                                data-type="question"
+                                data-notes="{{ $cleanNotes }}"
+                                data-response="{{ $cleanResponse }}"
+                                onclick="if(window.openProcessModal) { window.openProcessModal(this.dataset.id, this.dataset.name, this.dataset.type, this.dataset.notes, this.dataset.response); }"
+                                title="{{ $isResponded ? 'Edit tanggapan/solusi' : 'Beri tanggapan/solusi ke pemagang' }}">
+                                <i class="fa-solid {{ $isResponded ? 'fa-pen-to-square' : 'fa-reply' }} text-xs"></i>
+                                <span>{{ $isResponded ? 'Edit Tanggapan' : 'Beri Tanggapan' }}</span>
+                            </button>
+
+                            <!-- Tombol Langsung Selesai -->
+                            <form action="{{ $questionConfirmRoute }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Selesaikan bantuan / pertanyaan dari {{ addslashes($userName) }}?');">
+                                @csrf
+                                <input type="hidden" name="action" value="complete_question">
+                                <input type="hidden" name="tab" value="question">
+                                <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
+                                    title="Selesaikan bantuan/pertanyaan">
+                                    <i class="fa-solid fa-check text-xs"></i>
+                                    <span>Selesai</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @elseif($tab === 'new_task')
+                <!-- Item Card untuk Permintaan Tugas Baru -->
+                <div class="raise-hand-card bg-white rounded-2xl border border-slate-200 hover:border-purple-300 shadow-2xs transition-all duration-150 p-4 sm:p-4.5 space-y-3"
+                    data-name="{{ strtolower($userName) }}"
+                    data-school="{{ strtolower($userSchool) }}"
+                    data-phone="{{ $userPhone }}"
+                    data-type="{{ $handRaise->type ?? 'new_task' }}"
+                    data-status="{{ $handRaise->status ?? 'pending' }}"
+                    data-notes="{{ strtolower($handRaise->notes ?? $handRaise->reason ?? '') }}"
+                    data-id="{{ $handRaise->id }}">
+
+                    <!-- 1. Header: Peserta & Status -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-slate-100">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <!-- Avatar -->
+                            <div class="relative shrink-0">
+                                <div class="w-9 h-9 rounded-xl bg-purple-600 flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
+                                    {{ $initial }}
+                                </div>
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-purple-400 rounded-full border-2 border-white shadow-xs"></div>
+                            </div>
+
+                            <!-- Nama & Info Instansi -->
+                            <div class="min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-sm text-slate-900 user-name">{{ $userName }}</span>
+                                    @if($userDivision)
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-200/80">
+                                        {{ $userDivision }}
+                                    </span>
+                                    @endif
+                                    <span class="text-[11px] text-slate-400">
+                                        • Diajukan {{ $shortCreatedAt }} lalu
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center gap-3 text-xs text-slate-500 mt-0.5 flex-wrap">
+                                    <span class="flex items-center gap-1 truncate max-w-[250px]">
+                                        <i class="fa-solid fa-graduation-cap text-slate-400 text-[11px] shrink-0"></i>
+                                        <span class="truncate">{{ $userSchool }}</span>
+                                    </span>
+                                    @if($userPhone && $userPhone !== '-')
+                                    <span class="flex items-center gap-1 text-slate-400">
+                                        <i class="fa-solid fa-phone text-[10px]"></i>
+                                        <span class="text-slate-500">{{ $userPhone }}</span>
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Badge (Kanan) -->
+                        <div class="flex items-center shrink-0 self-start sm:self-center">
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-purple-50 text-purple-800 border border-purple-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-hourglass-half text-purple-600 text-[10px]"></i>
+                                <span>Menunggu Tugas</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 2. Ringkasan & Permintaan Siswa -->
+                    <div class="space-y-2.5">
+                        @if($internShiftText)
+                        <div class="flex items-center gap-2 flex-wrap text-xs bg-slate-50/80 px-3 py-2 rounded-xl border border-slate-200/70">
+                            <span class="text-[11px] text-slate-600 flex items-center gap-1 font-medium">
+                                <i class="fa-regular fa-clock text-amber-600 text-[11px]"></i>
+                                <span>Shift Kerja: <strong class="text-amber-950 font-bold">{{ $internShiftText }}</strong></span>
+                            </span>
+                        </div>
+                        @endif
+
+                        <!-- Permintaan Tugas Siswa (Full Width) -->
+                        <div class="p-3 bg-purple-50/50 rounded-xl border border-purple-100 text-xs text-slate-800 space-y-1">
+                            <div class="flex items-center gap-1 text-[11px] font-bold text-purple-700 uppercase tracking-wider">
+                                <i class="fa-solid fa-user-pen text-[10px]"></i>
+                                <span>Laporan Siswa / Permintaan Tugas:</span>
+                            </div>
+                            <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed break-words">{{ trim($handRaise->notes ?? $handRaise->reason ?? 'Tugas sebelumnya telah selesai, meminta modul / tugas baru.') }}</p>
+                        </div>
+                    </div>
+
+                    <!-- 3. Footer: Tombol Aksi -->
+                    <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                        <!-- Hint -->
+                        <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            <i class="fa-solid fa-circle-info text-purple-500 text-xs shrink-0"></i>
+                            <span>Tambahkan project/tugas di menu <strong>Setting Project</strong>, lalu klik Selesai untuk menyudahi permintaan ini.</span>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            @php
+                            $taskConfirmRoute = $isAssistantAdmin
+                                ? route('assistant.raisehand.confirm', $handRaise->id)
+                                : route('admin.raiseHand.confirm', $handRaise->id);
+                            @endphp
+
+                            <!-- Link Shortcut ke Setting Project -->
+                            <a href="{{ route('admin.pengaturan.project') }}"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 transition cursor-pointer whitespace-nowrap"
+                                title="Buka Halaman Setting Project">
+                                <i class="fa-solid fa-folder-plus text-[11px] text-purple-600"></i>
+                                <span>Setting Project</span>
+                            </a>
+
+                            <!-- Tombol Selesai -->
+                            <form action="{{ $taskConfirmRoute }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Selesaikan permintaan tugas dari {{ addslashes($userName) }}? Pastikan tugas baru telah diberikan di menu Setting Project.');">
+                                @csrf
+                                <input type="hidden" name="action" value="complete_task">
+                                <input type="hidden" name="tab" value="new_task">
+                                <button type="submit"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
+                                    title="Selesaikan permintaan tugas">
+                                    <i class="fa-solid fa-check text-xs"></i>
+                                    <span>Selesai</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                @else
                 <tr class="raise-hand-row group hover:bg-slate-50/70 transition-all duration-150 {{ $isToday && $handRaise->type === 'presentation' && $handRaise->is_raised ? 'bg-red-50/30' : '' }}"
                     data-name="{{ strtolower($userName) }}"
                     data-school="{{ strtolower($userSchool) }}"
@@ -44,42 +674,42 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                     data-id="{{ $handRaise->id }}">
 
                     <!-- Index -->
-                    <td class="py-4 px-4 text-center align-top">
-                        <div class="w-7 h-7 mx-auto rounded-lg bg-gray-100 border border-gray-200/70 flex items-center justify-center text-xs font-bold text-gray-700 shadow-2xs">
-                            {{ $index + 1 }}
+                    <td class="py-3 px-3 text-center align-top">
+                        <div class="w-6 h-6 mx-auto rounded-lg bg-gray-100 border border-gray-200/70 flex items-center justify-center text-[11px] font-bold text-gray-700 shadow-2xs">
+                            {{ ($handRaises instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator) ? ($handRaises->firstItem() + $index) : ($index + 1) }}
                         </div>
                     </td>
 
                     <!-- Peserta Info -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="flex items-start gap-3">
-                            <div class="relative flex-shrink-0">
-                                <div class="w-10 h-10 rounded-xl {{ $isToday && $handRaise->type === 'presentation' && $handRaise->is_raised ? 'bg-red-600 ring-2 ring-red-200' : 'bg-slate-800' }} flex items-center justify-center text-white font-extrabold text-sm shadow-xs">
+                    <td class="py-3 px-3 align-top">
+                        <div class="flex items-start gap-2.5">
+                            <div class="relative flex-shrink-0 mt-0.5">
+                                <div class="w-8 h-8 rounded-lg {{ $isToday && $handRaise->type === 'presentation' && $handRaise->is_raised ? 'bg-red-600 ring-2 ring-red-200' : 'bg-slate-800' }} flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
                                     {{ $initial }}
                                 </div>
                                 @if($handRaise->is_raised)
                                 @if($handRaise->status === 'urgent' || $isToday)
-                                <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white shadow-xs"></div>
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white shadow-xs"></div>
                                 @else
-                                <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-amber-400 rounded-full border-2 border-white shadow-xs"></div>
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-white shadow-xs"></div>
                                 @endif
                                 @else
-                                <div class="absolute -top-1 -right-1 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white shadow-xs"></div>
+                                <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white shadow-xs"></div>
                                 @endif
                             </div>
 
-                            <div class="min-w-0 space-y-1">
+                            <div class="min-w-0 flex-1 space-y-0.5">
                                 <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="font-extrabold text-xs text-gray-900 user-name leading-tight">{{ $userName }}</span>
+                                    <span class="font-bold text-xs text-gray-900 user-name leading-tight">{{ $userName }}</span>
                                     @if($userDivision)
-                                    <span class="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200">
+                                    <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                                         {{ $userDivision }}
                                     </span>
                                     @endif
                                 </div>
 
-                                <div class="text-xs text-gray-500 user-school flex items-center gap-1.5">
-                                    <i class="fa-solid fa-graduation-cap text-gray-400 text-[11px] flex-shrink-0"></i>
+                                <div class="text-[11px] text-gray-500 user-school flex items-center gap-1 truncate">
+                                    <i class="fa-solid fa-graduation-cap text-gray-400 text-[10px] shrink-0"></i>
                                     <span class="truncate">{{ $userSchool }}</span>
                                 </div>
 
@@ -96,329 +726,32 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                 || str_contains($userDivLower, 'ui / ux')
                                 || (str_contains($userDivLower, 'ui') && str_contains($userDivLower, 'ux'));
                                 @endphp
-                                {{-- Nama project sebelumnya dihilangkan dari kolom Peserta Info agar tidak dobel/bocor di permintaan tugas & presentasi --}}
 
-                                {{-- Link tugas dihilangkan dari Peserta Info agar tidak duplikat di presentasi & tidak muncul di history --}}
-
-                                <div class="text-[11px] text-gray-400 flex items-center gap-2 pt-0.5">
+                                <div class="text-[10px] text-gray-400 flex items-center gap-1.5 flex-wrap pt-0.5">
                                     <span class="flex items-center gap-1">
-                                        <i class="fa-solid fa-phone text-[9px]"></i>
+                                        <i class="fa-solid fa-phone text-[8px] text-gray-400"></i>
                                         <span>{{ $userPhone }}</span>
                                     </span>
                                     <span>•</span>
                                     <span class="flex items-center gap-1" title="{{ $handRaise->created_at ? $handRaise->created_at->format('d M Y, H:i') : '' }}">
-                                        <i class="fa-regular fa-clock text-[9px]"></i>
+                                        <i class="fa-regular fa-clock text-[8px] text-gray-400"></i>
                                         <span>{{ $shortCreatedAt }}</span>
                                     </span>
-                                </div>
-
-                                @if($internShiftText && $tab !== 'presentation' && ($handRaise->type ?? '') !== 'presentation')
-                                <div class="pt-1">
-                                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200/90 shadow-2xs"
-                                        title="Jadwal Shift Pemagang: {{ $internShiftText }}">
-                                        <i class="fa-regular fa-clock text-amber-600 text-[10px]"></i>
+                                    @if($internShiftText && $tab !== 'presentation' && ($handRaise->type ?? '') !== 'presentation')
+                                    <span>•</span>
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-amber-50 text-amber-900 border border-amber-200" title="Shift: {{ $internShiftText }}">
+                                        <i class="fa-regular fa-clock text-amber-600 text-[8px]"></i>
                                         <span>Shift: <strong class="font-bold text-amber-950">{{ $internShiftText }}</strong></span>
                                     </span>
-                                </div>
-                                @endif
-                            </div>
-                        </div>
-                    </td>
-
-                    @if($tab === 'question')
-                    <!-- Catatan Pertanyaan -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-gray-800 leading-relaxed max-w-lg space-y-1">
-                            <div class="flex items-center gap-1.5 text-[11px] font-bold text-blue-700">
-                                <i class="fa-solid fa-circle-question"></i>
-                                <span>Detail Pertanyaan / Kendala:</span>
-                            </div>
-                            <p class="whitespace-pre-line text-gray-800 font-medium">
-                                {{ $handRaise->notes ?? $handRaise->reason ?? 'Tidak ada keterangan detail' }}
-                            </p>
-                        </div>
-                    </td>
-
-                    <!-- Status -->
-                    <td class="py-4 px-4 align-top">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-200 shadow-2xs">
-                            <i class="fa-solid fa-hand-paper text-amber-600 animate-pulse"></i>
-                            <span>Menunggu Bantuan</span>
-                        </span>
-                    </td>
-
-                    <!-- Aksi: Hanya Tombol Selesai (Tanpa Modal) -->
-                    <td class="py-4 px-4 align-top text-right">
-                        <form action="{{ route('admin.raiseHand.confirm', $handRaise->id) }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Selesaikan bantuan / pertanyaan dari {{ addslashes($userName) }}?');">
-                            @csrf
-                            <input type="hidden" name="action" value="complete_question">
-                            <input type="hidden" name="tab" value="question">
-                            <button type="submit"
-                                class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                title="Selesaikan bantuan/pertanyaan peserta">
-                                <i class="fa-solid fa-check"></i>
-                                <span>Selesai</span>
-                            </button>
-                        </form>
-                    </td>
-
-                    @elseif($tab === 'new_task')
-                    <!-- Keterangan Permintaan Tugas -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="space-y-2 max-w-lg">
-                            <div class="p-3 bg-purple-50/60 rounded-xl border border-purple-100 text-xs text-gray-800 leading-relaxed space-y-1">
-                                <div class="flex items-center gap-1.5 text-[11px] font-bold text-purple-700">
-                                    <i class="fa-solid fa-list-check"></i>
-                                    <span>Rincian Tugas & Permintaan:</span>
-                                </div>
-                                <p class="whitespace-pre-line text-gray-800 font-medium">
-                                    {{ $handRaise->notes ?? $handRaise->reason ?? 'Tugas sebelumnya selesai, menunggu instruksi tugas berikutnya' }}
-                                </p>
-                            </div>
-
-                            @if(!empty($handRaise->admin_response))
-                            <div class="p-3 bg-emerald-50/80 rounded-xl border border-emerald-200 text-xs text-gray-800 space-y-1">
-                                <div class="flex items-center justify-between text-[10px] font-bold text-emerald-800">
-                                    <span class="flex items-center gap-1"><i class="fa-solid fa-clipboard-list"></i> Tugas yang Diberikan:</span>
-                                </div>
-                                <p class="text-[11px] text-gray-700 line-clamp-2 leading-relaxed italic">
-                                    "{{ $handRaise->admin_response }}"
-                                </p>
-                            </div>
-                            @endif
-                        </div>
-                    </td>
-
-                    <!-- Status -->
-                    <td class="py-4 px-4 align-top">
-                        @if($handRaise->status === 'in_progress')
-                        <div class="space-y-1">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
-                                <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                                <span>Tugas Diberikan</span>
-                            </span>
-                            <span class="block text-[10px] text-gray-500 font-medium pl-1">Sedang dikerjakan</span>
-                        </div>
-                        @else
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800 border border-purple-200 shadow-2xs">
-                            <i class="fa-solid fa-hourglass-half text-purple-600"></i>
-                            <span>Menunggu Tugas</span>
-                        </span>
-                        @endif
-                    </td>
-
-                    <!-- Aksi -->
-                    <td class="py-4 px-4 align-top text-right">
-                        <div class="flex items-center justify-end gap-2 flex-wrap">
-                            @if($handRaise->status === 'in_progress')
-                            <!-- Button 1: Edit Tugas -->
-                            <button type="button"
-                                class="btn-trigger-edit-task inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                data-id="{{ $handRaise->id }}"
-                                data-name="{{ $userName }}"
-                                data-notes="{{ $cleanNotes }}"
-                                data-response="{{ $cleanResponse }}"
-                                data-division="{{ addslashes($userDivision ?? '') }}"
-                                data-project-title="{{ addslashes($projectName ?? '') }}"
-                                onclick="if(window.openEditTaskModal) { window.openEditTaskModal(this.dataset.id, this.dataset.name, this.dataset.notes, this.dataset.response, this.dataset.division, this.dataset.projectTitle); }"
-                                title="Edit arahan atau instruksi tugas">
-                                <i class="fa-solid fa-pen-to-square"></i>
-                                <span>Edit Tugas</span>
-                            </button>
-
-                            <!-- Button 2: Selesai -->
-                            <form method="POST" action="{{ route('admin.raiseHand.confirm', $handRaise->id) }}" class="inline m-0 p-0">
-                                @csrf
-                                <input type="hidden" name="action" value="complete_task">
-                                <input type="hidden" name="tab" value="new_task">
-                                <button type="submit"
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                    title="Selesaikan sesi raise hand tugas">
-                                    <i class="fa-solid fa-check"></i>
-                                    <span>Selesai</span>
-                                </button>
-                            </form>
-                            @else
-                            <!-- Button: Beri Tugas -->
-                            <button type="button"
-                                class="btn-trigger-give-task inline-flex items-center gap-1.5 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                data-id="{{ $handRaise->id }}"
-                                data-name="{{ $userName }}"
-                                data-notes="{{ $cleanNotes }}"
-                                data-division="{{ addslashes($userDivision ?? '') }}"
-                                onclick="if(window.openGiveTaskModal) { window.openGiveTaskModal(this.dataset.id, this.dataset.name, this.dataset.notes, this.dataset.division); }"
-                                title="Beri instruksi tugas baru">
-                                <i class="fa-solid fa-plus-circle"></i>
-                                <span>Beri Tugas</span>
-                            </button>
-                            @endif
-                        </div>
-                    </td>
-
-                    @elseif($tab === 'presentation')
-                    <!-- Materi Presentasi -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="space-y-1.5 max-w-md">
-                            <div class="font-bold text-xs text-gray-900 leading-snug">
-                                {{ $handRaise->notes ?? $handRaise->reason ?? 'Presentasi Modul Magang' }}
-                            </div>
-                            <div class="text-[11px] text-gray-400">
-                                Diajukan: {{ $handRaise->created_at ? $handRaise->created_at->format('d M Y, H:i') : '-' }}
-                            </div>
-
-                            @php
-                            $isFigma = str_contains(strtolower($gitRepoUrl ?? ''), 'figma.com');
-                            $isGit = str_contains(strtolower($gitRepoUrl ?? ''), 'github.com') || str_contains(strtolower($gitRepoUrl ?? ''), 'gitlab.com');
-                            // Link tugas hanya untuk divisi Programmer atau UI/UX
-                            $hasTaskLink = !empty($gitRepoUrl) && ($isProgrammerUser || $isUiUxUser);
-                            @endphp
-
-                            @if($hasTaskLink)
-                            <div class="pt-1.5 flex items-center gap-2 flex-wrap">
-                                <a href="{{ $gitRepoUrl }}" target="_blank" rel="noopener noreferrer"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-2xs {{ $isFigma || $isUiUxUser ? 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200' : 'bg-gray-900 text-white hover:bg-black' }}"
-                                    title="Buka Link Tugas ({{ $gitRepoUrl }})">
-                                    @if($isFigma || $isUiUxUser)
-                                    <i class="fa-brands fa-figma text-purple-600 text-xs"></i>
-                                    @else
-                                    <i class="fa-brands fa-github text-emerald-400 text-xs"></i>
-                                    @endif
-                                    <span>Link Tugas</span>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-[9px] opacity-70"></i>
-                                </a>
-                                <span class="text-[11px] text-gray-400 truncate max-w-[180px] font-normal" title="{{ $gitRepoUrl }}">
-                                    {{ $gitRepoUrl }}
-                                </span>
-                            </div>
-                            @endif
-
-                            @if(!empty($handRaise->performance_notes))
-                            <div class="mt-1.5 p-2.5 bg-amber-50 rounded-xl border border-amber-200 text-xs space-y-0.5">
-                                <span class="text-[10px] font-bold text-amber-800 flex items-center gap-1">
-                                    <i class="fa-solid fa-clipboard-list text-amber-600"></i> Catatan Revisi Pemagang:
-                                </span>
-                                <p class="text-[11px] text-amber-950 line-clamp-3 leading-relaxed whitespace-pre-line">
-                                    {{ $handRaise->performance_notes }}
-                                </p>
-                            </div>
-                            @elseif(!empty($handRaise->admin_response))
-                            <div class="mt-1.5 p-2.5 bg-orange-50/80 rounded-xl border border-orange-200 text-xs space-y-0.5">
-                                <span class="text-[10px] font-bold text-orange-800 flex items-center gap-1">
-                                    <i class="fa-solid fa-clipboard-check"></i> Catatan Evaluasi:
-                                </span>
-                                <p class="text-[11px] text-orange-950 line-clamp-2 italic leading-relaxed">
-                                    "{{ $handRaise->admin_response }}"
-                                </p>
-                            </div>
-                            @endif
-                        </div>
-                    </td>
-
-                    <!-- Jadwal & Mode -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="space-y-1.5">
-                            <div class="flex items-center gap-1.5 text-xs font-bold {{ $isToday ? 'text-red-600' : 'text-gray-800' }}">
-                                <i class="fa-regular fa-calendar {{ $isToday ? 'text-red-500' : 'text-gray-400' }}"></i>
-                                <span>{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('d M Y') : '-' }}</span>
-                                @if($isToday)
-                                <span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white tracking-wide">HARI INI</span>
-                                @endif
-                            </div>
-                            @if($internShiftText)
-                            <div class="text-[11px] text-gray-600 flex items-center gap-1.5 font-medium">
-                                <i class="fa-solid fa-business-time text-gray-400 text-[10px]"></i>
-                                <span>Shift: <strong class="text-gray-800 font-semibold">{{ $internShiftText }}</strong></span>
-                            </div>
-                            @endif
-                            <div>
-                                @if($handRaise->presentation_mode === 'online')
-                                @php
-                                $adminMeetUrl = $handRaise->meet_url ?: ($handRaise->user?->intern?->division?->meet_url ?? null);
-                                @endphp
-                                <div class="flex items-center gap-1.5 flex-wrap">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-sky-50 text-sky-700 border border-sky-200">
-                                        <i class="fa-solid fa-video text-sky-500 text-[10px]"></i> Online (GMeet)
-                                    </span>
-                                    @if($adminMeetUrl)
-                                    <a href="{{ $adminMeetUrl }}" target="_blank" rel="noopener noreferrer"
-                                        class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-600 hover:bg-blue-700 text-white transition shadow-xs"
-                                        title="Buka Ruang Google Meet: {{ $adminMeetUrl }}">
-                                        <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i> Buka Meet
-                                    </a>
                                     @endif
                                 </div>
-                                @else
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-50 text-slate-700 border border-slate-200">
-                                    <i class="fa-solid fa-building text-slate-500 text-[10px]"></i> Tatap Muka
-                                </span>
-                                @endif
                             </div>
                         </div>
                     </td>
 
-                    <!-- Urgensi & Status Review -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="space-y-1">
-                            @if($handRaise->status === 'needs_revision')
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
-                                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-[11px]"></i>
-                                <span>Perlu Perbaikan</span>
-                            </span>
-                            @elseif($handRaise->status === 'ready')
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs">
-                                <i class="fa-solid fa-circle-check text-emerald-600 text-[11px]"></i>
-                                <span>Sudah Presentasi</span>
-                            </span>
-                            @elseif($isToday || $handRaise->status === 'urgent')
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-extrabold bg-red-100 text-red-700 border border-red-300 shadow-2xs">
-                                <span class="w-2 h-2 rounded-full bg-red-600"></span>
-                                <span>URGENT HARI INI</span>
-                            </span>
-                            @else
-                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                <i class="fa-regular fa-clock text-blue-500 text-[11px]"></i>
-                                <span>Terjadwal</span>
-                            </span>
-                            @endif
-                        </div>
-                    </td>
-
-                    <!-- Aksi: Status Presentasi & Selesai -->
-                    <td class="py-4 px-4 align-top text-right">
-                        <div class="flex items-center justify-end gap-2 flex-wrap">
-                            <!-- Button 1: Sudah Presentasi (Popup Pilihan: Selesai Valid atau Ada Catatan Revisi) -->
-                            <button type="button"
-                                class="btn-trigger-pre-review inline-flex items-center gap-1.5 px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                data-id="{{ $handRaise->id }}"
-                                data-name="{{ $userName }}"
-                                data-title="{{ $cleanNotes }}"
-                                data-status="{{ $handRaise->status ?? 'pending' }}"
-                                onclick="if(window.openPrePresentationModal) { window.openPrePresentationModal(this.dataset.id, this.dataset.name, this.dataset.title, this.dataset.status); }"
-                                title="Pemeriksaan status presentasi: Selesai Valid atau Ada Revisi">
-                                <i class="fa-solid fa-chalkboard-user"></i>
-                                <span>Sudah Presentasi</span>
-                            </button>
-
-                            <!-- Button 2: Selesai (Hanya jika status sudah lulus / revisi) -->
-                            <form method="POST" action="{{ route('admin.raiseHand.confirm', $handRaise->id) }}" class="inline m-0 p-0 relative" data-status="{{ $handRaise->status ?? '' }}" onsubmit="return handleCompletePresentation(event, this.dataset.status, this);">
-                                @csrf
-                                <input type="hidden" name="action" value="complete_presentation">
-                                <input type="hidden" name="tab" value="presentation">
-                                <button type="submit"
-                                    onclick="return handleCompletePresentation(event, this.form.dataset.status, this);"
-                                    class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer whitespace-nowrap"
-                                    title="Selesaikan presentasi dan pindahkan ke riwayat">
-                                    <i class="fa-solid fa-check"></i>
-                                    <span>Selesai</span>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-
-                    @elseif($tab === 'history')
                     <!-- Detail / Materi / Permintaan -->
-                    <td class="py-4 px-4 align-top">
-                        <div class="text-xs text-gray-900 font-medium leading-relaxed max-w-sm space-y-1.5">
+                    <td class="py-3 px-3 align-top">
+                        <div class="text-xs text-gray-900 font-medium leading-relaxed space-y-1">
                             @if($handRaise->type === 'presentation')
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
@@ -463,7 +796,13 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     <i class="fa-solid fa-circle-check text-[9px]"></i> Selesai
                                 </span>
                             </div>
-                            <p class="whitespace-pre-line text-gray-800">{{ $handRaise->notes ?? $handRaise->reason ?? '-' }}</p>
+                            @if($projectName)
+                            <div class="text-xs font-bold text-emerald-900 flex items-center gap-1 pt-0.5">
+                                <i class="fa-solid fa-list-check text-emerald-600 text-[10px]"></i>
+                                <span>Judul Tugas: <strong>{{ $projectName }}</strong></span>
+                            </div>
+                            @endif
+                            <p class="whitespace-pre-line text-gray-800 break-words text-xs leading-relaxed">{{ $handRaise->notes ?? $handRaise->reason ?? '-' }}</p>
                             @else
                             <div class="flex items-center gap-1.5 flex-wrap">
                                 <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200">
@@ -473,34 +812,34 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     <i class="fa-solid fa-circle-check text-[9px]"></i> Terjawab
                                 </span>
                             </div>
-                            <p class="whitespace-pre-line text-gray-800">{{ $handRaise->notes ?? $handRaise->reason ?? '-' }}</p>
+                            <p class="whitespace-pre-line text-gray-800 break-words text-xs leading-relaxed">{{ $handRaise->notes ?? $handRaise->reason ?? '-' }}</p>
                             @endif
                         </div>
                     </td>
 
                     <!-- Waktu & Petugas -->
-                    <td class="py-4 px-4 align-top">
+                    <td class="py-3 px-3 align-top">
                         <div class="space-y-1">
                             <div class="text-xs font-semibold text-gray-800 flex items-center gap-1.5" title="{{ $handRaise->resolved_at ? $handRaise->resolved_at->format('d M Y, H:i') : '' }}">
-                                <i class="fa-regular fa-calendar-check text-emerald-600"></i>
-                                <span>{{ $handRaise->resolved_at ? $handRaise->resolved_at->format('d M Y, H:i') : ($handRaise->updated_at ? $handRaise->updated_at->format('d M Y, H:i') : '-') }}</span>
+                                <i class="fa-regular fa-calendar-check text-emerald-600 shrink-0"></i>
+                                <span class="whitespace-nowrap">{{ $handRaise->resolved_at ? $handRaise->resolved_at->format('d M Y, H:i') : ($handRaise->updated_at ? $handRaise->updated_at->format('d M Y, H:i') : '-') }}</span>
                                 @php
                                 $resolvedTime = $handRaise->resolved_at ?? $handRaise->updated_at;
                                 $shortResolved = $resolvedTime ? $formatShortTime($resolvedTime) : null;
                                 @endphp
                                 @if($shortResolved && $shortResolved !== '-')
-                                <span class="text-[10px] text-gray-400 font-normal">({{ $shortResolved }})</span>
+                                <span class="text-[10px] text-gray-400 font-normal shrink-0">({{ $shortResolved }})</span>
                                 @endif
                             </div>
-                            <div class="text-[11px] text-gray-500 flex items-center gap-1.5">
-                                <i class="fa-solid fa-user-shield text-gray-400"></i>
-                                <span>Oleh: <strong>{{ $handRaise->resolver->name ?? 'Admin' }}</strong></span>
+                            <div class="text-[11px] text-gray-500 flex items-center gap-1.5 truncate">
+                                <i class="fa-solid fa-user-shield text-gray-400 shrink-0"></i>
+                                <span class="truncate">Oleh: <strong>{{ $handRaise->resolver->name ?? 'Admin' }}</strong></span>
                             </div>
                         </div>
                     </td>
 
                     <!-- Tanggapan & Evaluasi -->
-                    <td class="py-4 px-4 align-top">
+                    <td class="py-3 px-3 align-top">
                         @php
                         $responseNote = $handRaise->admin_response ?? $handRaise->performance_notes;
                         @endphp
@@ -508,7 +847,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                         <div class="space-y-2">
                             @if($handRaise->type === 'presentation' && $handRaise->performance_rating !== null)
                             <div>
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold {{ $handRaise->performance_rating >= 80 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : ($handRaise->performance_rating >= 60 ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200') }}">
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold {{ $handRaise->performance_rating >= 80 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : ($handRaise->performance_rating >= 60 ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200') }}">
                                     <i class="fa-solid fa-star text-amber-500 mr-1 text-[10px]"></i>
                                     Nilai: {{ number_format($handRaise->performance_rating, 0) }} / 100
                                 </span>
@@ -533,7 +872,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                         Detail
                                     </button>
                                 </div>
-                                <p class="text-[11px] text-gray-700 line-clamp-2 italic leading-relaxed">"{{ $responseNote }}"</p>
+                                <p class="text-[11px] text-gray-700 line-clamp-2 italic leading-relaxed break-words">"{{ $responseNote }}"</p>
                             </div>
                             @else
                             <span class="text-xs text-gray-400 italic flex items-center gap-1">
@@ -542,24 +881,54 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                             @endif
                         </div>
                     </td>
-                    @endif
                 </tr>
+                @endif
 
                 @empty
+                @if($tab === 'presentation')
+                <div class="w-full py-16 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-300 shadow-2xs">
+                    <div class="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-amber-500 border border-amber-100">
+                        <i class="fa-solid fa-chalkboard-user text-2xl"></i>
+                    </div>
+                    <p class="font-bold text-base text-gray-700">
+                        Tidak ada jadwal presentasi aktif
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Pengajuan presentasi dari pemagang akan muncul di sini untuk dikonfirmasi dan direview.
+                    </p>
+                </div>
+                @elseif($tab === 'question')
+                <div class="w-full py-16 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-300 shadow-2xs">
+                    <div class="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-blue-500 border border-blue-100">
+                        <i class="fa-solid fa-comments text-2xl"></i>
+                    </div>
+                    <p class="font-bold text-base text-gray-700">
+                        Tidak ada pertanyaan aktif saat ini
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Semua peserta terpantau lancar dan tidak memiliki kendala teknis.
+                    </p>
+                </div>
+                @elseif($tab === 'new_task')
+                <div class="w-full py-16 px-4 text-center bg-white rounded-2xl border border-dashed border-slate-300 shadow-2xs">
+                    <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-3 text-purple-500 border border-purple-100">
+                        <i class="fa-solid fa-list-check text-2xl"></i>
+                    </div>
+                    <p class="font-bold text-base text-gray-700">
+                        Tidak ada permintaan tugas baru
+                    </p>
+                    <p class="text-xs text-gray-400 mt-1">
+                        Permintaan tugas baru dari pemagang yang telah menyelesaikan tugas sebelumnya akan muncul di sini.
+                    </p>
+                </div>
+                @else
                 <tr>
-                    <td colspan="{{ $tab === 'presentation' ? 6 : 5 }}" class="text-center py-16 text-gray-500">
+                    <td colspan="5" class="text-center py-16 text-gray-500">
                         <div class="flex flex-col items-center justify-center">
                             <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3 text-emerald-500 border border-emerald-100">
                                 <i class="fa-solid fa-circle-check text-2xl"></i>
                             </div>
                             <p class="font-bold text-base text-gray-700">
-                                @if($tab === 'question')
-                                Tidak ada pertanyaan aktif saat ini
-                                @elseif($tab === 'new_task')
-                                Tidak ada permintaan tugas baru
-                                @elseif($tab === 'presentation')
-                                Tidak ada jadwal presentasi aktif
-                                @else
                                 @if(($historySubTab ?? '') === 'new_task')
                                 Belum ada riwayat tugas baru selesai
                                 @elseif(($historySubTab ?? '') === 'presentation')
@@ -567,22 +936,73 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                 @else
                                 Belum ada riwayat bantuan selesai
                                 @endif
-                                @endif
                             </p>
                             <p class="text-xs text-gray-400 mt-1">
-                                @if($tab !== 'history')
-                                Semua peserta terpantau lancar dan tidak memiliki kendala.
-                                @else
                                 Riwayat sesi yang telah diselesaikan akan tercatat di sini.
-                                @endif
                             </p>
                         </div>
                     </td>
                 </tr>
+                @endif
                 @endforelse
 
                 @once
                 <script>
+                    if (typeof window.toggleRowDropdown === 'undefined') {
+                        window.toggleRowDropdown = function(event, btn) {
+                            if (event) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            const container = btn.closest('.dropdown-action-container');
+                            if (!container) return;
+                            const menu = container.querySelector('.dropdown-menu-list');
+                            if (!menu) return;
+
+                            const isCurrentlyOpen = !menu.classList.contains('hidden');
+
+                            // Tutup semua dropdown lain yang terbuka dan bersihkan z-index
+                            document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden'));
+                            document.querySelectorAll('.raise-hand-card, .raise-hand-row, .dropdown-action-container').forEach(el => {
+                                el.style.zIndex = '';
+                            });
+
+                            if (!isCurrentlyOpen) {
+                                // Naikkan z-index parent card / row / container
+                                const card = btn.closest('.raise-hand-card') || btn.closest('.raise-hand-row');
+                                if (card) {
+                                    card.style.zIndex = '50';
+                                    card.style.position = 'relative';
+                                }
+                                container.style.zIndex = '60';
+
+                                // Deteksi posisi di layar untuk smart placement (atas vs bawah)
+                                const rect = btn.getBoundingClientRect();
+                                const spaceBelow = window.innerHeight - rect.bottom;
+                                const dropdownHeight = 175;
+
+                                if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+                                    menu.classList.remove('top-full', 'mt-1.5');
+                                    menu.classList.add('bottom-full', 'mb-1.5');
+                                } else {
+                                    menu.classList.remove('bottom-full', 'mb-1.5');
+                                    menu.classList.add('top-full', 'mt-1.5');
+                                }
+
+                                menu.classList.remove('hidden');
+                            }
+                        };
+
+                        document.addEventListener('click', function(e) {
+                            if (!e.target.closest('.dropdown-action-container')) {
+                                document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden'));
+                                document.querySelectorAll('.raise-hand-card, .raise-hand-row, .dropdown-action-container').forEach(el => {
+                                    el.style.zIndex = '';
+                                });
+                            }
+                        });
+                    }
+
                     if (typeof window.handleCompletePresentation === 'undefined') {
                         window.handleCompletePresentation = function(event, status, el) {
                             if (status !== 'ready' && status !== 'needs_revision') {
@@ -593,8 +1013,9 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
 
                                 const form = el.tagName === 'FORM' ? el : el.closest('form');
                                 const btn = form ? form.querySelector('button[type="submit"]') : el;
-                                const container = form || el.parentElement;
-                                const row = el.closest('tr');
+                                const dropdownContainer = el.closest('.dropdown-action-container');
+                                const container = dropdownContainer || form || el.parentElement;
+                                const row = el.closest('tr') || el.closest('.raise-hand-card') || el.closest('.bg-white');
                                 const preReviewBtn = row ? row.querySelector('.btn-trigger-pre-review') : null;
 
                                 if (!container) return false;
@@ -629,7 +1050,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     setTimeout(() => {
                                         if (note.parentNode) note.parentNode.removeChild(note);
                                     }, 200);
-                                }, 1000);
+                                }, 1500);
 
                                 return false;
                             }

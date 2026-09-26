@@ -14,9 +14,12 @@ class RoleSeeder extends Seeder
     public function run(): void
     {
         // Bersihkan role Contributor dan Alumni jika masih ada di database
-        Role::whereIn('name', ['Contributor', 'Alumni'])->delete();
-
         $roles = [
+            [
+                'id' => 7,
+                'name' => 'Super Admin',
+                'description' => 'Memiliki hak akses tertinggi terhadap seluruh sistem, manajemen akun admin, dan audit log aktivitas.',
+            ],
             [
                 'id' => 1,
                 'name' => 'Admin',

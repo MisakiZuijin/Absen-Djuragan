@@ -65,6 +65,7 @@ class AdminIzinShalatController extends Controller
         $perPage = 15;
 
         // Panggil service untuk mendapatkan data history yang sudah dipaginasi.
+        $intern->loadMissing('user.profile');
         $permitLogs = $this->prayerPermitService->getPrayerHistory($intern, $perPage);
 
         return view('admin.prayer-history-detail', [

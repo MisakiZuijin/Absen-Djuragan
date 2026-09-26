@@ -57,6 +57,9 @@ class SettingHolidayController extends Controller
     {
         $this->holidayService->create($request);
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
+
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan Hari Libur baru: {$request->input('title')} ({$request->input('date')})");
+
         return redirect()->back()->with('success', 'Data Hari libur berhasil ditambahkan!');
     }
 
@@ -64,6 +67,9 @@ class SettingHolidayController extends Controller
     {
         $this->holidayService->update($request, $id);
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
+
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui Hari Libur: {$request->input('title')} ({$request->input('date')})", ['holiday_id' => $id]);
+
         return redirect()->back()->with('success', 'Data Hari libur berhasil diperbarui!');
     }
 
@@ -71,6 +77,9 @@ class SettingHolidayController extends Controller
     {
         $this->holidayService->delete($id);
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
+
+        \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus data Hari Libur ID: {$id}", ['holiday_id' => $id]);
+
         return redirect()->back()->with('success', 'Data Hari libur berhasil dihapus!');
     }
 

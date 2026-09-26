@@ -1,4 +1,4 @@
-<div wire:poll.3s class="w-full min-w-0 max-w-none">
+<div wire:poll.15s class="w-full min-w-0 max-w-none">
 
     <!-- =========================================================
          QUICK STATS CARDS
@@ -136,53 +136,15 @@
     </div>
 
 
-    <!-- =========================================================
-         SEARCH BAR
-         ========================================================= -->
-    <div class="mb-6 w-full min-w-0 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <div class="flex w-full min-w-0 items-center gap-3">
-
-            <div class="relative min-w-0 flex-1">
-                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
-                </div>
-
-                <input
-                    type="text"
-                    wire:model.live.debounce.300ms="search"
-                    class="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-11 pr-10
-                        text-xs text-gray-700
-                        focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                    placeholder="Cari nama peserta, sekolah, materi, atau catatan..."
-                    autocomplete="off">
-
-                @if(!empty($search))
-                <button
-                    type="button"
-                    wire:click="$set('search', '')"
-                    class="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center
-                            rounded-full text-gray-400 hover:text-red-500">
-                    <i class="fa-solid fa-xmark text-xs"></i>
-                </button>
-                @endif
-            </div>
-
-            <div class="hidden shrink-0 items-center gap-1.5 px-2 text-xs text-gray-400 sm:flex">
-                <i class="fa-solid fa-filter text-gray-400"></i>
-                <span>Pencarian</span>
-            </div>
-
-        </div>
-    </div>
 
 
     <!-- =========================================================
          TAB + CONTENT
          ========================================================= -->
-    <div class="w-full min-w-0 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+    <div class="w-full min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm">
 
         <!-- Tab Navigation -->
-        <div class="w-full min-w-0 border-b border-gray-200 bg-gray-50/50 px-4 pt-3">
+        <div class="w-full min-w-0 border-b border-gray-200 bg-gray-50/50 px-4 pt-3 rounded-t-2xl">
             <div class="grid w-full min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
 
                 <!-- Tab 1 -->
@@ -301,88 +263,49 @@
 
             @if($activeTab === 'question')
 
-            <!-- Panel 1: Bertanya -->
-            <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-gray-200">
-                <table class="w-full min-w-[960px] text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                            <th class="w-12 px-4 py-3.5 text-center">#</th>
-                            <th class="w-72 min-w-[260px] px-4 py-3.5">Peserta & Asal Sekolah</th>
-                            <th class="min-w-[320px] px-4 py-3.5">Detail Pertanyaan / Kendala</th>
-                            <th class="w-48 min-w-[160px] px-4 py-3.5">Status</th>
-                            <th class="w-40 min-w-[140px] px-4 py-3.5 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 bg-white">
-                        @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'question'])
-                    </tbody>
-                </table>
+            <!-- Panel 1: Bertanya (Item Cards List) -->
+            <div class="w-full space-y-4">
+                @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'question'])
             </div>
 
 
             @elseif($activeTab === 'new_task')
 
-            <!-- Panel 2: Permintaan Tugas Baru -->
-            <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-gray-200">
-                <table class="w-full min-w-[1050px] text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                            <th class="w-12 px-4 py-3.5 text-center">#</th>
-                            <th class="w-72 min-w-[260px] px-4 py-3.5">Peserta & Asal Sekolah</th>
-                            <th class="min-w-[320px] px-4 py-3.5">Rincian Tugas & Permintaan</th>
-                            <th class="w-48 min-w-[160px] px-4 py-3.5">Status</th>
-                            <th class="w-64 min-w-[230px] px-4 py-3.5 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 bg-white">
-                        @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'new_task'])
-                    </tbody>
-                </table>
+            <!-- Panel 2: Permintaan Tugas Baru (Item Cards List) -->
+            <div class="w-full space-y-4">
+                @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'new_task'])
             </div>
 
 
             @elseif($activeTab === 'presentation')
 
-            <!-- Panel 3: Penjadwalan Presentasi -->
-            <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-gray-200">
-                <table class="w-full min-w-[1200px] text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                            <th class="w-12 px-4 py-3.5 text-center">#</th>
-                            <th class="w-64 min-w-[240px] px-4 py-3.5">Peserta & Asal Sekolah</th>
-                            <th class="min-w-[280px] px-4 py-3.5">Judul / Materi Presentasi</th>
-                            <th class="w-52 min-w-[180px] px-4 py-3.5">Jadwal & Mode</th>
-                            <th class="w-48 min-w-[160px] px-4 py-3.5">Urgensi & Review</th>
-                            <th class="w-72 min-w-[260px] px-4 py-3.5 text-right">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100 bg-white">
-                        @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'presentation'])
-                    </tbody>
-                </table>
+            <!-- Panel 3: Penjadwalan Presentasi (Item Cards List) -->
+            <div class="w-full space-y-4">
+                @include('admin.partials.raise-hand-table-body', ['handRaises' => $items, 'activeTab' => 'presentation'])
             </div>
+
 
 
             @else
 
             <!-- Panel 4: History Selesai -->
-            <div class="w-full min-w-0 space-y-4">
+            <div class="w-full space-y-4">
 
-                <!-- Sub-Tabs History & Filter Per Divisi -->
-                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 bg-gray-50/90 p-3 rounded-2xl border border-gray-200 shadow-2xs">
+                <!-- Sub-Tabs History & Filter Bar (Compact & Rapi) -->
+                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5 bg-gray-50/80 p-2 sm:p-2.5 rounded-xl border border-gray-200/80 shadow-2xs">
                     <!-- 3 Sub-Tabs History -->
-                    <div class="flex items-center gap-2 flex-wrap">
+                    <div class="inline-flex items-center gap-1.5 flex-wrap">
                         <!-- 1. Meminta Bantuan -->
                         <button
                             type="button"
                             wire:click="switchHistoryTab('question')"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer
                             {{ $historyTab === 'question'
                                 ? 'bg-blue-600 text-white shadow-blue-500/20'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200' }}">
-                            <i class="fa-solid fa-comments text-xs"></i>
+                            <i class="fa-solid fa-comments text-[10px]"></i>
                             <span>1. Meminta Bantuan</span>
-                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black {{ $historyTab === 'question' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
+                            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-black {{ $historyTab === 'question' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
                                 {{ $countHistoryQuestion }}
                             </span>
                         </button>
@@ -391,13 +314,13 @@
                         <button
                             type="button"
                             wire:click="switchHistoryTab('new_task')"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer
                             {{ $historyTab === 'new_task'
                                 ? 'bg-purple-600 text-white shadow-purple-500/20'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200' }}">
-                            <i class="fa-solid fa-list-check text-xs"></i>
+                            <i class="fa-solid fa-list-check text-[10px]"></i>
                             <span>2. Tugas Baru</span>
-                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black {{ $historyTab === 'new_task' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
+                            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-black {{ $historyTab === 'new_task' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
                                 {{ $countHistoryNewTask }}
                             </span>
                         </button>
@@ -406,64 +329,149 @@
                         <button
                             type="button"
                             wire:click="switchHistoryTab('presentation')"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer
+                            class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer
                             {{ $historyTab === 'presentation'
                                 ? 'bg-amber-600 text-white shadow-amber-500/20'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 hover:text-gray-900 border border-gray-200' }}">
-                            <i class="fa-solid fa-chalkboard-user text-xs"></i>
+                            <i class="fa-solid fa-chalkboard-user text-[10px]"></i>
                             <span>3. Presentasi</span>
-                            <span class="px-1.5 py-0.5 rounded-full text-[10px] font-black {{ $historyTab === 'presentation' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
+                            <span class="px-1.5 py-0.5 rounded-full text-[9px] font-black {{ $historyTab === 'presentation' ? 'bg-white/25 text-white' : 'bg-gray-100 text-gray-700' }}">
                                 {{ $countHistoryPresentation }}
                             </span>
                         </button>
                     </div>
 
-                    <!-- Filter Per Divisi -->
-                    <div class="flex items-center gap-2 self-start md:self-auto">
-                        <label for="history-division-filter" class="text-xs font-bold text-gray-500 flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-filter text-gray-400"></i>
-                            <span>Divisi:</span>
-                        </label>
-                        <select
-                            id="history-division-filter"
-                            wire:model.live="selectedDivision"
-                            class="text-xs py-2 pl-3 pr-8 rounded-xl border border-gray-200 bg-white text-gray-800 font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer">
-                            <option value="">Semua Divisi</option>
-                            @foreach($divisions as $div)
-                            <option value="{{ $div->id }}">{{ $div->name }}</option>
-                            @endforeach
-                        </select>
-                        @if(!empty($selectedDivision))
-                        <button
-                            type="button"
-                            wire:click="$set('selectedDivision', '')"
-                            class="h-8 w-8 rounded-xl bg-gray-200/70 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition cursor-pointer"
-                            title="Reset Filter Divisi">
-                            <i class="fa-solid fa-xmark text-xs"></i>
-                        </button>
-                        @endif
+                    <!-- Right Controls: Filter Peserta & Divisi -->
+                    <div class="flex items-center gap-2 flex-wrap self-start lg:self-auto">
+                        <!-- Filter Peserta dengan Autocomplete Search Dropdown -->
+                        <div x-data="{ open: false }" class="relative">
+                            <div class="relative flex items-center">
+                                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-gray-400">
+                                    <i class="fa-solid fa-magnifying-glass text-[10px]"></i>
+                                </span>
+                                <input
+                                    type="text"
+                                    wire:model.live.debounce.300ms="historySearchName"
+                                    @focus="open = true"
+                                    @input="open = true"
+                                    @keydown.escape="open = false"
+                                    placeholder="Cari nama peserta..."
+                                    class="text-[11px] py-1.5 pl-7 pr-6 rounded-lg border {{ !empty($selectedUserId) ? 'border-emerald-500 bg-emerald-50/60 text-emerald-900 font-semibold ring-1 ring-emerald-500/30' : 'border-gray-200 bg-white text-gray-800' }} focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs w-44 sm:w-52 transition-all placeholder:text-gray-400"
+                                    autocomplete="off"
+                                />
+                                @if(!empty($historySearchName) || !empty($selectedUserId))
+                                <button
+                                    type="button"
+                                    wire:click="clearHistoryUser"
+                                    @click="open = false"
+                                    class="absolute inset-y-0 right-0 pr-2 flex items-center text-gray-400 hover:text-red-500 transition cursor-pointer"
+                                    title="Hapus filter peserta">
+                                    <i class="fa-solid fa-circle-xmark text-[11px]"></i>
+                                </button>
+                                @endif
+                            </div>
+
+                            <!-- Dropdown Autocomplete Bantuan -->
+                            <div
+                                x-show="open && ({{ strlen(trim($historySearchName)) >= 1 ? 'true' : 'false' }})"
+                                @click.outside="open = false"
+                                x-transition:enter="transition ease-out duration-100"
+                                x-transition:enter-start="opacity-0 scale-95"
+                                x-transition:enter-end="opacity-100 scale-100"
+                                x-transition:leave="transition ease-in duration-75"
+                                x-transition:leave-start="opacity-100 scale-100"
+                                x-transition:leave-end="opacity-0 scale-95"
+                                class="absolute z-50 mt-1 w-64 sm:w-72 max-h-60 overflow-y-auto bg-white rounded-xl shadow-lg border border-gray-200 py-1 right-0 lg:left-0 lg:right-auto divide-y divide-gray-50"
+                                style="display: none;">
+                                <div class="px-2.5 py-1 bg-gray-50/90 text-[9px] font-bold uppercase tracking-wider text-gray-400 flex items-center justify-between">
+                                    <span>Pilih Peserta</span>
+                                    <span class="text-[9px] font-medium lowercase text-gray-400">{{ count($suggestedUsers ?? []) }} hasil</span>
+                                </div>
+                                @forelse($suggestedUsers ?? [] as $sUser)
+                                    @php
+                                        $sName = $sUser->profile->full_name ?? $sUser->name ?? 'Peserta';
+                                        $sSchool = $sUser->intern->school->name ?? '-';
+                                        $sDivision = $sUser->intern->division->name ?? '-';
+                                        $sInitial = strtoupper(substr($sName, 0, 1));
+                                    @endphp
+                                    <button
+                                        type="button"
+                                        wire:click="selectHistoryUser({{ $sUser->id }}, '{{ addslashes($sName) }}')"
+                                        @click="open = false"
+                                        class="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50/70 flex items-center gap-2 transition group cursor-pointer {{ $selectedUserId === $sUser->id ? 'bg-emerald-50 text-emerald-900 font-bold' : '' }}">
+                                        <div class="w-6 h-6 rounded-md bg-slate-800 group-hover:bg-emerald-600 text-white flex items-center justify-center text-[10px] font-bold flex-shrink-0 transition">
+                                            {{ $sInitial }}
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="text-[11px] font-semibold text-gray-900 group-hover:text-emerald-700 truncate">
+                                                {{ $sName }}
+                                            </div>
+                                            <div class="text-[9px] text-gray-500 truncate flex items-center gap-1">
+                                                <span class="text-gray-600 font-medium">{{ $sDivision }}</span>
+                                                <span class="text-gray-300">•</span>
+                                                <span class="truncate">{{ $sSchool }}</span>
+                                            </div>
+                                        </div>
+                                        @if($selectedUserId === $sUser->id)
+                                            <i class="fa-solid fa-check text-emerald-600 text-[10px]"></i>
+                                        @endif
+                                    </button>
+                                @empty
+                                    <div class="px-3 py-2.5 text-center text-[11px] text-gray-500">
+                                        <i class="fa-solid fa-user-slash text-gray-300 block text-sm mb-0.5"></i>
+                                        Tidak ada peserta yang cocok
+                                    </div>
+                                @endforelse
+                            </div>
+                        </div>
+
+                        <!-- Filter Per Divisi -->
+                        <div class="flex items-center gap-1">
+                            <label for="history-division-filter" class="text-[11px] font-semibold text-gray-500 flex items-center gap-1 whitespace-nowrap">
+                                <i class="fa-solid fa-filter text-gray-400 text-[10px]"></i>
+                                <span class="hidden sm:inline">Divisi:</span>
+                            </label>
+                            <select
+                                id="history-division-filter"
+                                wire:model.live="selectedDivision"
+                                class="text-[11px] py-1.5 pl-2.5 pr-7 rounded-lg border border-gray-200 bg-white text-gray-800 font-semibold focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 shadow-2xs cursor-pointer">
+                                <option value="">Semua Divisi</option>
+                                @foreach($divisions as $div)
+                                <option value="{{ $div->id }}">{{ $div->name }}</option>
+                                @endforeach
+                            </select>
+                            @if(!empty($selectedDivision))
+                            <button
+                                type="button"
+                                wire:click="$set('selectedDivision', '')"
+                                class="h-7 w-7 rounded-lg bg-gray-200/70 hover:bg-red-100 text-gray-500 hover:text-red-600 flex items-center justify-center transition cursor-pointer"
+                                title="Reset Filter Divisi">
+                                <i class="fa-solid fa-xmark text-[10px]"></i>
+                            </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
 
                 <!-- History Table -->
-                <div class="w-full min-w-0 overflow-x-auto rounded-xl border border-gray-200">
-                    <table class="w-full min-w-[1150px] text-left border-collapse">
+                <div class="w-full overflow-x-auto rounded-xl border border-gray-200 shadow-2xs">
+                    <table class="w-full text-left border-collapse table-fixed min-w-[860px]">
                         <thead>
-                            <tr class="bg-gray-50/80 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                                <th class="w-12 px-4 py-3.5 text-center">#</th>
-                                <th class="w-64 min-w-[240px] px-4 py-3.5">Peserta & Asal Sekolah</th>
+                            <tr class="bg-gray-50/90 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
+                                <th class="w-[4%] min-w-[38px] px-3 py-3 text-center">#</th>
+                                <th class="w-[24%] min-w-[200px] px-3 py-3">Peserta & Asal Sekolah</th>
                                 @if($historyTab === 'presentation')
-                                <th class="min-w-[280px] px-4 py-3.5">Materi & Jadwal Presentasi</th>
-                                <th class="w-48 min-w-[170px] px-4 py-3.5">Waktu Selesai & Penguji</th>
-                                <th class="min-w-[280px] px-4 py-3.5">Nilai & Evaluasi Presentasi</th>
+                                <th class="w-[36%] min-w-[260px] px-3 py-3">Materi & Jadwal Presentasi</th>
+                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Penguji</th>
+                                <th class="w-[20%] min-w-[180px] px-3 py-3">Nilai & Evaluasi Presentasi</th>
                                 @elseif($historyTab === 'new_task')
-                                <th class="min-w-[280px] px-4 py-3.5">Permintaan / Laporan Tugas</th>
-                                <th class="w-48 min-w-[170px] px-4 py-3.5">Waktu Selesai & Petugas</th>
-                                <th class="min-w-[280px] px-4 py-3.5">Instruksi Tugas yang Diberikan</th>
+                                <th class="w-[36%] min-w-[260px] px-3 py-3">Permintaan / Laporan Tugas</th>
+                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Petugas</th>
+                                <th class="w-[20%] min-w-[180px] px-3 py-3">Instruksi Tugas yang Diberikan</th>
                                 @else
-                                <th class="min-w-[280px] px-4 py-3.5">Pertanyaan / Kendala Siswa</th>
-                                <th class="w-48 min-w-[170px] px-4 py-3.5">Waktu Selesai & Petugas</th>
-                                <th class="min-w-[280px] px-4 py-3.5">Tanggapan & Solusi Mentor</th>
+                                <th class="w-[36%] min-w-[260px] px-3 py-3">Pertanyaan / Kendala Siswa</th>
+                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Petugas</th>
+                                <th class="w-[20%] min-w-[180px] px-3 py-3">Tanggapan & Solusi Mentor</th>
                                 @endif
                             </tr>
                         </thead>
@@ -476,6 +484,56 @@
                         </tbody>
                     </table>
                 </div>
+
+                <!-- History Table Pagination (Setting Style) -->
+                @if($activeTab === 'history' && $items instanceof \Illuminate\Contracts\Pagination\LengthAwarePaginator && $items->hasPages())
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-xl border border-gray-200 shadow-2xs mt-4">
+                    <div class="text-xs text-gray-500 font-medium">
+                        Menampilkan <span class="font-bold text-gray-800">{{ $items->firstItem() ?? 0 }}</span> - <span class="font-bold text-gray-800">{{ $items->lastItem() ?? 0 }}</span> dari <span class="font-bold text-gray-800">{{ $items->total() }}</span> riwayat selesai
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        {{-- Prev Button --}}
+                        <button
+                            type="button"
+                            wire:click="previousPage"
+                            @disabled($items->onFirstPage())
+                            class="cursor-pointer bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-2xs transition flex items-center gap-1">
+                            <i class="fas fa-chevron-left text-[10px]"></i>
+                            <span>Prev</span>
+                        </button>
+
+                        {{-- Page Numbers --}}
+                        <div class="flex space-x-1">
+                            @foreach (range(1, $items->lastPage()) as $page)
+                                @if ($page == $items->currentPage())
+                                    <button
+                                        type="button"
+                                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-2xs transition cursor-default">
+                                        {{ $page }}
+                                    </button>
+                                @else
+                                    <button
+                                        type="button"
+                                        wire:click="gotoPage({{ $page }})"
+                                        class="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold shadow-2xs transition cursor-pointer">
+                                        {{ $page }}
+                                    </button>
+                                @endif
+                            @endforeach
+                        </div>
+
+                        {{-- Next Button --}}
+                        <button
+                            type="button"
+                            wire:click="nextPage"
+                            @disabled(!$items->hasMorePages())
+                            class="cursor-pointer bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed shadow-2xs transition flex items-center gap-1">
+                            <span>Next</span>
+                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        </button>
+                    </div>
+                </div>
+                @endif
 
             </div>
 

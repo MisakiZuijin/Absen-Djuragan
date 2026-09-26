@@ -3,23 +3,21 @@
 @section('title', 'Persetujuan Log Aktivitas')
 
 @section('contents')
-    @include('layouts.sidebar-assistant')
-    @include('layouts.navbar', ['user' => $user])
-
-    <main class="ml-64 mt-24 p-6 bg-gray-50 min-h-screen">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen min-w-0">
+        <div class="max-w-7xl mx-auto space-y-6">
         <!-- Header Section -->
-        <div class="mb-8">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center gap-4">
-                    <div class="p-4 bg-indigo-600 rounded-lg shadow-md">
-                        <i class="fa-solid fa-clipboard-check text-white text-2xl"></i>
+        <div class="mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <div class="p-3 sm:p-4 bg-indigo-600 rounded-2xl shadow-sm shrink-0">
+                        <i class="fa-solid fa-clipboard-check text-white text-xl sm:text-2xl"></i>
                     </div>
                     <div>
-                        <h1 class="text-3xl font-bold text-gray-800">Persetujuan Log Aktivitas</h1>
-                        <p class="text-gray-600 mt-1">Tinjau laporan aktivitas harian dari siswa magang.</p>
+                        <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Persetujuan Log Aktivitas</h1>
+                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Tinjau laporan aktivitas harian dari siswa magang.</p>
                     </div>
                 </div>
-                <a href="{{ route('assistant.dashboard') }}" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                <a href="{{ route('assistant.dashboard') }}" class="self-start sm:self-auto bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-3.5 sm:px-4 border border-gray-300 rounded-xl text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Kembali ke Dashboard</span>
                 </a>
@@ -28,34 +26,34 @@
 
         <!-- Alert Messages -->
         @if(session('success'))
-            <div class="mb-6 bg-green-100 border-l-4 border-green-500 text-green-800 px-6 py-4 rounded-lg shadow-md" role="alert">
+            <div class="mb-6 bg-green-100 border-l-4 border-green-500 text-green-800 p-4 rounded-xl shadow-xs" role="alert">
                 <div class="flex items-center gap-3">
-                    <i class="fa-solid fa-circle-check text-xl"></i>
-                    <p class="font-bold">{{ session('success') }}</p>
+                    <i class="fa-solid fa-circle-check text-xl shrink-0"></i>
+                    <p class="font-bold text-xs sm:text-sm">{{ session('success') }}</p>
                 </div>
             </div>
         @endif
 
-        <!-- Status Tabs -->
-        <div class="mb-6 flex gap-2">
-            <a href="{{ route('assistant.logactivity', ['status' => 'pending', 'date' => $selectedDate]) }}"
-               class="px-4 py-2 rounded-lg border text-sm font-semibold
-               {{ $status === 'pending' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100' }}">
-                Menunggu Persetujuan
-            </a>
-            <a href="{{ route('assistant.logactivity', ['status' => 'processed', 'date' => $selectedDate]) }}"
-               class="px-4 py-2 rounded-lg border text-sm font-semibold
-               {{ $status === 'processed' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-700 hover:bg-gray-100' }}">
-                Sudah Diproses
-            </a>
-        </div>
+        <!-- Status Tabs & Date Picker Container -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+            <div class="flex flex-wrap gap-2">
+                <a href="{{ route('assistant.logactivity', ['status' => 'pending', 'date' => $selectedDate]) }}"
+                   class="px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition
+                   {{ $status === 'pending' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                    Menunggu Persetujuan
+                </a>
+                <a href="{{ route('assistant.logactivity', ['status' => 'processed', 'date' => $selectedDate]) }}"
+                   class="px-3.5 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition
+                   {{ $status === 'processed' ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50' }}">
+                    Sudah Diproses
+                </a>
+            </div>
 
-        <!-- Date Picker -->
-        <div class="mb-4">
-            <form method="GET" action="{{ route('assistant.logactivity') }}">
+            <!-- Date Picker -->
+            <form method="GET" action="{{ route('assistant.logactivity') }}" class="flex items-center gap-2">
                 <input type="hidden" name="status" value="{{ $status }}">
-                <input type="date" name="date" value="{{ $selectedDate }}" class="border rounded px-3 py-2">
-                <button type="submit" class="ml-2 px-4 py-2 bg-indigo-600 text-white rounded">Pilih Tanggal</button>
+                <input type="date" name="date" value="{{ $selectedDate }}" class="border border-gray-200 bg-white rounded-xl px-3 py-1.5 text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <button type="submit" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs">Pilih</button>
             </form>
         </div>
 
@@ -152,6 +150,7 @@
                     <p class="font-semibold text-gray-600">Pencarian tidak ditemukan.</p>
                 </div>
             </div>
+        </div>
         </div>
     </main>
 

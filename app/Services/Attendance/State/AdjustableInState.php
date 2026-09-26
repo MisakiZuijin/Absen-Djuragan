@@ -5,7 +5,6 @@ namespace App\Services\Attendance\State;
 use App\DTO\AttendanceDTO;
 use App\DTO\ScheduleDTO;
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Repositories\Interface\AdjustableAttdRepository;
 use App\Repositories\Interface\DetailScheduleRepository;
 use App\Repositories\Interface\OfficeRepository;
@@ -59,15 +58,52 @@ class AdjustableInState implements AttendanceState {
         $scheduleId = $data->getScheduleId();
         $detailScheduleId = $data->getDetailSchedule();
 
-        $shift = $this->shiftRepository->getByTimeRange($timeNow);
-        $mapsTrack = $this->locationService->checkIsInOfficeArea($data->getLatitude(), $data->getLongitude());
+        $existingDetailSchedule = null;
+        if ($detailScheduleId) {
+            $existingDetailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
+        } elseif ($user && $user->intern) {
+            $existingDetailSchedule = \App\Models\DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
+                $q->where('intern_id', $internId);
+            })->whereDate('date', $now)->first();
 
-        if ($mapsTrack->isInArea == false) return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
+            if ($existingDetailSchedule) {
+                $detailScheduleId = $existingDetailSchedule->id;
+                $scheduleId = $scheduleId ?: $existingDetailSchedule->schedule_id;
+            }
+        }
+
+        if (!$scheduleId && $user && $user->intern) {
+            $existingSchedule = \App\Models\Schedule::where('intern_id', $internId)->orderByDesc('id')->first();
+            if ($existingSchedule) {
+                $scheduleId = $existingSchedule->id;
+            }
+        }
+
+        $isWfhSchedule = $existingDetailSchedule && strtolower($existingDetailSchedule->work_type ?? '') === 'wfh';
+        $shift = ($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow);
+        $isGpsRequired = ($user && $user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
+
+        $latitude = $data->getLatitude();
+        $longitude = $data->getLongitude();
+
+        if ($isGpsRequired) {
+            if ($latitude === null || $longitude === null) {
+                return new ActionResult(false, "Gagal mendapatkan lokasi GPS. Pastikan GPS aktif dan izinkan akses lokasi.");
+            }
+            $mapsTrack = $this->locationService->checkIsInOfficeArea((float) $latitude, (float) $longitude, true);
+            if ($mapsTrack->isInArea == false) return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
+        } else {
+            $mapsTrack = $this->locationService->checkIsInOfficeArea(
+                is_null($latitude) ? null : (float) $latitude,
+                is_null($longitude) ? null : (float) $longitude,
+                false
+            );
+        }
 
         if (!$scheduleId) {
             $scheduleId = $this->createSchedule(new ScheduleDTO(
                 $internId,
-                $mapsTrack->officeData->id,
+                $mapsTrack->officeData?->id,
                 $shift->id,
                 $now,
                 $now,
@@ -78,9 +114,9 @@ class AdjustableInState implements AttendanceState {
         if (!$detailScheduleId) {
             $newData = [
                 "schedule_id" => $scheduleId,
-                "office_id" => $mapsTrack->officeData->id,
+                "office_id" => $mapsTrack->officeData?->id,
                 "date" => $now,
-                'work_type' =>  "wfo",
+                'work_type' =>  $isGpsRequired ? "wfo" : "wfh",
                 "isChangeSchedule" => true,
                 "isBackFirst" => true
             ];
@@ -135,11 +171,7 @@ class AdjustableInState implements AttendanceState {
 
         $adjustableAttd = $this->adjustableAttdRepository->store($attData);
         $adjustableId = $adjustableAttd->id;
-
-        LogConsole::info("Created adjustable record with ID: " . $adjustableId);
-
-        $adjustableData = $this->adjustableAttdRepository->getById($adjustableId);
-        LogConsole::info("Retrieved adjustable data ID: " . $adjustableData->id);
+        $adjustableData = $adjustableAttd;
 
         DB::commit();
 

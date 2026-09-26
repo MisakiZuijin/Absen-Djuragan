@@ -63,6 +63,13 @@ class DiscountTimeController extends Controller
             }
 
             // 5. Kirim kembali data yang 100% konsisten dari service
+            $internName = $schedule->intern?->user?->profile?->full_name ?? 'Pemagang';
+            $adminName = auth()->user()?->name ?? 'Admin';
+            \App\Helper\ActivityLogger::log('UPDATE', 'Presensi', "Admin {$adminName} memberikan diskon/potongan waktu {$discountValue} menit kepada {$internName}", [
+                'schedule_id' => $validated['schedule_id'],
+                'discount_minutes' => $discountValue
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Diskon jam berhasil disimpan',

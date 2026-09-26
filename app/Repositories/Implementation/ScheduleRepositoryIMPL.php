@@ -26,7 +26,7 @@ class ScheduleRepositoryIMPL implements ScheduleRepository
 
     public function findByInternId(int $intern_id)
     {
-        return $this->model->where('intern_id', $intern_id)->first();
+        return $this->model->with('intern.user.profile')->where('intern_id', $intern_id)->first();
     }
 
     public function findByInternIdAndDate(int $intern_id, string $date)

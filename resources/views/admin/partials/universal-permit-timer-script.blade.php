@@ -1,17 +1,12 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        console.log('Universal permit timer script loaded');
-
         const permitTimers = {};
 
         function startAndRunTimer(timerElement) {
             const permitId = timerElement.dataset.permitId;
             const permitType = timerElement.dataset.permitType;
 
-            console.log('Starting timer for:', permitId, 'type:', permitType);
-
             if (!permitId || !permitType || permitTimers[permitId]) {
-                console.log('Timer not started - invalid data or already running');
                 return;
             }
 
@@ -32,20 +27,15 @@
                     return;
             }
 
-            console.log('Fetch URL:', fetchUrl);
-
             function updateTimer() {
                 fetch(fetchUrl)
                     .then(response => {
-                        console.log('Response status:', response.status, 'for type:', permitType);
                         if (!response.ok) {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
-                        console.log('Response data for', permitType, ':', data);
-
                         if (data.is_active) {
                             // Update text content
                             timerElement.textContent = data.duration;
@@ -53,8 +43,6 @@
                             // Update class untuk styling
                             timerElement.classList.remove('text-gray-500');
                             timerElement.classList.add('text-gray-900', 'font-mono');
-
-                            console.log('Updated', permitType, 'timer to:', data.duration);
 
                             // Update status cell berdasarkan tipe izin
                             const statusCell = document.getElementById(`status-cell-${permitId}`);
@@ -85,8 +73,6 @@
                             if (statusCell) {
                                 statusCell.innerHTML = `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800"><i class="fas fa-check mr-1"></i> Normal</span>`;
                             }
-
-                            console.log('Timer stopped for', permitType, 'permit:', permitId);
                         }
                     })
                     .catch(error => {
@@ -101,28 +87,19 @@
 
             // Set interval untuk update berkala
             permitTimers[permitId] = setInterval(updateTimer, 1000);
-
-            console.log('Timer started for', permitType, 'permit:', permitId);
         }
 
         // Initialize semua timer
         const timerElements = document.querySelectorAll('.timer-value');
-        console.log('Found', timerElements.length, 'timer elements');
-
         timerElements.forEach(element => {
-            console.log('Timer element data:', {
-                id: element.dataset.permitId,
-                type: element.dataset.permitType,
-                text: element.textContent
-            });
             startAndRunTimer(element);
         });
 
-        // Debug: Log semua element dengan data-permit-type
         const allPermitElements = document.querySelectorAll('[data-permit-type]');
-        console.log('All permit elements:', allPermitElements.length);
         allPermitElements.forEach(el => {
-            console.log('Permit element:', el.dataset.permitType, el.dataset.permitId);
+            if (el.classList.contains('timer-value')) {
+                startAndRunTimer(el);
+            }
         });
 
         // Observer untuk element baru

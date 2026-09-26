@@ -3,36 +3,33 @@
 @section('title', 'Konfirmasi Log Aktivitas')
 
 @section('contents')
-    {{-- Mengasumsikan sidebar dan navbar sudah ada dan berfungsi --}}
-    @include('layouts.sidebar-assistant')
-    @include('layouts.navbar', ['user' => $user])
-
-    <main class="ml-64 mt-24 p-8 bg-gray-50 min-h-screen">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen min-w-0">
+        <div class="max-w-6xl mx-auto space-y-6">
         <!-- Header Section with Breadcrumb -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center">
+        <div class="mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                 <div>
-                    <nav class="flex mb-2" aria-label="Breadcrumb">
+                    <nav class="flex mb-1.5" aria-label="Breadcrumb">
                         <ol class="inline-flex items-center space-x-1 md:space-x-3">
                           <li class="inline-flex items-center">
-                            <a href="{{ route('assistant.logactivity') }}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600">
-                              <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
+                            <a href="{{ route('assistant.logactivity') }}" class="inline-flex items-center text-xs sm:text-sm font-medium text-gray-700 hover:text-indigo-600">
+                              <svg class="w-3.5 h-3.5 mr-1.5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path></svg>
                               Log Aktivitas
                             </a>
                           </li>
                           <li aria-current="page">
                             <div class="flex items-center">
-                              <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
-                              <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Konfirmasi</span>
+                              <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path></svg>
+                              <span class="ml-1 text-xs sm:text-sm font-medium text-gray-500 md:ml-2">Konfirmasi</span>
                             </div>
                           </li>
                         </ol>
                     </nav>
-                    <h1 class="text-3xl font-bold text-gray-800">Konfirmasi Log Aktivitas</h1>
-                    <p class="text-gray-600 mt-1">Tinjau, edit, dan berikan persetujuan untuk log aktivitas siswa.</p>
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-800">Konfirmasi Log Aktivitas</h1>
+                    <p class="text-xs sm:text-sm text-gray-600 mt-0.5">Tinjau, edit, dan berikan persetujuan untuk log aktivitas siswa.</p>
                 </div>
                 {{-- Tombol kembali sekarang juga menggunakan tanggal yang benar --}}
-                <a href="{{ route('assistant.logactivity', ['date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d')]) }}" class="bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-4 border border-gray-300 rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                <a href="{{ route('assistant.logactivity', ['date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d')]) }}" class="self-start sm:self-auto bg-white hover:bg-gray-100 text-gray-800 font-semibold py-2 px-3.5 sm:px-4 border border-gray-300 rounded-xl text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2">
                     <i class="fa-solid fa-arrow-left"></i>
                     <span>Kembali</span>
                 </a>
@@ -194,6 +191,7 @@
                 </div>
 
             </div>
+        </div>
         </div>
     </main>
 @endsection

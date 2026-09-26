@@ -3,16 +3,19 @@
 namespace App\Services;
 
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Http\Requests\EditInternRequest;
 use App\Repositories\Interface\DetailProjectRepository;
 use App\Repositories\Interface\InternRepository;
 use App\Repositories\Interface\ProfileRepository;
 use App\Repositories\Interface\UserRepository;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Models\Intern;
 use App\Models\DiscountTime;
 use App\Models\AdjustableAttd;
+use App\Models\DetailSchedule;
+use App\Models\Attendance;
+use App\Models\Schedule;
 
 use function Sentry\captureException;
 
@@ -91,8 +94,9 @@ class InternService
                 "browser" => $data["browser"],
                 "is_active" => $data["account_status"],
                 "is_confirm" => $data["email_confirm"],
-                "is_reset_token" => $data["is_reset_device_token"],
-                "is_gps_activate" => $data["is_gps_active"]
+                "is_reset_token" => $data["is_reset_device_token"] ?? false,
+                "is_gps_activate" => isset($data["is_gps_active"]) ? (int) $data["is_gps_active"] : 1,
+                "is_gps_support" => isset($data["is_gps_active"]) ? (int) $data["is_gps_active"] : 1
             ];
 
 
@@ -124,6 +128,7 @@ class InternService
             $internData = [
                 "school_id" => $data["school_id"],
                 "division_id" => $data["division_id"],
+                "brand_id" => $data["brand_id"] ?? null,
                 "start_date" => $data["in_date"],
                 "end_date" => $data["out_date"],
                 "nim" => $data["nim"]
@@ -133,11 +138,9 @@ class InternService
             $internId = $userResult->intern->id;
 
 
-            $this->internRepository->update($internId, $internData);
+            $intern = $this->internRepository->update($internId, $internData);
 
             $nomorTujuan = $data["parent_whatsapp_number"] ?? null;
-
-            $intern = $this->internRepository->getById($internId);
 
             if ($intern) {
                 if (!empty($nomorTujuan)) {
@@ -198,8 +201,8 @@ class InternService
             return new ActionResult(true, "success update intern data", $data);
         } catch (\Throwable $th) {
             DB::rollBack();
+            Log::error('updateIntern error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            LogConsole::info($th);
             return new ActionResult(false, "failed to update data intern", null);
         }
     }
@@ -213,42 +216,37 @@ class InternService
                 // Hapus detail project
                 $intern->detailProject()->delete();
 
-                // Hapus jadwal dan detail terkait
-                $schedules = $intern->schedules;
-                foreach ($schedules as $schedule) {
-                    // Hapus data terkait DiscountTime
-                    DiscountTime::where('schedule_id', $schedule->id)->delete();
+                // Ambil semua ID schedule
+                $scheduleIds = $intern->schedules()->pluck('id')->toArray();
 
-                    $details = $schedule->detailSchedules;
-                    foreach ($details as $detail) {
-                        // Hapus data terkait AdjustableAttd
-                        AdjustableAttd::where('detail_schedule_id', $detail->id)->delete();
+                if (!empty($scheduleIds)) {
+                    // Ambil semua ID detail_schedule & attendance_id terkait
+                    $detailSchedules = DetailSchedule::whereIn('schedule_id', $scheduleIds)->get(['id', 'attendance_id']);
+                    $detailIds = $detailSchedules->pluck('id')->toArray();
+                    $attendanceIds = $detailSchedules->pluck('attendance_id')->filter()->unique()->toArray();
 
-                        // Hapus detail schedule
-                        $detail->delete();
+                    if (!empty($detailIds)) {
+                        // Bulk delete AdjustableAttd
+                        AdjustableAttd::whereIn('detail_schedule_id', $detailIds)->delete();
+
+                        // Bulk delete DetailSchedule
+                        DetailSchedule::whereIn('id', $detailIds)->delete();
                     }
-                }
 
-                // Hapus data kehadiran yang terkait dengan detail schedule
-                foreach ($schedules as $schedule) {
-                    $details = $schedule->detailSchedules;
-                    foreach ($details as $detail) {
-                        if ($detail->attendance) {
-                            $detail->attendance->delete();
-                        }
+                    if (!empty($attendanceIds)) {
+                        // Bulk delete Attendance
+                        Attendance::whereIn('id', $attendanceIds)->delete();
                     }
+
+                    // Bulk delete DiscountTime & Schedule
+                    DiscountTime::whereIn('schedule_id', $scheduleIds)->delete();
+                    Schedule::whereIn('id', $scheduleIds)->delete();
                 }
 
-                // Hapus jadwal
-                foreach ($schedules as $schedule) {
-                    $schedule->delete();
-                }
-
-                // Hapus data intern
+                // Hapus data user & profile terkait
+                $user = $intern->user;
                 $intern->delete();
 
-                // Hapus data user terkait
-                $user = $intern->user;
                 if ($user) {
                     if ($user->profile) {
                         $user->profile->delete();
@@ -259,7 +257,6 @@ class InternService
 
             return redirect()->back()->with('success', 'Data anggota sukses dihapus!');
         } catch (\Exception $e) {
-            // Log error untuk debugging
             return redirect()->back()->with('error', 'Data anggota gagal dihapus! ' . $e->getMessage());
         }
     }

@@ -57,21 +57,41 @@ class AuthController extends Controller {
         return view("register")->with($data);
     }
 
-    public function loginView(): View {
+    public function loginView(): View|\Illuminate\Http\RedirectResponse {
+        if (Auth::check()) {
+            $roleId = (int) Auth::user()->role_id;
+            return match ($roleId) {
+                7, 1 => redirect()->route('admin.home'),
+                3 => redirect()->route('user.home'),
+                5 => redirect()->route('outsider.dashboard'),
+                6 => redirect()->route('assistant.dashboard'),
+                default => view("login"),
+            };
+        }
+
         return view("login");
     }
 
-   public function loginAction(LoginRequest $request) {
+    public function loginAction(LoginRequest $request) {
         $reqData = $request->validated();
 
         $deviceToken = $request->cookie('device_token');
         $user = $this->userService->login($reqData, $deviceToken);
 
         if ($user->isSuccess()) {
+            $request->session()->regenerate();
             $data = $user->getData();
 
-            switch ($data["role_id"]) {
-                case 1:
+            // Catat log login
+            \App\Helper\ActivityLogger::log(
+                'LOGIN',
+                'Auth',
+                "Pengguna {$data['full_name']} berhasil masuk ke sistem."
+            );
+
+            switch ((int) $data["role_id"]) {
+                case 7: // Super Admin
+                case 1: // Admin
                     if ($data["cookie"]) {
                         return redirect()->route('admin.home')
                             ->with('success', 'Login berhasil, Selamat Datang ' . $data["full_name"])
@@ -113,15 +133,33 @@ class AuthController extends Controller {
                     return redirect()->route('login.view');
             }
         } else {
+            \App\Helper\ActivityLogger::log(
+                'LOGIN_FAILED',
+                'Auth',
+                "Percobaan login gagal untuk akun: " . ($reqData['email'] ?? 'Unknown')
+            );
+
             return redirect()->route('login.view')
                 ->withErrors(['login_failed' => $user->getMessage()]);
         }
     }
 
+    public function logoutAction(Request $request) {
+        $currentUser = Auth::user();
+        if ($currentUser) {
+            \App\Helper\ActivityLogger::log(
+                'LOGOUT',
+                'Auth',
+                "Pengguna " . ($currentUser->profile?->full_name ?? $currentUser->username ?? 'User') . " berhasil keluar dari sistem.",
+                null,
+                $currentUser
+            );
+        }
 
-
-    public function logoutAction() {
         $this->userService->logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return redirect()->route("login.view")->with('success', 'Anda berhasil keluar halaman.');
     }

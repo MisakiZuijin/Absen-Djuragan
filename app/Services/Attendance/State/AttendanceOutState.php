@@ -56,32 +56,39 @@ class AttendanceOutState implements AttendanceState
                 return new ActionResult(false, "Data shift tidak ditemukan");
             }
 
-            // ✅ Validasi data lokasi sebelum dipakai
+            $isWfhSchedule = $detailSchedule && strtolower($detailSchedule->work_type ?? '') === 'wfh';
+            $user = $this->userRepository->findById($data->getUserId()) ?? \Illuminate\Support\Facades\Auth::user();
+            $isGpsRequired = ($user && $user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
+
+            // Validasi data lokasi jika GPS diwajibkan
             $latitude = $data->getLatitude();
             $longitude = $data->getLongitude();
 
-            if ($latitude === null || $longitude === null) {
-                return new ActionResult(
-                    false,
-                    "Data lokasi tidak tersedia. Pastikan Anda mengizinkan akses GPS/lokasi pada perangkat Anda."
+            if ($isGpsRequired) {
+                if ($latitude === null || $longitude === null) {
+                    return new ActionResult(
+                        false,
+                        "Data lokasi tidak tersedia. Pastikan Anda mengizinkan akses GPS/lokasi pada perangkat Anda."
+                    );
+                }
+
+                if (!is_numeric($latitude) || !is_numeric($longitude)) {
+                    return new ActionResult(
+                        false,
+                        "Format data lokasi tidak valid."
+                    );
+                }
+
+                // Location validation
+                $mapsTrack = $this->locationService->checkIsInOfficeArea(
+                    (float) $latitude,
+                    (float) $longitude,
+                    true
                 );
-            }
 
-            if (!is_numeric($latitude) || !is_numeric($longitude)) {
-                return new ActionResult(
-                    false,
-                    "Format data lokasi tidak valid."
-                );
-            }
-
-            // Location validation
-            $mapsTrack = $this->locationService->checkIsInOfficeArea(
-                (float) $latitude,
-                (float) $longitude
-            );
-
-            if (!$mapsTrack->isInArea) {
-                return new ActionResult(false, "Anda tidak berada di area kantor");
+                if (!$mapsTrack->isInArea) {
+                    return new ActionResult(false, "Anda tidak berada di area kantor");
+                }
             }
 
             // Time calculations
@@ -116,6 +123,27 @@ class AttendanceOutState implements AttendanceState
 
             // Update attendance record
             $updatedAttendance = $this->attendanceRepository->update($data->getAttendanceId(), $attData);
+
+            // Tutup otomatis izin (mis. izin keluar) yang masih terbuka,
+            // karena pemagang tidak lagi punya tombol "Kembali dari Izin"
+            // untuk tipe leave.
+            $openPermits = \App\Models\PermitLog::where('attendance_id', $data->getAttendanceId())
+                ->whereNull('end_time')
+                ->get();
+
+            foreach ($openPermits as $permit) {
+                $permitEnd = Carbon::now();
+                $permit->update([
+                    'end_time' => $permitEnd->format('Y-m-d H:i:s'),
+                    'duration_in_minutes' => (int) ceil(Carbon::parse($permit->start_time)->diffInSeconds($permitEnd) / 60),
+                ]);
+            }
+
+            \App\Helper\ActivityLogger::log(
+                'UPDATE',
+                'Presensi',
+                'Pemagang ' . (auth()->user()?->profile?->full_name ?? auth()->user()?->username ?? 'User') . ' melakukan Absen Pulang.'
+            );
 
             return new ActionResult(
                 true,

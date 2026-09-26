@@ -6,7 +6,9 @@
 @include('layouts.sidebar-pengaturan')
 
 <!-- Main Content -->
-<main class="ml-[32rem] mt-24 p-6">
+<main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
+    <div class="w-full max-w-full min-w-0 space-y-6">
+
     <!-- Header & Action Button -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
@@ -116,7 +118,7 @@
                         <input type="checkbox"
                             class="project-status-checkbox w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 transition cursor-pointer"
                             data-id="{{ $project->id }}"
-                            onchange="updateProjectStatus({{ $project->id }}, this.checked)"
+                            onchange="updateProjectStatus(this.dataset.id, this.checked)"
                             {{ $project->status == 'done' ? 'checked' : '' }}>
                         @if ($project->status == 'done')
                         <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
@@ -130,24 +132,26 @@
                     </label>
 
                     <!-- Actions (Edit & Delete) -->
-                    <div class="flex items-center gap-1">
+                    <div class="flex items-center gap-1.5">
                         <button type="button"
-                            class="w-7 h-7 rounded-lg text-gray-500 hover:text-blue-600 hover:bg-blue-50 flex items-center justify-center transition"
+                            class="w-7 h-7 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center transition shadow-xs"
                             title="Edit Project"
                             data-project="{{ json_encode([
                                         'id' => $project->id,
                                         'name_project_id' => $project->name_project_id,
                                         'team' => $project->team,
                                         'description' => $project->description,
+                                        'division_id' => $project->division_id,
                                         'member_ids' => $project->members->pluck('id')->toArray()
                                     ]) }}"
                             onclick="editProject(event, JSON.parse(this.dataset.project))">
                             <i class="fa-solid fa-pen-to-square text-xs"></i>
                         </button>
                         <button type="button"
-                            class="w-7 h-7 rounded-lg text-gray-500 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition"
+                            class="w-7 h-7 rounded-lg bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center transition shadow-xs"
                             title="Hapus Project"
-                            onclick="openDeleteModal({{ $project->id }}, event)">
+                            data-id="{{ $project->id }}"
+                            onclick="openDeleteModal(this.dataset.id, event)">
                             <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
                     </div>
@@ -155,7 +159,7 @@
 
                 <!-- Team / Divisi Badge -->
                 <div class="mb-2">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs">
                         <i class="fa-solid fa-users text-[10px]"></i>
                         {{ $project->team }}
                     </span>
@@ -217,12 +221,12 @@
     <div id="noResultsState" class="hidden py-12 text-center text-gray-400 bg-white rounded-2xl border border-gray-200 mb-6">
         <i class="fa-solid fa-magnifying-glass text-3xl mb-3 block text-gray-300"></i>
         <p class="text-sm font-semibold text-gray-600">Tidak ada project yang sesuai dengan pencarian / filter.</p>
-        <button type="button" onclick="resetSearchAndFilter()" class="mt-3 px-4 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-semibold hover:bg-blue-100 transition">
+        <button type="button" onclick="resetSearchAndFilter()" class="mt-3 px-4 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold hover:bg-blue-700 shadow-xs transition">
             Reset Pencarian
         </button>
     </div>
 
-    <!-- Pagination (Dibatasi 5 item per halaman) -->
+    <!-- Pagination (Dibatasi 6 item per halaman) -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div class="text-xs text-gray-500" id="pagination-info">
             Menampilkan <strong class="text-gray-800" id="page-start">1</strong> - <strong class="text-gray-800" id="page-end">5</strong> dari <strong class="text-gray-800" id="page-total">0</strong> project
@@ -230,17 +234,19 @@
 
         <div class="flex items-center space-x-1.5">
             <button id="prev-page" onclick="changePage('prev')"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1">
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed shadow-xs transition flex items-center gap-1">
                 <i class="fa-solid fa-chevron-left text-[10px]"></i> Sebelumnya
             </button>
 
             <div id="page-numbers" class="flex items-center space-x-1"></div>
 
             <button id="next-page" onclick="changePage('next')"
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition flex items-center gap-1">
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-gray-800 text-white hover:bg-gray-900 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed shadow-xs transition flex items-center gap-1">
                 Selanjutnya <i class="fa-solid fa-chevron-right text-[10px]"></i>
             </button>
         </div>
+    </div>
+
     </div>
 </main>
 
@@ -268,6 +274,27 @@
             <input type="hidden" id="project-id" name="project_id" value="">
 
             <div class="p-6 space-y-5 flex-1">
+                <!-- Field 0: Pilih Divisi (Dropdown Utama Dependent) -->
+                <div class="bg-blue-50/70 p-3.5 rounded-xl border border-blue-200">
+                    <label for="project-division" class="block text-xs font-bold text-blue-900 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Pilih Divisi Terlebih Dahulu <span class="text-red-500">*</span></span>
+                        <span id="divisionLoadingIndicator" class="hidden text-[11px] font-semibold text-blue-700 flex items-center gap-1">
+                            <i class="fa-solid fa-spinner fa-spin"></i> Memuat data divisi...
+                        </span>
+                    </label>
+                    <select id="project-division" name="division_id" onchange="onDivisionSelected(this.value)"
+                        class="w-full text-xs p-3 bg-white border border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-gray-800" required>
+                        <option value="">-- Pilih Divisi Terlebih Dahulu --</option>
+                        @foreach ($divisions as $div)
+                        <option value="{{ $div->id }}">{{ $div->name }}</option>
+                        @endforeach
+                    </select>
+                    <p class="text-[10px] text-blue-700 mt-1 flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Judul project dan daftar anggota pemagang akan disaring otomatis sesuai divisi yang dipilih.
+                    </p>
+                </div>
+
                 <!-- Field 1: Nama Project -->
                 <div>
                     <label for="project-name" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -348,7 +375,8 @@
                         @foreach ($intern as $int)
                         <label class="member-item flex items-center justify-between p-2 rounded-lg hover:bg-white cursor-pointer transition"
                             data-name="{{ strtolower($int->user?->profile?->full_name ?? '') }}"
-                            data-school="{{ strtolower($int->school?->name ?? '') }}">
+                            data-school="{{ strtolower($int->school?->name ?? '') }}"
+                            data-division-id="{{ $int->division_id }}">
                             <div class="flex items-center gap-2.5 min-w-0">
                                 <input type="checkbox" name="members[]" value="{{ $int->id }}"
                                     class="member-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
@@ -388,11 +416,11 @@
             <!-- Modal Footer -->
             <div class="px-6 py-3.5 bg-gray-50 border-t border-gray-200 flex justify-end gap-2.5">
                 <button type="button" onclick="closeProjectModal()"
-                    class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-100 transition">
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl text-xs font-semibold shadow-xs transition">
                     Batal
                 </button>
                 <button type="submit" id="btnSubmitProject"
-                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
+                    class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md hover:shadow transition flex items-center gap-1.5">
                     <i class="fa-solid fa-paper-plane text-xs"></i>
                     <span id="btnSubmitProjectText">Simpan Project</span>
                 </button>
@@ -403,29 +431,45 @@
 
 <!-- Modal Sub Tambah Nama Project Baru -->
 <div id="modalNameProject" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-fadeIn border border-gray-100">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fadeIn border border-gray-100">
         <div class="flex justify-between items-center px-6 py-4 border-b bg-gray-900 text-white">
             <h3 class="text-sm font-bold flex items-center gap-2">
                 <i class="fa-solid fa-plus text-blue-400"></i>
-                Tambah Nama Project Baru
+                Tambah Judul Project Baru
             </h3>
             <button type="button" onclick="closeNameProjectModal()" class="text-gray-300 hover:text-white text-xl font-bold leading-none">&times;</button>
         </div>
-        <form action="{{ route('projects.nameProject') }}" method="POST" class="p-6">
+        <form id="formAddNameProject" action="{{ route('projects.nameProject') }}" method="POST" class="p-6" onsubmit="submitNameProjectForm(event)">
             @csrf
+            <input type="hidden" id="name_project_prefix" name="prefix" value="">
+            <input type="hidden" id="full_project_name" name="new_project_name" value="">
+
             <div class="mb-5">
-                <label for="new_project_name" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+                <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
                     Judul / Nama Project Baru <span class="text-red-500">*</span>
                 </label>
-                <input type="text" id="new_project_name" name="new_project_name" placeholder="Contoh: Project Programmer - API Resource"
-                    class="w-full text-xs p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+
+                <!-- Input with Locked Prefix -->
+                <div class="flex rounded-xl border border-gray-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden bg-slate-50">
+                    <span id="display_prefix_badge" class="px-3 py-2.5 bg-slate-200/90 text-slate-800 text-xs font-bold border-r border-gray-300 flex items-center shrink-0 select-none whitespace-nowrap">
+                        Project Divisi - 
+                    </span>
+                    <input type="text" id="input_project_title_suffix" required
+                        placeholder="Ketik judul spesifik project..."
+                        class="w-full text-xs p-2.5 bg-white text-gray-800 outline-none font-medium">
+                </div>
+                <p class="text-[11px] text-gray-500 mt-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-lock text-slate-400 text-[10px]"></i>
+                    Prefix <span class="font-bold text-slate-700" id="display_prefix_note">"Project [Divisi] - "</span> terkunci otomatis mengikuti divisi yang dipilih.
+                </p>
             </div>
             <div class="flex justify-end gap-2.5">
-                <button type="button" onclick="closeNameProjectModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-100 transition">
+                <button type="button" onclick="closeNameProjectModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl text-xs font-semibold shadow-xs transition">
                     Batal
                 </button>
-                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                    Tambah
+                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>Tambah Judul</span>
                 </button>
             </div>
         </form>
@@ -446,10 +490,10 @@
             @csrf
             @method('DELETE')
             <button type="button" onclick="closeDeleteModal()"
-                class="px-5 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-100 transition">
+                class="px-5 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl text-xs font-semibold shadow-xs transition">
                 Batal
             </button>
-            <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+            <button type="submit" class="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition">
                 Ya, Hapus
             </button>
         </form>
@@ -578,7 +622,7 @@
                 btn.innerText = i;
                 btn.className = (i === currentPage) ?
                     'w-8 h-8 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs' :
-                    'w-8 h-8 rounded-lg text-xs font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-100 transition';
+                    'w-8 h-8 rounded-lg text-xs font-bold text-gray-800 bg-gray-200 hover:bg-gray-300 shadow-xs transition';
                 btn.onclick = () => {
                     currentPage = i;
                     renderPagination();
@@ -599,6 +643,88 @@
     }
 
     // Modal Form Handlers
+    function onDivisionSelected(divisionId, targetProjectId = null, targetMemberIds = []) {
+        const teamNameInput = document.getElementById('team-name');
+        const projectNameSelect = document.getElementById('project-name');
+        const membersContainer = document.getElementById('membersListContainer');
+        const indicator = document.getElementById('divisionLoadingIndicator');
+
+        if (!divisionId) {
+            projectNameSelect.innerHTML = '<option value="" disabled selected>-- Pilih nama project --</option>';
+            membersContainer.innerHTML = '<p class="text-xs text-gray-400 p-3 text-center">Silakan pilih divisi di atas terlebih dahulu.</p>';
+            return;
+        }
+
+        if (indicator) indicator.classList.remove('hidden');
+
+        fetch("{{ url('admin/setting/projects/division-data') }}/" + divisionId)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response error');
+                return response.json();
+            })
+            .then(data => {
+                if (indicator) indicator.classList.add('hidden');
+
+                if (data.success) {
+                    // Auto-fill team name if creating new or if matches division
+                    if (data.division && (!teamNameInput.value || teamNameInput.dataset.autofilled === 'true')) {
+                        teamNameInput.value = data.division.name;
+                        teamNameInput.dataset.autofilled = 'true';
+                    }
+
+                    // Populate Master Name Projects
+                    projectNameSelect.innerHTML = '<option value="" disabled selected>-- Pilih nama project --</option>';
+                    if (data.name_projects && data.name_projects.length > 0) {
+                        data.name_projects.forEach(item => {
+                            const opt = document.createElement('option');
+                            opt.value = item.id;
+                            opt.textContent = item.name;
+                            if (targetProjectId && String(targetProjectId) === String(item.id)) {
+                                opt.selected = true;
+                            }
+                            projectNameSelect.appendChild(opt);
+                        });
+                    }
+
+                    // Populate Members Checkboxes
+                    membersContainer.innerHTML = '';
+                    if (data.interns && data.interns.length > 0) {
+                        data.interns.forEach(intern => {
+                            const isChecked = targetMemberIds.includes(parseInt(intern.id)) ? 'checked' : '';
+                            const memberHtml = `
+                                <label class="member-item flex items-center justify-between p-2 rounded-lg hover:bg-white cursor-pointer transition"
+                                    data-name="${(intern.name || '').toLowerCase()}"
+                                    data-school="${(intern.school || '').toLowerCase()}">
+                                    <div class="flex items-center gap-2.5 min-w-0">
+                                        <input type="checkbox" name="members[]" value="${intern.id}" ${isChecked}
+                                            class="member-checkbox w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                                        <div class="min-w-0">
+                                            <span class="text-xs font-bold text-gray-800 block truncate">
+                                                ${intern.name}
+                                            </span>
+                                            <span class="text-[11px] text-gray-500 block truncate">
+                                                ${intern.school}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span class="text-[10px] px-2 py-0.5 rounded bg-blue-50 text-blue-700 font-semibold border border-blue-100 shrink-0 ml-2">
+                                        ${intern.division_name || '-'}
+                                    </span>
+                                </label>
+                            `;
+                            membersContainer.insertAdjacentHTML('beforeend', memberHtml);
+                        });
+                    } else {
+                        membersContainer.innerHTML = '<p class="text-xs text-amber-700 font-medium p-3 text-center bg-amber-50 rounded-lg border border-amber-200">Tidak ada pemagang aktif pada divisi ini saat ini.</p>';
+                    }
+                }
+            })
+            .catch(err => {
+                if (indicator) indicator.classList.add('hidden');
+                console.error('Error fetching division data:', err);
+            });
+    }
+
     function openAddProjectModal() {
         const form = document.getElementById('projectForm');
         form.reset();
@@ -609,8 +735,13 @@
         document.getElementById('btnSubmitProjectText').innerText = 'Simpan Project';
         document.getElementById('modalIcon').className = 'fa-solid fa-folder-plus text-sm';
 
-        // Uncheck all member checkboxes
-        document.querySelectorAll('.member-checkbox').forEach(cb => cb.checked = false);
+        document.getElementById('project-division').value = '';
+        const teamNameInput = document.getElementById('team-name');
+        teamNameInput.value = '';
+        teamNameInput.dataset.autofilled = 'true';
+
+        document.getElementById('project-name').innerHTML = '<option value="" disabled selected>-- Pilih nama project --</option>';
+        document.getElementById('membersListContainer').innerHTML = '<p class="text-xs text-gray-400 p-3 text-center">Silakan pilih divisi di atas terlebih dahulu.</p>';
 
         document.getElementById('projectModal').classList.remove('hidden');
     }
@@ -627,18 +758,36 @@
         document.getElementById('btnSubmitProjectText').innerText = 'Perbarui Project';
         document.getElementById('modalIcon').className = 'fa-solid fa-pen-to-square text-sm';
 
-        // Fill inputs
-        if (project.name_project_id) {
-            document.getElementById('project-name').value = project.name_project_id;
-        }
-        document.getElementById('team-name').value = project.team || '';
+        const teamNameInput = document.getElementById('team-name');
+        teamNameInput.value = project.team || '';
+        teamNameInput.dataset.autofilled = 'false';
         document.getElementById('description').value = project.description || '';
 
-        // Check members
-        const memberIds = project.member_ids || [];
-        document.querySelectorAll('.member-checkbox').forEach(cb => {
-            cb.checked = memberIds.includes(parseInt(cb.value));
-        });
+        // Deteksi divisi jika belum ter-set
+        let divisionId = project.division_id;
+        if (!divisionId && project.team) {
+            const divisionSelect = document.getElementById('project-division');
+            for (let i = 0; i < divisionSelect.options.length; i++) {
+                if (divisionSelect.options[i].text.toLowerCase() === project.team.toLowerCase()) {
+                    divisionId = divisionSelect.options[i].value;
+                    break;
+                }
+            }
+        }
+
+        if (divisionId) {
+            document.getElementById('project-division').value = divisionId;
+            onDivisionSelected(divisionId, project.name_project_id, project.member_ids || []);
+        } else {
+            // Fallback: isi nama project langsung jika divisi tidak spesifik
+            if (project.name_project_id) {
+                document.getElementById('project-name').value = project.name_project_id;
+            }
+            const memberIds = project.member_ids || [];
+            document.querySelectorAll('.member-checkbox').forEach(cb => {
+                cb.checked = memberIds.includes(parseInt(cb.value));
+            });
+        }
 
         document.getElementById('projectModal').classList.remove('hidden');
     }
@@ -647,9 +796,43 @@
         document.getElementById('projectModal').classList.add('hidden');
     }
 
-    // Sub-Modal Name Project
+    // Sub-Modal Name Project with Locked Prefix
     function openNameProjectModal() {
+        const divisionSelect = document.getElementById('project-division');
+        const selectedOption = divisionSelect.options[divisionSelect.selectedIndex];
+        const divisionId = divisionSelect.value;
+
+        if (!divisionId || !selectedOption || selectedOption.value === "") {
+            alert('Silakan pilih Divisi terlebih dahulu sebelum menambah nama project baru!');
+            divisionSelect.focus();
+            return;
+        }
+
+        const divisionName = selectedOption.text.trim();
+        const prefixText = `Project ${divisionName} - `;
+
+        document.getElementById('name_project_prefix').value = prefixText;
+        document.getElementById('display_prefix_badge').innerText = prefixText;
+        document.getElementById('display_prefix_note').innerText = `"${prefixText}"`;
+        document.getElementById('input_project_title_suffix').value = '';
+
         document.getElementById('modalNameProject').classList.remove('hidden');
+        setTimeout(() => {
+            document.getElementById('input_project_title_suffix').focus();
+        }, 100);
+    }
+
+    function submitNameProjectForm(event) {
+        const prefix = document.getElementById('name_project_prefix').value || '';
+        const suffix = document.getElementById('input_project_title_suffix').value.trim();
+
+        if (!suffix) {
+            event.preventDefault();
+            alert('Silakan ketik judul project!');
+            return;
+        }
+
+        document.getElementById('full_project_name').value = prefix + suffix;
     }
 
     function closeNameProjectModal() {

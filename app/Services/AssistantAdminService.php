@@ -120,11 +120,26 @@ class AssistantAdminService
         ])->where('is_raised', true)->get();
     }
 
-    public function confirmHandRaise(int $id)
+    public function confirmHandRaise(int $id, ?string $adminResponse = null)
     {
-        $handRaise = HandRaise::findOrFail($id);
-        $handRaise->is_raised = false;
-        $handRaise->save();
+        $handRaise = HandRaise::with('user.profile')->findOrFail($id);
+        $handRaise->update([
+            'is_raised' => false,
+            'status' => 'done',
+            'resolved_at' => now(),
+            'resolved_by' => auth()->id(),
+            'admin_response' => $adminResponse ?? $handRaise->admin_response,
+        ]);
+
+        $internName = $handRaise->user?->profile?->full_name ?? $handRaise->user?->username ?? 'Pemagang';
+        $handlerName = auth()->user()?->profile?->full_name ?? auth()->user()?->name ?? auth()->user()?->username ?? 'Asisten Admin';
+        \App\Helper\ActivityLogger::log(
+            'RESOLVE',
+            'Raise Hand',
+            "{$handlerName} menyelesaikan pertanyaan/kendala Raise Hand pemagang {$internName}",
+            ['hand_raise_id' => $id, 'action' => 'confirm_hand_raise']
+        );
+
         return $handRaise;
     }
 
@@ -179,11 +194,7 @@ class AssistantAdminService
 
     public function updateLogActivityStatus(int $id, string $activity, string $action)
     {
-        $log = LogActivity::with([
-            'detailSchedule.schedule.intern.user.profile',
-            'detailSchedule.schedule.intern.school',
-            'status'
-        ])->findOrFail($id);
+        $log = LogActivity::findOrFail($id);
 
         $log->activity = $activity;
 

@@ -11,15 +11,14 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('profiles', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("user_id")->nullable(false);
-            $table->string("NIP")->nullable(true);
-            $table->string("full_name",  100)->nullable(false);
-            $table->string("address", 100)->nullable(true);
-            $table->string("phone", 16)->nullable(false);
-            $table->date("date_of_birth")->nullable(false);
-            $table->string("birth_place", 20)->nullable(false);
-
-            $table->foreign("user_id")->references("id")->on("users");
+            $table->foreignId("user_id")->constrained("users");
+            $table->string("NIP")->nullable();
+            $table->string("full_name", 100);
+            $table->string("address", 100)->nullable();
+            $table->string("phone", 16);
+            $table->date("date_of_birth");
+            $table->string("birth_place", 20);
+            $table->string("gender", 20)->nullable();
         });
     }
 

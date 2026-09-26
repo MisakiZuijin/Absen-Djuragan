@@ -54,7 +54,7 @@ class AdminPermitKeperluanController extends Controller
         if (!empty($search)) {
             $query->whereHas('schedule.intern', function ($internQuery) use ($search) {
                 $internQuery->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%")
+                    $userQuery->where('username', 'like', "%{$search}%")
                         ->orWhereHas('profile', function ($profileQuery) use ($search) {
                             $profileQuery->where('full_name', 'like', "%{$search}%");
                         });
@@ -95,40 +95,21 @@ class AdminPermitKeperluanController extends Controller
                 });
         }
 
-        // Calculate statistics
-        $today = Carbon::today()->toDateString();
-        $totalIzin = DetailSchedule::where('attd_status_id', 3)
-            ->where(function ($q) {
-                $q->whereHas('permitReason', function ($pr) {
-                    $pr->whereNotIn('permit_category_id', [1, 2])
-                        ->where('description', 'not like', '%sakit%');
-                })->orDoesntHave('permitReason');
-            })->count();
+        // Calculate statistics secara efisien dalam 1 query aggregate
+        $today = Carbon::today('Asia/Jakarta')->toDateString();
+        $stats = DetailSchedule::leftJoin('permit_reasons', 'detail_schedules.permit_reason_id', '=', 'permit_reasons.id')
+            ->selectRaw("
+                COUNT(CASE WHEN detail_schedules.attd_status_id = 3 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')) THEN 1 END) as total_izin,
+                COUNT(CASE WHEN DATE(detail_schedules.date) = ? AND (detail_schedules.attd_status_id = 5 OR (detail_schedules.attd_status_id = 3 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')))) THEN 1 END) as today_count,
+                COUNT(CASE WHEN detail_schedules.attd_status_id = 3 AND detail_schedules.isChangeSchedule = 2 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')) THEN 1 END) as ganti_jam_count,
+                COUNT(CASE WHEN detail_schedules.attd_status_id = 5 THEN 1 END) as alpha_count
+            ", [$today])
+            ->first();
 
-        $todayCount = DetailSchedule::whereDate('date', $today)
-            ->where(function ($q) {
-                $q->where('attd_status_id', 5)
-                    ->orWhere(function ($sub) {
-                        $sub->where('attd_status_id', 3)
-                            ->where(function ($notSick) {
-                                $notSick->whereHas('permitReason', function ($pr) {
-                                    $pr->whereNotIn('permit_category_id', [1, 2])
-                                        ->where('description', 'not like', '%sakit%');
-                                })->orDoesntHave('permitReason');
-                            });
-                    });
-            })->count();
-
-        $gantiJamCount = DetailSchedule::where('attd_status_id', 3)
-            ->where('isChangeSchedule', 2)
-            ->where(function ($q) {
-                $q->whereHas('permitReason', function ($pr) {
-                    $pr->whereNotIn('permit_category_id', [1, 2])
-                        ->where('description', 'not like', '%sakit%');
-                })->orDoesntHave('permitReason');
-            })->count();
-
-        $alphaCount = DetailSchedule::where('attd_status_id', 5)->count();
+        $totalIzin = (int) ($stats->total_izin ?? 0);
+        $todayCount = (int) ($stats->today_count ?? 0);
+        $gantiJamCount = (int) ($stats->ganti_jam_count ?? 0);
+        $alphaCount = (int) ($stats->alpha_count ?? 0);
 
         $permits = $query->orderBy('date', 'desc')
             ->orderBy('id', 'desc')
@@ -154,12 +135,20 @@ class AdminPermitKeperluanController extends Controller
      */
     public function approveGantiJam(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 2, // Wajib Ganti Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log(
+            'APPROVE',
+            'Izin & Cuti',
+            "Admin menyetujui Izin Keperluan pemagang {$internName} sebagai Wajib Ganti Jam",
+            ['detail_schedule_id' => $id]
+        );
 
         return redirect()->back()->with('success', 'Izin Keperluan disetujui dengan status: Wajib Ganti Jam.');
     }
@@ -169,12 +158,20 @@ class AdminPermitKeperluanController extends Controller
      */
     public function approveLunas(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 1, // Bebas Ganti Jam (Lunas)
             'is_change_schedule_approved' => 1,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log(
+            'APPROVE',
+            'Izin & Cuti',
+            "Admin memberikan dispensasi Bebas Ganti Jam (Lunas) pada Izin Keperluan pemagang {$internName}",
+            ['detail_schedule_id' => $id]
+        );
 
         return redirect()->back()->with('success', 'Dispensasi berhasil: Izin diberikan Bebas Ganti Jam (Lunas).');
     }
@@ -184,12 +181,20 @@ class AdminPermitKeperluanController extends Controller
      */
     public function setAlpha(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 5, // Tidak Hadir / Alpha
             'isChangeSchedule' => 2, // Wajib Ganti Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log(
+            'REJECT',
+            'Izin & Cuti',
+            "Admin menetapkan status Alpha (Tidak Hadir) untuk pemagang {$internName}",
+            ['detail_schedule_id' => $id]
+        );
 
         return redirect()->back()->with('success', 'Status ditetapkan sebagai Alpha (Tidak Hadir). Otomatis masuk hutang jam kerja penuh.');
     }
@@ -204,6 +209,8 @@ class AdminPermitKeperluanController extends Controller
             'proof_url' => 'required|url|max:500',
             'jam_option' => 'required|in:1,2',
             'status_id' => 'nullable|in:3,5',
+        ], [
+            'proof_url.required' => 'Link Google Drive bukti keperluan wajib diisi.',
         ]);
 
         $detailSchedule = DetailSchedule::findOrFail($id);

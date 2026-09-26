@@ -14,6 +14,7 @@ class HandRaise extends Model
         'presentation_mode',
         'meet_url',
         'presentation_date',
+        'scheduled_time',
         'status',
         'notes',
         'performance_rating',
@@ -31,6 +32,16 @@ class HandRaise extends Model
         'resolved_at' => 'datetime',
         'performance_rating' => 'float',
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('navbar_raise_hand_count');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('navbar_raise_hand_count');
+        });
+    }
 
     public function user()
     {
@@ -57,36 +68,54 @@ class HandRaise extends Model
             return null;
         }
 
-        // 1. Jika ada presentation_date yang bukan hari ini, coba cari shift pada tanggal presentasi tersebut
-        if ($this->presentation_date && !$this->presentation_date->isToday()) {
-            $pDateShift = DetailSchedule::whereHas('schedule', function ($q) use ($intern) {
-                $q->where('intern_id', $intern->id);
-            })->whereDate('date', $this->presentation_date)->with('shift')->first()?->shift;
-
-            if ($pDateShift) {
-                return $pDateShift;
-            }
-        }
-
-        // 2. Shift dari jadwal hari ini (todayDetailSchedule)
+        // 1. Shift dari jadwal hari ini (todayDetailSchedule)
         if ($intern->relationLoaded('todayDetailSchedule') && $intern->todayDetailSchedule?->shift) {
             return $intern->todayDetailSchedule->shift;
         }
 
-        // 3. Shift master langsung pada intern
+        // 2. Shift master langsung pada intern
         if ($intern->relationLoaded('shift') && $intern->shift) {
             return $intern->shift;
         }
 
-        // 4. Shift dari master schedule intern
+        // 3. Shift dari master schedule intern
         if ($intern->relationLoaded('schedules') && $intern->schedules->first()?->shift) {
             return $intern->schedules->first()->shift;
         }
 
-        // Fallback jika relasi belum di-eager-load
-        return $intern->todayDetailSchedule?->shift
-            ?? $intern->shift
-            ?? $intern->schedules()->with('shift')->first()?->shift;
+        // 4. Jika ada presentation_date yang bukan hari ini, cari di schedules yang sudah di-load
+        if ($this->presentation_date && !$this->presentation_date->isToday()) {
+            if ($intern->relationLoaded('schedules') && $intern->schedules->isNotEmpty()) {
+                foreach ($intern->schedules as $sched) {
+                    if ($sched->relationLoaded('detailSchedules')) {
+                        $match = $sched->detailSchedules->firstWhere('date', $this->presentation_date->toDateString());
+                        if ($match && $match->shift) {
+                            return $match->shift;
+                        }
+                    }
+                }
+            }
+
+            // Hanya query jika relasi belum di-load sama sekali
+            if (!$intern->relationLoaded('schedules') && !$intern->relationLoaded('todayDetailSchedule')) {
+                $pDateShift = DetailSchedule::whereHas('schedule', function ($q) use ($intern) {
+                    $q->where('intern_id', $intern->id);
+                })->whereDate('date', $this->presentation_date)->with('shift')->first()?->shift;
+
+                if ($pDateShift) {
+                    return $pDateShift;
+                }
+            }
+        }
+
+        // 5. Fallback hanya jika relasi belum di-eager-load sama sekali (single record)
+        if (!$intern->relationLoaded('todayDetailSchedule') && !$intern->relationLoaded('shift') && !$intern->relationLoaded('schedules')) {
+            return $intern->todayDetailSchedule?->shift
+                ?? $intern->shift
+                ?? $intern->schedules()->with('shift')->first()?->shift;
+        }
+
+        return null;
     }
 
     /**

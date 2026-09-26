@@ -10,6 +10,7 @@ use App\Models\DetailProjects;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+use App\Helper\ActivityLogger;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class HandRaiseController extends Controller
@@ -68,90 +69,7 @@ class HandRaiseController extends Controller
      */
     public function index(Request $request)
     {
-        try {
-            $baseRelations = [
-                'user.profile',
-                'user.intern.school',
-                'user.intern.division',
-                'user.intern.shift',
-                'user.intern.todayDetailSchedule.shift',
-                'user.intern.schedules.shift',
-                'user.intern.detailProject.project.nameProject',
-                'project.nameProject',
-                'resolver.profile'
-            ];
-
-            // Tab 1: Bertanya (Question)
-            $questions = HandRaise::with($baseRelations)
-                ->where('is_raised', true)
-                ->where('status', '!=', 'done')
-                ->where(function ($q) {
-                    $q->where('type', 'question')->orWhereNull('type');
-                })
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            // Tab 2: Permintaan Tugas Baru (New Task)
-            $newTasks = HandRaise::with($baseRelations)
-                ->where('is_raised', true)
-                ->where('status', '!=', 'done')
-                ->where('type', 'new_task')
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            // Tab 3: Penjadwalan Presentasi (Presentation)
-            // Prioritaskan presentasi hari ini (Urgent) paling atas
-            $presentations = HandRaise::with($baseRelations)
-                ->where('is_raised', true)
-                ->where('status', '!=', 'done')
-                ->where('type', 'presentation')
-                ->orderByRaw("CASE WHEN presentation_date = CURDATE() THEN 0 ELSE 1 END")
-                ->orderBy('presentation_date', 'asc')
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            // Tab 4: History Selesai
-            $historyDone = HandRaise::with($baseRelations)
-                ->where(function ($q) {
-                    $q->where('status', 'done')
-                        ->orWhere(function ($sq) {
-                            $sq->where('is_raised', false)->whereNotNull('resolved_at');
-                        });
-                })
-                ->orderByRaw('COALESCE(resolved_at, updated_at, created_at) DESC')
-                ->orderBy('id', 'desc')
-                ->take(50)
-                ->get();
-
-            // Counters
-            $countQuestions = $questions->count();
-            $countNewTasks = $newTasks->count();
-            $countPresentations = $presentations->count();
-            $countUrgentPresentations = $presentations->where('status', 'urgent')->count();
-            $countDone = $historyDone->count();
-
-            // Fallback backward-compatibility: $handRaises berisi seluruh raise hand aktif
-            $handRaises = HandRaise::with($baseRelations)
-                ->where('is_raised', true)
-                ->orderBy('created_at', 'desc')
-                ->get();
-
-            return view('admin.raise-hand', compact(
-                'questions',
-                'newTasks',
-                'presentations',
-                'historyDone',
-                'countQuestions',
-                'countNewTasks',
-                'countPresentations',
-                'countUrgentPresentations',
-                'countDone',
-                'handRaises'
-            ));
-        } catch (Exception $e) {
-            Log::error('Error loading raise hand admin page: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal memuat data: ' . $e->getMessage());
-        }
+        return view('admin.raise-hand');
     }
 
     /**
@@ -258,6 +176,34 @@ class HandRaiseController extends Controller
                 }
             }
 
+            $adminUser = auth()->user();
+            $adminName = $adminUser->name ?? $adminUser->username ?? 'Admin';
+
+            if ($action === 'respond_question') {
+                $adminResponse = trim($request->input('admin_response') ?? '');
+                if (empty($adminResponse)) {
+                    return redirect()->back()->with('error', 'Tanggapan / jawaban tidak boleh kosong.');
+                }
+
+                $handRaise->update([
+                    'status' => 'responded',
+                    'admin_response' => $adminResponse,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                ActivityLogger::log(
+                    'RESPOND',
+                    'Raise Hand',
+                    "Admin {$adminName} mengirimkan tanggapan bantuan untuk pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'type' => 'question', 'action' => 'respond_question']
+                );
+
+                Log::info("Question responded for {$userName} by " . auth()->user()->name);
+                return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                    ->with('success', "Tanggapan berhasil dikirimkan ke {$userName}. Pemagang akan melihat popup tanggapan di dashboard.");
+            }
+
             if ($action === 'complete_question') {
                 $handRaise->update([
                     'status' => 'done',
@@ -265,6 +211,13 @@ class HandRaiseController extends Controller
                     'resolved_at' => now(),
                     'resolved_by' => auth()->id(),
                 ]);
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Admin {$adminName} menyelesaikan bantuan/pertanyaan untuk pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'type' => 'question', 'action' => 'complete_question']
+                );
 
                 Log::info("Question/help resolved for {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
@@ -282,6 +235,13 @@ class HandRaiseController extends Controller
                     'is_raised' => true,
                 ]);
 
+                ActivityLogger::log(
+                    'CREATE',
+                    'Raise Hand',
+                    "Admin {$adminName} memberikan tugas baru kepada pemagang {$userName}" . ($taskTitle ? " [{$taskTitle}]" : ''),
+                    ['hand_raise_id' => $handRaise->id, 'task_title' => $taskTitle, 'action' => 'give_task']
+                );
+
                 Log::info("New task given to {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                     ->with('success', "Tugas baru berhasil diberikan kepada {$userName}. Status sekarang: Sedang Dikerjakan.");
@@ -296,6 +256,13 @@ class HandRaiseController extends Controller
                     'resolved_by' => auth()->id(),
                 ]);
 
+                ActivityLogger::log(
+                    'UPDATE',
+                    'Raise Hand',
+                    "Admin {$adminName} memperbarui instruksi tugas pemagang {$userName}" . ($taskTitle ? " [{$taskTitle}]" : ''),
+                    ['hand_raise_id' => $handRaise->id, 'task_title' => $taskTitle, 'action' => 'update_task']
+                );
+
                 Log::info("Task instruction updated for {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                     ->with('success', "Instruksi tugas untuk {$userName} berhasil diperbarui.");
@@ -303,19 +270,121 @@ class HandRaiseController extends Controller
 
             if ($action === 'complete_task') {
                 $handRaise->update([
+                    'status' => 'done',
                     'is_raised' => false,
                     'resolved_at' => now(),
                     'resolved_by' => auth()->id(),
                 ]);
 
-                // JANGAN ubah status project menjadi 'done'! Selesai di sini untuk menyudahi sesi raise hand.
-                // Project tetap berstatus 'progress' pada daftar tugas pemagang untuk dikerjakan.
-                Log::info("Task assignment raise hand session ended for {$userName} by " . auth()->user()->name);
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Admin {$adminName} menyelesaikan sesi permintaan tugas pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'complete_task']
+                );
+
+                Log::info("Task request resolved for {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
-                    ->with('success', "Sesi permintaan tugas untuk {$userName} telah diselesaikan. Project tetap aktif berjalan pada tugas pemagang.");
+                    ->with('success', "Permintaan tugas baru untuk {$userName} telah diselesaikan.");
+            }
+
+            if ($action === 'accept_presentation') {
+                $pDate = $request->input('presentation_date') ?: ($handRaise->presentation_date?->toDateString() ?: today()->toDateString());
+                $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
+                $pNotes = $request->input('notes') ?: $request->input('admin_response');
+
+                $handRaise->update([
+                    'status' => 'accepted',
+                    'presentation_date' => $pDate,
+                    'scheduled_time' => $pTime,
+                    'admin_response' => $pNotes,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                $timeFormatted = $pTime ? date('H:i', strtotime($pTime)) : '-';
+                ActivityLogger::log(
+                    'APPROVE',
+                    'Raise Hand',
+                    "Admin {$adminName} menerima jadwal presentasi pemagang {$userName} pada {$pDate} jam {$timeFormatted}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'accept_presentation', 'date' => $pDate, 'time' => $pTime]
+                );
+
+                Log::info("Presentation accepted for {$userName} on {$pDate} {$timeFormatted} by " . auth()->user()->name);
+                return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                    ->with('success', "Jadwal presentasi untuk {$userName} berhasil DITERIMA. Jadwal: {$pDate} pukul {$timeFormatted} WIB. Pemagang sekarang dapat mengakses sesi presentasi.");
+            }
+
+            if ($action === 'reschedule_presentation') {
+                $pDate = $request->input('presentation_date') ?: ($handRaise->presentation_date?->toDateString() ?: today()->toDateString());
+                $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
+                $pNotes = $request->input('notes') ?: $request->input('admin_response');
+
+                $handRaise->update([
+                    'status' => 'rescheduled',
+                    'presentation_date' => $pDate,
+                    'scheduled_time' => $pTime,
+                    'admin_response' => $pNotes,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                $timeFormatted = $pTime ? date('H:i', strtotime($pTime)) : '-';
+                ActivityLogger::log(
+                    'UPDATE',
+                    'Raise Hand',
+                    "Admin {$adminName} menjadwalkan ulang presentasi pemagang {$userName} ke tanggal {$pDate} jam {$timeFormatted}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'reschedule_presentation', 'date' => $pDate, 'time' => $pTime]
+                );
+
+                Log::info("Presentation rescheduled for {$userName} to {$pDate} {$timeFormatted} by " . auth()->user()->name);
+                return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                    ->with('success', "Jadwal presentasi untuk {$userName} berhasil DIJADWALKAN ULANG ke tanggal {$pDate} pukul {$timeFormatted} WIB.");
+            }
+
+            if ($action === 'reject_presentation') {
+                $pNotes = $request->input('notes') ?: $request->input('admin_response') ?: 'Pengajuan presentasi ditolak oleh pembimbing. Harap lengkapi materi sebelum mengajukan kembali.';
+
+                $handRaise->update([
+                    'status' => 'rejected',
+                    'admin_response' => $pNotes,
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                // Pastikan seluruh raise hand presentasi aktif milik pemagang ini diturunkan (is_raised = false)
+                HandRaise::where('user_id', $handRaise->user_id)
+                    ->where('type', 'presentation')
+                    ->where('is_raised', true)
+                    ->update([
+                        'is_raised' => false,
+                        'status' => 'rejected',
+                        'admin_response' => $pNotes,
+                        'resolved_at' => now(),
+                        'resolved_by' => auth()->id(),
+                    ]);
+
+                \Illuminate\Support\Facades\Cache::forget('navbar_raise_hand_count');
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Admin {$adminName} menolak pengajuan presentasi pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'reject_presentation', 'notes' => $pNotes]
+                );
+
+                Log::info("Presentation rejected for {$userName} by " . auth()->user()->name);
+                return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                    ->with('success', "Pengajuan presentasi untuk {$userName} telah DITOLAK. Catatan penolakan telah dikirimkan ke pemagang.");
             }
 
             if ($action === 'request_revision') {
+                if (in_array($handRaise->status, ['pending', 'rescheduled'])) {
+                    return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                        ->with('error', 'Presentasi belum diterima. Harap terima atau konfirmasi jadwal presentasi terlebih dahulu sebelum melakukan review.');
+                }
+
                 $handRaise->update([
                     'status' => 'needs_revision',
                     'resolved_by' => auth()->id(),
@@ -327,12 +396,24 @@ class HandRaiseController extends Controller
                     $handRaise->project->update(['status' => 'progress']);
                 }
 
+                ActivityLogger::log(
+                    'UPDATE',
+                    'Raise Hand',
+                    "Admin {$adminName} menetapkan status Presentasi pemagang {$userName}: Ada Revisi",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'request_revision']
+                );
+
                 Log::info("Presentation marked as needs revision for {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                     ->with('success', "Status presentasi {$userName} berhasil diatur: Ada Revisi. Pemagang dapat mengisi catatan revisi di daftar tugasnya.");
             }
 
             if ($action === 'ready_presentation') {
+                if (in_array($handRaise->status, ['pending', 'rescheduled'])) {
+                    return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
+                        ->with('error', 'Presentasi belum diterima. Harap terima atau konfirmasi jadwal presentasi terlebih dahulu sebelum melakukan review.');
+                }
+
                 $handRaise->update([
                     'status' => 'ready',
                     'resolved_by' => auth()->id(),
@@ -364,6 +445,13 @@ class HandRaiseController extends Controller
                             'resolved_by' => auth()->id(),
                         ]);
                 }
+
+                ActivityLogger::log(
+                    'APPROVE',
+                    'Raise Hand',
+                    "Admin {$adminName} mengesahkan Presentasi pemagang {$userName} Lulus Valid (Tanpa Revisi)",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'ready_presentation']
+                );
 
                 Log::info("Presentation marked as completed/ready for {$userName} by " . auth()->user()->name);
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
@@ -397,6 +485,14 @@ class HandRaiseController extends Controller
                     if ($project) {
                         $project->update(['status' => 'progress']);
                     }
+
+                    ActivityLogger::log(
+                        'RESOLVE',
+                        'Raise Hand',
+                        "Admin {$adminName} menyelesaikan sesi presentasi pemagang {$userName} (Ada Revisi)",
+                        ['hand_raise_id' => $handRaise->id, 'status' => 'needs_revision']
+                    );
+
                     Log::info("Presentation raise hand ended (with revision) for {$userName} by " . auth()->user()->name);
                     return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                         ->with('success', "Sesi raise hand presentasi {$userName} selesai. Project tetap aktif berjalan dalam status revisi untuk dikerjakan pemagang.");
@@ -417,6 +513,14 @@ class HandRaiseController extends Controller
                                 'resolved_by' => auth()->id(),
                             ]);
                     }
+
+                    ActivityLogger::log(
+                        'RESOLVE',
+                        'Raise Hand',
+                        "Admin {$adminName} menyelesaikan sesi presentasi pemagang {$userName} (Lulus Selesai Valid)",
+                        ['hand_raise_id' => $handRaise->id, 'status' => 'done']
+                    );
+
                     Log::info("Presentation completed validly for {$userName} by " . auth()->user()->name);
                     return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                         ->with('success', "Presentasi {$userName} telah disahkan selesai valid.");
@@ -472,6 +576,14 @@ class HandRaiseController extends Controller
                         ]);
                 }
             }
+
+            $evalRating = $updateData['performance_rating'] ?? null;
+            ActivityLogger::log(
+                'RESOLVE',
+                'Raise Hand',
+                "Admin {$adminName} mengevaluasi dan menyelesaikan sesi raise hand pemagang {$userName}" . ($evalRating ? " (Nilai: {$evalRating})" : ''),
+                ['hand_raise_id' => $handRaise->id, 'rating' => $evalRating]
+            );
 
             Log::info("Raise hand confirmed by " . auth()->user()->name . " for user: " . $userName);
 
@@ -556,8 +668,23 @@ class HandRaiseController extends Controller
 
     public function latest()
     {
-        $latest = HandRaise::latest()->first();
-        return response()->json($latest);
+        $latest = HandRaise::with(['user.profile', 'user.intern.school'])
+            ->where('is_raised', true)
+            ->latest()
+            ->first();
+
+        if (!$latest) {
+            return response()->json(null);
+        }
+
+        return response()->json([
+            'id' => $latest->id,
+            'name' => $latest->user->profile->full_name ?? $latest->user->name ?? 'Peserta',
+            'school' => $latest->user->intern->school->name ?? '-',
+            'type' => $latest->type ?? 'question',
+            'notes' => $latest->notes ?? $latest->reason ?? '',
+            'created_at' => $latest->created_at?->toIso8601String(),
+        ]);
     }
 
     /**
@@ -568,12 +695,21 @@ class HandRaiseController extends Controller
         try {
             $handRaise = HandRaise::findOrFail($id);
             $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'User';
+            $adminUser = auth()->user();
+            $adminName = $adminUser->name ?? $adminUser->username ?? 'Admin';
 
             $handRaise->update([
                 'is_raised' => false,
                 'resolved_at' => now(),
                 'resolved_by' => auth()->id()
             ]);
+
+            ActivityLogger::log(
+                'RESOLVE',
+                'Raise Hand',
+                "Admin {$adminName} menyelesaikan bantuan Raise Hand pemagang {$userName} (Quick Resolve)",
+                ['hand_raise_id' => $handRaise->id, 'action' => 'quick_resolve']
+            );
 
             // Log activity
             Log::info("Quick resolve raise hand by " . auth()->user()->name . " for user: " . $userName);
@@ -662,25 +798,26 @@ class HandRaiseController extends Controller
     public function getNotificationData(): JsonResponse
     {
         try {
-            $handRaises = HandRaise::with(['user.profile', 'user.intern.school'])
+            $rawRaises = HandRaise::with(['user.profile', 'user.intern.school'])
                 ->where('is_raised', true)
                 ->orderBy('created_at', 'desc')
-                ->limit(5)
-                ->get()
-                ->map(function ($raise) {
-                    return [
-                        'id' => $raise->id,
-                        'user_name' => $raise->user->profile->full_name ?? $raise->user->name,
-                        'school' => $raise->user->intern->school->name ?? 'Unknown',
-                        'time_ago' => $raise->created_at->diffForHumans(),
-                        'reason' => $raise->reason ?? 'Membutuhkan bantuan'
-                    ];
-                });
+                ->get();
+
+            $count = $rawRaises->count();
+            $recentRequests = $rawRaises->take(5)->map(function ($raise) {
+                return [
+                    'id' => $raise->id,
+                    'user_name' => $raise->user->profile->full_name ?? $raise->user->name,
+                    'school' => $raise->user->intern->school->name ?? 'Unknown',
+                    'time_ago' => $raise->created_at->diffForHumans(),
+                    'reason' => $raise->reason ?? 'Membutuhkan bantuan'
+                ];
+            });
 
             return response()->json([
                 'success' => true,
-                'count' => HandRaise::where('is_raised', true)->count(),
-                'recent_requests' => $handRaises,
+                'count' => $count,
+                'recent_requests' => $recentRequests,
                 'timestamp' => now()->toISOString()
             ]);
         } catch (\Exception $e) {

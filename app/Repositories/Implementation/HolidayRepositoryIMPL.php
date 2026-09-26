@@ -16,7 +16,7 @@ class HolidayRepositoryIMPL implements HolidayRepository
 
     public function getAll()
     {
-        return $this->model->all();
+        return \Illuminate\Support\Facades\Cache::remember('holidays_all', 3600, fn() => $this->model->all());
     }
 
     public function create() {}

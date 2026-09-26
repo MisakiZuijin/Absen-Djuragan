@@ -133,7 +133,7 @@ class LateAbsenceController extends Controller
 
             foreach ($attendances as $attendance) {
                 // Dapatkan shift yang seharusnya untuk intern pada tanggal tersebut
-                $shift = $this->getInternShiftForDate($attendance->intern_id, $date);
+                $shift = $this->getInternShiftForDate($attendance->intern_id, $date, $attendance);
 
                 if (!$shift) continue;
 
@@ -215,14 +215,22 @@ class LateAbsenceController extends Controller
             return redirect()->back()->with('status', "Berhasil membuat {$created} record keterlambatan untuk tanggal {$date}");
         } catch (\Exception $e) {
             DB::rollback();
-            Log::error('Error creating late absence records: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal membuat record keterlambatan: ' . $e->getMessage());
+            Log::error('Error creating late absence records: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Gagal membuat data keterlambatan. Silakan coba lagi.');
         }
     }
 
-    private function getInternShiftForDate(int $internId, string $date)
+    private function getInternShiftForDate(int $internId, string $date, ?Attendance $attendance = null)
     {
         try {
+            // Prioritaskan mengambil shift dari relasi yang sudah di-load untuk menghindari N+1 query
+            if ($attendance && $attendance->relationLoaded('detailSchedules')) {
+                $shift = $attendance->detailSchedules->first()?->shift;
+                if ($shift) {
+                    return $shift;
+                }
+            }
+
             // Cari detail schedule untuk intern pada tanggal tertentu
             $detailSchedule = DetailSchedule::whereHas('schedule', function ($query) use ($internId) {
                 $query->where('intern_id', $internId);
@@ -242,7 +250,7 @@ class LateAbsenceController extends Controller
     {
         try {
             // Dapatkan shift yang seharusnya untuk intern pada tanggal tersebut
-            $shift = $this->getInternShiftForDate($attendance->intern_id, $date);
+            $shift = $this->getInternShiftForDate($attendance->intern_id, $date, $attendance);
 
             if (!$shift) return false;
 
@@ -297,7 +305,7 @@ class LateAbsenceController extends Controller
             $attendances = Attendance::whereDate('date', $date)
                 ->whereNotNull('start_time')
                 ->whereDoesntHave('lateAbsences')
-                ->with(['intern.user.profile'])
+                ->with(['intern.user.profile', 'detailSchedules.shift'])
                 ->get();
 
             $results = [
@@ -310,7 +318,7 @@ class LateAbsenceController extends Controller
 
             foreach ($attendances as $attendance) {
                 // Dapatkan shift yang seharusnya untuk intern pada tanggal tersebut
-                $shift = $this->getInternShiftForDate($attendance->intern_id, $date);
+                $shift = $this->getInternShiftForDate($attendance->intern_id, $date, $attendance);
 
                 if (!$shift) continue;
 
@@ -420,8 +428,8 @@ class LateAbsenceController extends Controller
             return redirect()->back()->with('status', 'Status keterlambatan berhasil diperbarui');
         } catch (\Exception $e) {
             DB::rollback();
-            Log::error('Error updating late absence status: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal memperbarui status: ' . $e->getMessage());
+            Log::error('Error updating late absence status: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->back()->with('error', 'Gagal memperbarui status keterlambatan. Silakan coba lagi.');
         }
     }
 
@@ -580,7 +588,7 @@ class LateAbsenceController extends Controller
             $selectedIds = $request->input('selected_ids');
             $bulkStatus = $request->input('bulk_status');
 
-            $lateAbsences = LateAbsence::whereIn('id', $selectedIds)->get();
+            $lateAbsences = LateAbsence::with(['attendance', 'shift'])->whereIn('id', $selectedIds)->get();
 
             // Handle perubahan status
             foreach ($lateAbsences as $lateAbsence) {
@@ -597,13 +605,6 @@ class LateAbsenceController extends Controller
                     $this->clearAdjustedEndTime($lateAbsence);
                 }
 
-                $lateAbsence->update([
-                    'status' => $bulkStatus,
-                    'notes' => $request->input('bulk_notes'),
-                    'reviewed_at' => now(),
-                    'reviewed_by' => auth()->id()
-                ]);
-
                 // 3. Jika status berubah menjadi "tepat_waktu", update HANYA waktu absen sesuai jam start shift
                 if ($bulkStatus === 'tepat_waktu' && $oldStatus !== 'tepat_waktu') {
                     $this->adjustStartTimeToShift($lateAbsence);
@@ -613,7 +614,17 @@ class LateAbsenceController extends Controller
                 if ($bulkStatus === 'lewat' && $oldStatus !== 'lewat') {
                     $this->calculateAdjustedEndTime($lateAbsence);
                 }
+
+                $lateAbsence->status = $bulkStatus;
             }
+
+            // Bulk update semua status late_absences dalam 1 query
+            LateAbsence::whereIn('id', $selectedIds)->update([
+                'status' => $bulkStatus,
+                'notes' => $request->input('bulk_notes'),
+                'reviewed_at' => now(),
+                'reviewed_by' => auth()->id()
+            ]);
 
             $updated = count($lateAbsences);
 
@@ -740,7 +751,7 @@ class LateAbsenceController extends Controller
     public function export(Request $request)
     {
         try {
-            $query = LateAbsence::with(['intern.user.profile', 'shift', 'attendance'])
+            $query = LateAbsence::with(['intern.user.profile', 'shift', 'attendance', 'reviewer'])
                 ->orderBy('absen_time', 'desc');
 
             if ($request->filled('date')) {

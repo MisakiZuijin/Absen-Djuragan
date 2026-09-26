@@ -3,13 +3,11 @@
 @section('title', 'Daftar Outsider')
 
 @section('contents')
-    @include('layouts.sidebar')
-    @include('layouts.navbar')
-
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <!-- Main Content -->
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
         <!-- Header -->
-        <div class="mb-8">
-            <div class="flex justify-between items-center">
+        <div class="mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-800 mb-2">Daftar Outsider</h1>
                     <p class="text-gray-600">Kelola data outsider (Guru & Orang Tua)</p>

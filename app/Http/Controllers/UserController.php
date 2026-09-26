@@ -21,6 +21,7 @@ use Illuminate\Support\Str;
 use Illuminate\Http\Request;
 use App\Models\PermitSetting;
 use App\Models\AdjustableAttd;
+use App\Helper\ActivityLogger;
 use App\Services\UserService;
 use App\Models\DetailSchedule;
 use App\Models\PermitCategory;
@@ -71,7 +72,7 @@ class UserController extends Controller
             abort(403, 'User tidak memiliki data intern.');
         }
 
-        $user->intern->loadMissing(['account', 'division', 'detailProject.project.nameProject']);
+        $user->loadMissing(['profile', 'intern.account', 'intern.division', 'intern.detailProject.project.nameProject']);
 
         $detailProjects = $user->intern?->detailProject ?? collect();
         $assignedProjects = $detailProjects->map(function ($dp) {
@@ -111,13 +112,20 @@ class UserController extends Controller
         // AKHIR BAGIAN YANG DIPERBAIKI
         // ========================================================================
 
-        // Sisa logika untuk mengambil data lain tetap berjalan seperti semula.
-        $todaysDetailSchedule = DetailSchedule::whereHas('schedule.intern', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })
-            ->whereDate('date', today())
-            ->with(['shift', 'attendance', 'logActivity.status'])
-            ->first();
+        // Ambil jadwal hari ini langsung dari koleksi jadwal mingguan (mencegah duplikasi query DetailSchedule, Shift, Attendance)
+        $todaysDetailSchedule = $schedules->first(function ($schedule) {
+            return Carbon::parse($schedule->date)->isToday();
+        });
+
+        // Fallback jika hari ini tidak ada di jadwal mingguan (misal hari Minggu atau tanggal khusus)
+        if (!$todaysDetailSchedule) {
+            $todaysDetailSchedule = DetailSchedule::whereHas('schedule.intern', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })
+                ->whereDate('date', today())
+                ->with(['shift', 'attendance.permitLogs', 'schedule'])
+                ->first();
+        }
 
         $todaysShift = $todaysDetailSchedule?->shift;
         $absenceHistory = $todaysDetailSchedule?->attendance;
@@ -125,7 +133,7 @@ class UserController extends Controller
         $permitCategoriesResult = $this->permitReasonService->getAllPermitCategory();
         $listPermitCategory = $permitCategoriesResult->isSuccess() ? $permitCategoriesResult->getData() : [];
 
-        $stageResult = $this->attendanceService->attendanceStatus($user->intern->id);
+        $stageResult = $this->attendanceService->attendanceStatus($user->intern->id, $todaysDetailSchedule);
         $stage = $stageResult->isSuccess() ? $stageResult->getData()['stage'] : null;
         $schedule_id = $todaysDetailSchedule?->schedule_id;
         $detail_schedule_id = $todaysDetailSchedule?->id ?? 0;
@@ -136,92 +144,77 @@ class UserController extends Controller
                 ->value('id');
         }
 
-        $all_adjustable = [];
-        if ($detail_schedule_id) {
-            try {
-                $all_adjustable = \App\Models\AdjustableAttd::where('detail_schedule_id', $detail_schedule_id)
-                    ->where('date', now()->format('Y-m-d'))
-                    ->orderBy('id', 'asc')
-                    ->get();
-
-                Log::info('UserController - Direct query all_adjustable count: ' . count($all_adjustable));
-                Log::info('UserController - detail_schedule_id: ' . $detail_schedule_id);
-                Log::info('UserController - date: ' . now()->format('Y-m-d'));
-
-                foreach ($all_adjustable as $adj) {
-                    Log::info('UserController - Found adjustable ID: ' . $adj->id . ' with end_time: ' . $adj->end_time);
-                }
-            } catch (\Exception $e) {
-                Log::error('UserController - Error querying adjustable: ' . $e->getMessage());
-                $all_adjustable = collect();
-            }
-        }
-
+        $all_adjustable = collect();
         if ($stageResult->isSuccess()) {
             $stageData = $stageResult->getData();
             if (isset($stageData['all_adjustable']) && !empty($stageData['all_adjustable'])) {
-                $stageAllAdjustable = collect($stageData['all_adjustable']);
-
-                if ($all_adjustable->isEmpty()) {
-                    $all_adjustable = $stageAllAdjustable;
-                    Log::info('UserController - Using stageResult all_adjustable count: ' . count($all_adjustable));
-                } else {
-                    $directIds = $all_adjustable->pluck('id')->toArray();
-                    $stageIds = $stageAllAdjustable->pluck('id')->toArray();
-                    $diff = array_diff($stageIds, $directIds);
-                    if (!empty($diff)) {
-                        Log::warning('UserController - Difference in adjustable data between direct query and stageResult: ' . implode(',', $diff));
-                    }
-                }
+                $all_adjustable = collect($stageData['all_adjustable']);
             }
         }
 
         $birth_date = $user->profile->date_of_birth ?? null;
-        $currentHandRaise = HandRaise::where('user_id', $user->id)
-            ->where('is_raised', true)
-            ->where('status', '!=', 'done')
-            ->latest()
-            ->first()
-            ?? HandRaise::where('user_id', $user->id)->latest()->first();
-        $handRaiseStatus = (bool) ($currentHandRaise?->is_raised && $currentHandRaise?->status !== 'done');
+        $latestHandRaises = HandRaise::where('user_id', $user->id)->latest()->take(5)->get();
+        $currentHandRaise = $latestHandRaises->first(fn($hr) => $hr->is_raised && !in_array($hr->status, ['done', 'rejected']))
+            ?? $latestHandRaises->first();
+        $handRaiseStatus = (bool) ($currentHandRaise?->is_raised && !in_array($currentHandRaise?->status, ['done', 'rejected']));
         $quotes = (now()->format('m-d') === ($birth_date ? Carbon::parse($birth_date)->format('m-d') : null))
             ? $this->quoteService->getByCategory('ultah')
             : $this->quoteService->getByCategory('quote');
 
-        $all_broadcasts = Broadcast::with(['divisions', 'users'])->latest()->get();
-        $relevant_broadcasts = $all_broadcasts->filter(function ($broadcast) use ($user) {
-            switch ($broadcast->broadcast_type) {
+        // Ambil HANYA Pengumuman (category = 'announcement') untuk riwayat dan popup pengumuman pemagang
+        $all_announcements = Broadcast::announcements()
+            ->with(['divisions', 'users', 'shifts', 'offices', 'images'])
+            ->latest()
+            ->take(20)
+            ->get();
+        $todaysShiftId = $todaysDetailSchedule?->shift_id;
+        $todaysOfficeId = $todaysDetailSchedule?->office_id;
+        $relevant_announcements = $all_announcements->filter(function ($announcement) use ($user, $todaysShiftId, $todaysOfficeId) {
+            // Pengumuman baru terlihat setelah waktunya tiba
+            if (!$announcement->isDue()) {
+                return false;
+            }
+            switch ($announcement->broadcast_type) {
                 case 'all':
                     return true;
                 case 'division':
-                    return $user->intern && $user->intern->division_id && $broadcast->divisions->contains('id', $user->intern->division_id);
+                    return $user->intern && $user->intern->division_id && $announcement->divisions->contains('id', $user->intern->division_id);
                 case 'specific':
-                    return $broadcast->users->contains('id', $user->id);
+                    return $announcement->users->contains('id', $user->id);
+                case 'shift':
+                    return $todaysShiftId && $announcement->shifts->contains('id', $todaysShiftId);
+                case 'office':
+                    return $todaysOfficeId && $announcement->offices->contains('id', $todaysOfficeId);
                 default:
                     return false;
             }
         });
-        if (!Session::has('broadcast_shown') && $relevant_broadcasts->isNotEmpty()) {
-            Session::put('broadcast_shown', true);
-            Session::flash('firstBroadcast', $relevant_broadcasts->first());
+
+        // Popup untuk pengumuman biasa (non-Livewire, muncul sekali per sesi saat pertama kali membuka dashboard)
+        if (!Session::has('announcement_shown') && $relevant_announcements->isNotEmpty()) {
+            Session::put('announcement_shown', true);
+            Session::flash('firstAnnouncement', $relevant_announcements->first());
         }
+
+        // Broadcast popup kini ditangani secara real-time dan terpisah oleh komponen Livewire BroadcastPopup
 
         $lackInSecondsToday = 0;
         if (is_object($todaysShift) && is_object($absenceHistory)) {
+            // Hutang tambahan dari izin keluar wajib ganti jam (approved)
+            $extraLeaveDebtSeconds = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($absenceHistory) * 60;
             $hasClockedOut = !is_null($absenceHistory->end_time);
             if ($hasClockedOut) {
                 $shiftMinutes = $todaysShift->total_time_in_minute ?? 0;
                 $workingMinutes = ($absenceHistory->total_min ?? 0) - ($absenceHistory->total_break_min ?? 0);
                 $differenceInMinutes = $shiftMinutes - $workingMinutes;
-                if ($differenceInMinutes > 0) {
-                    $lackInSecondsToday = $differenceInMinutes * 60;
-                }
+                $lackInSecondsToday = max(0, $differenceInMinutes * 60) + $extraLeaveDebtSeconds;
             } elseif (!is_null($absenceHistory->start_time)) {
                 $scheduleStart = Carbon::parse($todaysShift->start_time);
                 $checkInTime = Carbon::parse($absenceHistory->start_time);
                 if ($checkInTime->gt($scheduleStart)) {
                     $lackInSecondsToday = $checkInTime->diffInSeconds($scheduleStart);
                 }
+                $lackInSecondsToday += $extraLeaveDebtSeconds;
             }
         }
 
@@ -236,33 +229,46 @@ class UserController extends Controller
             $internTargetData['total_lack_in_seconds'] = $lackInSecondsToday;
         }
 
-        $hrUsers = User::whereHas('intern', function ($query) {
-            $query->where('division_id', 18);
-        })
-            ->with('profile')
-            ->where('is_active', true)
-            ->get()
-            ->map(function ($user) {
-                return [
-                    'id' => $user->id,
-                    'name' => $user->profile->full_name ?? $user->name,
-                ];
-            });
+        // Kandidat pemberi izin keluar: Admin (1) & Asisten Admin (6),
+        // plus pemagang divisi Human Resource (18) jika ada.
+        $hrUsers = \Illuminate\Support\Facades\Cache::remember('hr_approver_users_list', 1800, function () {
+            return User::with('profile')
+                ->where('is_active', true)
+                ->where(function ($query) {
+                    $query->whereIn('role_id', [1, 6])
+                        ->orWhereHas('intern', function ($q) {
+                            $q->where('division_id', 18);
+                        });
+                })
+                ->get()
+                ->map(function ($user) {
+                    return [
+                        'id' => $user->id,
+                        'name' => $user->profile->full_name ?? $user->username,
+                    ];
+                })
+                ->toArray();
+        });
 
-        $userOffice = $todaysDetailSchedule?->office
-            ?? Schedule::where('intern_id', $user->intern->id)->latest('id')->first()?->office
-            ?? Office::first();
-        $allOffices = Office::all();
+        $allOffices = \Illuminate\Support\Facades\Cache::remember('offices_all', 3600, fn() => Office::all());
+        $userOffice = null;
+        if ($todaysDetailSchedule && $todaysDetailSchedule->office_id) {
+            $userOffice = $allOffices->firstWhere('id', $todaysDetailSchedule->office_id);
+        }
+        if (!$userOffice && $user->intern) {
+            $userOffice = $allOffices->firstWhere('id', $user->intern->office_id);
+        }
+        if (!$userOffice) {
+            $userOffice = $allOffices->first();
+        }
 
         // Logbook Harian data
-        $logActivityHistory = LogActivity::whereHas('detailSchedule.schedule', function ($query) use ($user) {
-            $query->where('intern_id', $user->intern->id);
-        })->with('status')->latest('date')->get();
+        $hasFilledLogToday = !empty($todaysDetailSchedule?->log_activity_id);
+        $todaysLogActivity = $hasFilledLogToday ? $todaysDetailSchedule?->logActivity : null;
+        $logActivityHistory = collect();
 
-        $todaysLogActivity = $todaysDetailSchedule?->logActivity ?? $logActivityHistory->first(function ($log) {
-            return \Carbon\Carbon::parse($log->date)->isToday();
-        });
-        $hasFilledLogToday = !is_null($todaysLogActivity);
+        $activeTasksCount = $user->getActiveTasksCount();
+        $hasActiveTasks = $activeTasksCount > 0;
 
         // Data yang dikirim ke view sekarang menggunakan variabel $schedules yang sudah difilter
         $data = [
@@ -276,7 +282,7 @@ class UserController extends Controller
             "date_now" => $dateNow,
             "day_now" => DateNow::getCurrentDay(),
             "quotes" => $quotes->isSuccess() ? $quotes->getData()->pluck('quote') : [],
-            "broadcast_list" => $relevant_broadcasts,
+            "broadcast_list" => $relevant_announcements,
             "isHandRaised" => $handRaiseStatus,
             "currentHandRaise" => $currentHandRaise,
             "shift" => $todaysShift,
@@ -290,12 +296,46 @@ class UserController extends Controller
             "logActivityHistory" => $logActivityHistory,
             "todaysLogActivity" => $todaysLogActivity,
             "hasFilledLogToday" => $hasFilledLogToday,
+            "todaysDetailSchedule" => $todaysDetailSchedule,
             "activeProjects" => $activeProjects,
-            "hasActiveTasks" => $user->hasActiveTasks(),
-            "activeTasksCount" => $user->getActiveTasksCount(),
+            "hasActiveTasks" => $hasActiveTasks,
+            "activeTasksCount" => $activeTasksCount,
         ];
 
         return view("users.index")->with($data);
+    }
+
+    /**
+     * Menyimpan laporan pemagang untuk broadcast yang mewajibkan laporan.
+     * Setelah laporan tersimpan, popup wajib laporan tidak muncul lagi.
+     *
+     * @param \Illuminate\Http\Request $request
+     * @param \App\Models\Broadcast $broadcast
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function submitBroadcastReport(Request $request, Broadcast $broadcast)
+    {
+        abort_unless($broadcast->requires_report && $broadcast->isDue(), 404);
+
+        $validated = $request->validate([
+            'report' => 'required|string|min:10|max:2000',
+        ], [
+            'report.required' => 'Laporan wajib diisi sebelum menutup pengumuman ini.',
+            'report.min' => 'Laporan minimal 10 karakter.',
+            'report.max' => 'Laporan maksimal 2000 karakter.',
+        ]);
+
+        \App\Models\BroadcastReport::firstOrCreate(
+            ['broadcast_id' => $broadcast->id, 'user_id' => $request->user()->id],
+            ['report' => $validated['report']]
+        );
+
+        $userName = $request->user()->name ?? $request->user()->username ?? 'User';
+        ActivityLogger::log('CREATE', 'Broadcast', "Pemagang {$userName} mengirim tanggapan/laporan pengumuman: {$broadcast->title}", [
+            'broadcast_id' => $broadcast->id
+        ], $request->user());
+
+        return redirect()->route('user.home')->with('success', 'Laporan berhasil dikirim. Terima kasih!');
     }
 
 
@@ -362,7 +402,21 @@ class UserController extends Controller
             'description' => $request->input('keterangan'),
             'authorized_by' => $request->input('authorized_by'),
             'start_time' => now(),
+            'approval_status' => $permitType === 'leave' ? 'pending' : 'approved',
+            'is_mandatory_replace' => false,
         ]);
+
+        $internName = $user->profile->full_name ?? $user->name ?? $user->username;
+        $typeName = match ($permitType) {
+            'leave' => 'Keluar Kantor',
+            'prayer' => 'Shalat',
+            'toilet' => 'Toilet',
+            default => ucfirst($permitType)
+        };
+        ActivityLogger::log('CREATE', 'Izin', "Pemagang {$internName} memulai Izin {$typeName}" . ($request->filled('keterangan') ? " ({$request->input('keterangan')})" : ''), [
+            'type' => $permitType,
+            'authorized_by' => $request->input('authorized_by')
+        ], $user);
 
         return redirect()->back()->with('success', 'Izin ' . str_replace('_', ' ', $permitType) . ' telah dimulai.');
     }
@@ -401,6 +455,18 @@ class UserController extends Controller
         $attendance->total_permit_min = $totalPermitMinutesToday;
         $attendance->save();
 
+        $internName = $user->profile->full_name ?? $user->name ?? $user->username;
+        $typeName = match ($activePermit->type) {
+            'leave' => 'Keluar Kantor',
+            'prayer' => 'Shalat',
+            'toilet' => 'Toilet',
+            default => ucfirst($activePermit->type)
+        };
+        ActivityLogger::log('UPDATE', 'Izin', "Pemagang {$internName} menyelesaikan Izin {$typeName} (Durasi: {$durationInMinutes} menit)", [
+            'type' => $activePermit->type,
+            'duration_minutes' => $durationInMinutes,
+        ], $user);
+
         return redirect()->back()->with('success', 'Izin ' . str_replace('_', ' ', $activePermit->type) . ' telah selesai.');
     }
 
@@ -410,10 +476,14 @@ class UserController extends Controller
 
     public function attendanceChangeView()
     {
+        /** @var \App\Models\User|null $user */
         $user = auth()->user();
+        if ($user instanceof \App\Models\User) {
+            $user->loadMissing(['profile', 'intern']);
+        }
         $date_now = DateNow::getCurrentDate();
         $day_now = DateNow::getCurrentDay();
-        $birth_date = optional($user->profile)->date_of_birth;
+        $birth_date = optional($user?->profile)->date_of_birth;
         $quotesResult = (now()->format('m-d') === ($birth_date ? Carbon::parse($birth_date)->format('m-d') : null))
             ? $this->quoteService->getByCategory('ultah')
             : $this->quoteService->getByCategory('quote');
@@ -432,6 +502,13 @@ class UserController extends Controller
             ->with(['shift', 'permitReason.category'])
             ->get();
 
+        // Pre-fetch semua data attendance lengkap dengan relasi permitLogs dalam 1 query tunggal untuk mencegah N+1 di dalam loop
+        $attendancesByDate = \App\Models\Attendance::where('intern_id', $internId)
+            ->whereDate('date', '<=', today())
+            ->with('permitLogs')
+            ->get()
+            ->keyBy(fn($a) => Carbon::parse($a->date)->format('Y-m-d'));
+
         $schedulesWithDeficit = collect();
 
         foreach ($allSchedules as $schedule) {
@@ -440,12 +517,8 @@ class UserController extends Controller
             }
 
             $scheduleDate = Carbon::parse($schedule->date);
-            $startOfDay = $scheduleDate->copy()->startOfDay();
-            $endOfDay = $scheduleDate->copy()->endOfDay();
-
-            $attendanceRecord = \App\Models\Attendance::where('intern_id', $internId)
-                ->whereBetween('date', [$startOfDay, $endOfDay])
-                ->first();
+            $dateKey = $scheduleDate->format('Y-m-d');
+            $attendanceRecord = $attendancesByDate->get($dateKey) ?? $schedule->attendance;
             $schedule->attendance = $attendanceRecord;
 
             $shiftMinutes = (int) ($schedule->shift->total_time_in_minute ?? 0);
@@ -557,6 +630,10 @@ class UserController extends Controller
             }
 
 
+            // Hutang tambahan dari izin keluar wajib ganti jam (approved)
+            $extraLeaveDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($schedule->attendance);
+            $differenceInMinutes += $extraLeaveDebt;
+
             if ($differenceInMinutes > 1) { // Toleransi 1 menit
                 $hours = floor($differenceInMinutes / 60);
                 $minutes = $differenceInMinutes % 60;
@@ -564,6 +641,11 @@ class UserController extends Controller
                 $schedule->kategori = "Kekurangan Jam Reguler";
                 $schedule->kategori_badge = "bg-slate-100 text-slate-800 border-slate-300";
                 $schedule->keterangan = "Kekurangan jam kerja {$hours} Jam {$minutes} Menit";
+                if ($extraLeaveDebt > 0) {
+                    $debtHours = floor($extraLeaveDebt / 60);
+                    $debtMinutes = $extraLeaveDebt % 60;
+                    $schedule->keterangan .= " (termasuk izin keluar wajib ganti {$debtHours} Jam {$debtMinutes} Menit)";
+                }
                 $schedule->status = 'Belum Lunas';
                 $schedule->is_paid_off = false;
 
@@ -646,6 +728,9 @@ class UserController extends Controller
             $dataToSave['intern_id'] = $intern->id;
             \App\Models\InternAccount::create($dataToSave);
         }
+
+        $internName = $user->profile?->full_name ?? $user->name ?? $user->username;
+        ActivityLogger::log('UPDATE', 'User Management', "Pemagang {$internName} memperbarui tautan portofolio & akun divisi", [], $user);
 
         return redirect()->back()->with('success', 'Akun & portofolio divisi berhasil diperbarui!');
     }
@@ -735,27 +820,35 @@ class UserController extends Controller
         })->filter()->unique('id');
 
         // Jika project memiliki status presentasi 'ready' atau 'done' (lulus tanpa revisi), pastikan statusnya 'done'
+        $doneProjectIds = [];
         foreach ($assignedProjects as $p) {
             $pReview = $latestPresentationReviews->get($p->id);
             if ($pReview && in_array($pReview->status, ['ready', 'done']) && $pReview->status !== 'needs_revision') {
                 if ($p->status !== 'done') {
-                    $p->update(['status' => 'done']);
+                    $doneProjectIds[] = $p->id;
                     $p->status = 'done';
                 }
             }
         }
+        if (!empty($doneProjectIds)) {
+            Projects::whereIn('id', $doneProjectIds)->update(['status' => 'done']);
+        }
 
         // Sinkronkan mentorTasks terkait jika project sudah done agar tugas mentor juga otomatis selesai
+        $doneTaskIds = [];
         foreach ($mentorTasks as $mTask) {
             if ($mTask->project && $mTask->project->status === 'done' && $mTask->status !== 'done') {
-                $mTask->update([
-                    'status' => 'done',
-                    'is_raised' => false,
-                    'resolved_at' => $mTask->resolved_at ?? now(),
-                ]);
+                $doneTaskIds[] = $mTask->id;
                 $mTask->status = 'done';
                 $mTask->is_raised = false;
             }
+        }
+        if (!empty($doneTaskIds)) {
+            HandRaise::whereIn('id', $doneTaskIds)->update([
+                'status' => 'done',
+                'is_raised' => false,
+                'resolved_at' => now(),
+            ]);
         }
 
         // Pisahkan Project Aktif vs Selesai
@@ -785,9 +878,10 @@ class UserController extends Controller
 
         // Quotes untuk konsistensi layout user
         $birth_date = $user->profile->date_of_birth ?? null;
-        $quotes = (now()->format('m-d') === ($birth_date ? Carbon::parse($birth_date)->format('m-d') : null))
+        $quotesResult = (now()->format('m-d') === ($birth_date ? Carbon::parse($birth_date)->format('m-d') : null))
             ? $this->quoteService->getByCategory('ultah')
             : $this->quoteService->getByCategory('quote');
+        $quotes = $quotesResult->isSuccess() ? $quotesResult->getData()->pluck('quote') : [];
 
         // Tugas aktif pembimbing: hanya tampilkan jika belum terwakili di kartu activeProjects dan project belum selesai
         $activeMentorTasks = $mentorTasks->filter(function ($t) use ($activeProjects, $completedProjects) {

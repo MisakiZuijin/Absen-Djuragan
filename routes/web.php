@@ -21,7 +21,9 @@ use App\Http\Controllers\SettingSchoolController;
 use App\Http\Controllers\SettingHolidayController;
 use App\Http\Controllers\SettingProjectController;
 use App\Http\Controllers\SettingDivisionController;
+use App\Http\Controllers\SettingBrandController;
 use App\Http\Controllers\BroadcastController;
+use App\Http\Controllers\ScheduledBroadcastController;
 use App\Http\Controllers\OutsiderDashboardController;
 use App\Http\Controllers\AssistantAdminController;
 use App\Http\Controllers\HandRaiseController;
@@ -37,7 +39,11 @@ use App\Http\Controllers\LateAbsenceController;
 use App\Http\Controllers\ProjectCompletedController;
 use App\Http\Controllers\AdminPermitSakitController;
 use App\Http\Controllers\AdminPermitKeperluanController;
+use App\Http\Controllers\OfflineAttendanceController;
 use App\Http\Controllers\SettingMeetController;
+use App\Http\Controllers\SuperAdmin\AdminManagementController;
+use App\Http\Controllers\SuperAdmin\SystemActivityLogController;
+use App\Services\UserService;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,18 +60,25 @@ Route::get('/platform-check', function () {
     return ['platform' => $agent->platform(), 'browser' => $agent->browser()];
 })->name('platform-check');
 
+// Route::post('/login') dihapus — method 'login' tidak ada di AuthController.
+// Login form submission menggunakan route 'login.action' (POST /loginAction).
+
+Route::post('/forgot-password', [UserService::class, 'forgotPassword'])
+    ->middleware('throttle:3,5')
+    ->name('forgot-password');
+
 // Authentication Routes
 Route::controller(AuthController::class)->group(function () {
     Route::get('/', 'loginView')->name('login.view');
-    Route::post('/loginAction', 'loginAction')->name('login.action');
+    Route::post('/loginAction', 'loginAction')->middleware('throttle:10,1')->name('login.action');
     Route::get('/logout', 'logoutAction')->name('logout.action');
     Route::get('/user/create', 'registerView')->name('register.view');
-    Route::post('/user/action/create', 'insertUser')->name('register.action');
+    Route::post('/user/action/create', 'insertUser')->middleware('throttle:10,1')->name('register.action');
     Route::get('/user/forget-password', 'forgetPasswordView')->name('forget-password.view');
-    Route::post('/user/action/forget-password', 'forgetPasswordAction')->name('forget-password.action');
+    Route::post('/user/action/forget-password', 'forgetPasswordAction')->middleware('throttle:5,5')->name('forget-password.action');
     Route::get('/user/verify/otp', 'validationOptView')->name('validation.view');
     Route::get('/user/change-password/{jwt}', 'changePasswordView')->name('change-password.view');
-    Route::post('/user/action/change-password/{jwt}', 'changePasswordAction')->name('change-password.action');
+    Route::post('/user/action/change-password/{jwt}', 'changePasswordAction')->middleware('throttle:5,5')->name('change-password.action');
     Route::get('/user/notif/success', 'successView')->name('notif.success.view');
 });
 
@@ -83,6 +96,7 @@ Route::prefix('user')->middleware('role:3')->group(function () {
         Route::post('/account-links/update', 'updateAccountLinks')->name('user.account.update');
         Route::post('/projects/{id}/repository', 'updateProjectRepository')->name('user.projects.repository.update');
         Route::post('/projects/{id}/revision-note', 'updateProjectRevisionNote')->name('user.projects.revision.update');
+        Route::post('/broadcast/{broadcast}/report', 'submitBroadcastReport')->name('user.broadcast.report');
     });
 
     Route::controller(AttendanceController::class)->group(function () {
@@ -172,6 +186,15 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/attendance/detail', [AttendanceController::class, 'attendanceDetailAdmin']);
     });
 
+    // Presensi Offline (Verifikasi Kehadiran Fisik)
+    Route::controller(OfflineAttendanceController::class)->group(function () {
+        Route::get('/absen-offline', 'index')->name('admin.absen-offline.index');
+        Route::post('/absen-offline', 'store')->name('admin.absen-offline.store');
+        Route::delete('/absen-offline/{id}', 'destroy')->name('admin.absen-offline.destroy');
+        Route::get('/absen-offline/status/{internId}', 'getInternStatus')->name('admin.absen-offline.status');
+        Route::post('/absen-offline/{id}/penalty', 'storePenalty')->name('admin.absen-offline.penalty');
+    });
+
     Route::controller(ShiftController::class)->group(function () {
         Route::get('shifts/{name?}', 'index')->name('admin.shift.index');
         Route::put('shifts/{id}', 'update')->name('admin.shift.update');
@@ -203,6 +226,10 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/izin-keluar', 'index')->name('admin.izinKeluar.index');
         Route::get('/izin-keluar/duration/{permitLog}', 'getLeaveDuration')->name('admin.izinKeluar.duration');
         Route::get('/izin-keluar/history/{intern}', 'showKeluarHistoryDetail')->name('admin.keluar.history.detail');
+        Route::put('/izin-keluar/{permitLog}/approve', 'approveLeavePermit')->name('admin.leave-permit.approve');
+        Route::post('/izin-keluar/{permitLog}/bebas-waktu', 'bebasWaktu')->name('admin.leave-permit.bebas-waktu');
+        Route::post('/izin-keluar/{permitLog}/wajib-ganti', 'wajibGantiWaktu')->name('admin.leave-permit.wajib-ganti');
+        Route::put('/izin-keluar/{permitLog}/reject', 'rejectLeavePermit')->name('admin.leave-permit.reject');
     });
 
     Route::controller(AdminIzinShalatController::class)->group(function () {
@@ -256,7 +283,11 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/portofolio-project', 'index')->name('admin.projects.completed');
     });
 
-    Route::post('/intern/update', [InternController::class, 'adminUpdateInternAction'])->name('admin.update.intern.action');
+    Route::controller(InternController::class)->group(function () {
+        Route::get('/interns/create', 'createInternView')->name('admin.interns.create');
+        Route::post('/interns/store', 'storeInternAction')->name('admin.interns.store');
+        Route::post('/intern/update', 'adminUpdateInternAction')->name('admin.update.intern.action');
+    });
 
     Route::controller(SchoolController::class)->group(function () {
         Route::get('/sekolah', 'adminSchoolView')->name('admin.school.view');
@@ -310,8 +341,8 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::controller(SettingProjectController::class)->group(function () {
             Route::get('/project', 'adminSettingProjectView')->name('admin.pengaturan.project');
             Route::post('/add-project', 'storeProject')->name('projects.store');
-            Route::get('/projects/{id}/edit', 'edit')->name('projects.edit');
             Route::put('/projects/update/{id}', 'update')->name('projects.update');
+            Route::get('/projects/division-data/{divisionId}', 'getInternsAndTitlesByDivision')->name('admin.projects.division_data');
             Route::delete('/delete-projects/{id}', 'destroy')->name('projects.destroy');
             Route::post('/projects/{id}/update-status', 'updateStatus');
             Route::post('/add-name-project', 'storeNameProject')->name('projects.nameProject');
@@ -331,11 +362,19 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::delete('/delete-division/{id}', 'deleteDivision')->name('divisions.delete');
         });
 
+        Route::controller(SettingBrandController::class)->group(function () {
+            Route::get('/brand', 'adminSettingBrandView')->name('admin.pengaturan.brand');
+            Route::post('/add-brand', 'storeBrand')->name('brands.store');
+            Route::put('/brand/{id}', 'updateBrand')->name('brands.update');
+            Route::delete('/delete-brand/{id}', 'deleteBrand')->name('brands.delete');
+            Route::post('/brand/{id}/toggle-status', 'toggleStatus')->name('brands.toggleStatus');
+        });
+
         Route::controller(SettingSchoolController::class)->group(function () {
-            Route::get('/schooll', 'adminSettingSekolahView')->name('admin.pengaturan.sekolah');
-            Route::post('/add-schooll', 'storeSchool')->name('schools.store');
-            Route::put('/update-schooll/{id}', 'updateSchool')->name('schools.update');
-            Route::delete('/delete-schooll/{id}', 'deleteSchool')->name('schools.delete');
+            Route::get('/school', 'adminSettingSekolahView')->name('admin.pengaturan.sekolah');
+            Route::post('/add-school', 'storeSchool')->name('schools.store');
+            Route::put('/update-school/{id}', 'updateSchool')->name('schools.update');
+            Route::delete('/delete-school/{id}', 'deleteSchool')->name('schools.delete');
         });
 
         Route::controller(SettingOfficeController::class)->group(function () {
@@ -369,11 +408,39 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             ->name('admin.pengaturan.checkin-message.update');
     });
 
+    // Pengumuman Dashboard (Announcement)
     Route::controller(BroadcastController::class)->prefix('broadcasts')->group(function () {
         Route::get('/', 'index')->name('admin.pengaturan.broadcast');
         Route::post('/', 'store')->name('broadcast.store');
         Route::put('/{broadcast}', 'update')->name('broadcast.update');
         Route::delete('/{broadcast}', 'destroy')->name('broadcast.delete');
+    });
+
+    // Broadcast Terjadwal (Pesan & Pertanyaan)
+    Route::controller(ScheduledBroadcastController::class)->prefix('scheduled-broadcasts')->group(function () {
+        Route::get('/', 'index')->name('admin.scheduled-broadcasts.index');
+        Route::post('/', 'store')->name('admin.scheduled-broadcasts.store');
+        Route::delete('/{broadcast}', 'destroy')->name('admin.scheduled-broadcasts.destroy');
+        Route::get('/{broadcast}/reports', 'showReports')->name('admin.scheduled-broadcasts.reports');
+    });
+
+    // Super Admin Exclusives (Role 7)
+    Route::middleware('role:7')->prefix('super-admin')->name('super-admin.')->group(function () {
+        // Kelola Akun Admin
+        Route::controller(AdminManagementController::class)->prefix('admins')->name('admins.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'store')->name('store');
+            Route::put('/{user}', 'update')->name('update');
+            Route::patch('/{user}/toggle', 'toggleStatus')->name('toggle-status');
+            Route::delete('/{user}', 'destroy')->name('destroy');
+        });
+
+        // Audit Log Aktivitas Sistem
+        Route::controller(SystemActivityLogController::class)->prefix('activity-logs')->name('activity-logs.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::get('/export-csv', 'exportCsv')->name('export');
+            Route::delete('/clear', 'clearOldLogs')->name('clear');
+        });
     });
 });
 
@@ -412,6 +479,15 @@ Route::middleware(['auth', 'role:6'])->prefix('assistant-admin')->name('assistan
         Route::get('/izin/toilet', 'izinToilet')->name('izin.toilet.index');
         Route::get('/izin/toilet/history/{intern}', 'showToiletHistory')->name('izin.toilet.history');
         Route::get('/permit-log/toilet/{permitLog}/duration', 'getToiletDuration')->name('permit.toilet.duration');
+    });
+
+    // Presensi Offline untuk Asisten Admin
+    Route::controller(OfflineAttendanceController::class)->group(function () {
+        Route::get('/absen-offline', 'index')->name('absen-offline.index');
+        Route::post('/absen-offline', 'store')->name('absen-offline.store');
+        Route::delete('/absen-offline/{id}', 'destroy')->name('absen-offline.destroy');
+        Route::get('/absen-offline/status/{internId}', 'getInternStatus')->name('absen-offline.status');
+        Route::post('/absen-offline/{id}/penalty', 'storePenalty')->name('absen-offline.penalty');
     });
 });
 

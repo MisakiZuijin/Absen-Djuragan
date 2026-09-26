@@ -15,21 +15,21 @@ class Broadcast extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'category',
         'title',
         'message',
         // [MODIFIKASI] 'image' dihapus karena sekarang kita menggunakan relasi untuk banyak gambar
         'broadcast_type',
+        'scheduled_at',
+        'requires_report',
+        'report_question',
+        'created_by',
     ];
 
-    /**
-     * The attributes that should be cast.
-     * Ini akan membuat Laravel secara otomatis meng-eager load relasi ini
-     * saat model Broadcast di-serialize ke JSON. Sangat berguna untuk JavaScript.
-     *
-     * @var array
-     */
-    // [MODIFIKASI] Menambahkan 'images' agar otomatis di-load bersama divisions dan users
-    protected $with = ['divisions', 'users', 'images'];
+    protected $casts = [
+        'scheduled_at' => 'datetime',
+        'requires_report' => 'boolean',
+    ];
 
     /**
      * Relasi ke model Division (Many-to-Many).
@@ -57,5 +57,54 @@ class Broadcast extends Model
     public function images()
     {
         return $this->hasMany(BroadcastImage::class);
+    }
+
+    /**
+     * Target per shift (Many-to-Many).
+     */
+    public function shifts()
+    {
+        return $this->belongsToMany(Shift::class, 'broadcast_shift', 'broadcast_id', 'shift_id');
+    }
+
+    /**
+     * Target per kantor/brand (Many-to-Many).
+     */
+    public function offices()
+    {
+        return $this->belongsToMany(Office::class, 'broadcast_office', 'broadcast_id', 'office_id');
+    }
+
+    /**
+     * Laporan yang dikirim pemagang untuk broadcast ini.
+     */
+    public function reports()
+    {
+        return $this->hasMany(BroadcastReport::class);
+    }
+
+    /**
+     * Broadcast tanpa jadwal dianggap langsung terkirim;
+     * yang terjadwal terkirim saat waktunya tiba (tanpa cron).
+     */
+    public function isDue(): bool
+    {
+        return is_null($this->scheduled_at) || $this->scheduled_at->lessThanOrEqualTo(now());
+    }
+
+    /**
+     * Scope khusus untuk Pengumuman Banner/Dashboard biasa
+     */
+    public function scopeAnnouncements($query)
+    {
+        return $query->where('category', 'announcement');
+    }
+
+    /**
+     * Scope khusus untuk Broadcast Pesan/Pertanyaan Terjadwal
+     */
+    public function scopeScheduledBroadcasts($query)
+    {
+        return $query->where('category', 'scheduled_broadcast');
     }
 }

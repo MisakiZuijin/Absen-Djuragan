@@ -7,6 +7,7 @@ use App\Http\Requests\StoreSchoolRequest;
 use App\Http\Requests\UpdateSchoolRequest;
 use App\Repositories\Interface\InternRepository;
 use App\Repositories\Interface\SchoolRepository;
+use App\Models\School;
 use App\Helper\LogConsole;
 
 use function Sentry\captureException;
@@ -49,16 +50,15 @@ class SchoolService
 
     public function getCountSchool(): ActionResult
     {
-
         try {
-            $data = $this->schoolRepository->getAllSchool();
+            $data = School::withCount('interns')->get();
 
-            if (!$data) {
+            if ($data->isEmpty()) {
                 return new ActionResult(false, "school is empty", null);
             }
 
-            for ($i = 0; $i < sizeof($data); $i++) {
-                $data[$i]["intern_total"] = $this->internRepository->countBySchool($data[$i]->id) ?? 0;
+            foreach ($data as $school) {
+                $school->intern_total = $school->interns_count;
             }
 
             return new ActionResult(true, "success count data school", $data);

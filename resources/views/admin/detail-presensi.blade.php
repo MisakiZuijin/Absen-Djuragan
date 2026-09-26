@@ -3,36 +3,31 @@
 @section('title', 'Detail Presensi')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar')
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
-        <div class="bg-gray-700 text-white p-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Left Column -->
-                <div class="flex items-center space-x-4">
-                    <!-- Profile Icon -->
-                    <i class="fas fa-user-circle text-7xl"></i>
-
-                    <!-- Text Content -->
-                    <div class="flex flex-col space-y-2">
-                        <div id="fullname" class="text-4xl font-bold">{{ $intern_data->full_name }}</div>
-                        <div class="text-lg">NIP : <span id="nip">{{ $intern_data->NIP }}</span></div>
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
+        <div class="bg-gradient-to-r from-slate-800 to-slate-700 text-white rounded-2xl shadow-xs p-5 border border-slate-700/50">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center">
+                <!-- Left Column: User Profile -->
+                <div class="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                    <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl bg-slate-700/80 border border-slate-600 flex items-center justify-center text-2xl sm:text-3xl text-slate-300 shrink-0">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="flex flex-col min-w-0">
+                        <div id="fullname" class="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">{{ $intern_data->full_name }}</div>
+                        <div class="text-xs text-slate-300 font-mono mt-0.5">NIP : <span id="nip" class="font-bold text-white">{{ $intern_data->NIP }}</span></div>
                     </div>
                 </div>
 
-                <!-- Right Column -->
-                <div class="flex flex-col space-y-2">
-                    <label for="search-student" class="text-lg font-medium">Cari Status Kehadiran</label>
-                    <div class="flex items-center border border-gray-300 rounded">
-                        <div class="bg-white p-2 rounded-l">
-                            <i class="ml-2 fa-solid fa-search text-gray-500"></i>
+                <!-- Right Column: Status Filter -->
+                <div class="flex flex-col space-y-1.5">
+                    <label for="search-student" class="text-xs font-semibold text-slate-200">Filter Status Kehadiran</label>
+                    <div class="flex items-center bg-white rounded-xl border border-slate-300 overflow-hidden shadow-2xs">
+                        <div class="p-2 sm:p-2.5 text-gray-400 bg-gray-50 border-r border-gray-200">
+                            <i class="fa-solid fa-search text-xs"></i>
                         </div>
-
                         <select id="search-student"
-                            class="p-2 pl-2 pr-2 text-gray-800 focus:outline-none focus:border-blue-500 w-full">
-                            <option value="" disabled selected>--Pilih Kehadiran--</option>
+                            class="p-2 text-xs text-gray-800 font-medium focus:outline-none focus:ring-0 w-full bg-transparent">
+                            <option value="" disabled selected>-- Semua Kehadiran --</option>
                             @foreach ($attd_statuses as $status)
                                 <option value="{{ $status->id }}">{{ $status->name }}</option>
                             @endforeach
@@ -42,167 +37,191 @@
             </div>
         </div>
 
-        <div class="flex space-x-4 mt-2">
+        <!-- Row 1: Target & Jam Kerja (Left) & Total Presensi Ditandai (Right) -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
 
-            <!-- Second Card -->
-            <div class="bg-white border border-gray-300 rounded-lg shadow-md p-3 mb-2">
-                <h2 class="border-b font-semibold pb-2"> Periode Magang :
-                    {{-- Menggunakan Carbon untuk format tanggal yang lebih aman --}}
-                    {{ $intern_target['start_period'] ? \Carbon\Carbon::parse($intern_target['start_period'])->format('d-m-Y') : '' }} s/d {{ $intern_target['end_period'] ? \Carbon\Carbon::parse($intern_target['end_period'])->format('d-m-Y') : '' }}
-                </h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">Total Jam Kerja</span>
-                        <span class="text-right flex-1">
-                            <span class="px-4 py-1 text-sm font-medium text-center text-white bg-green-500 rounded-xl">
-                                {{ $intern_target['total_work_time'] ?? '' }}
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">Total Masuk</span>
-                        <span class="text-right flex-1">
-                            <span class="px-4 py-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">
-                                {{ $intern_target['admission_total'] ?? '' }}
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">Target</span>
-                        <span class="text-right flex-1">
-                            <span class="px-4 py-1 text-sm font-medium text-center text-white bg-green-500 rounded-xl">
-                                {{ $intern_target['target_time'] ?? '' }}
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">Sisa</span>
-                        <span class="text-right flex-1">
-                            <span class="px-4 py-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">
-                                {{ $intern_target['time_target_remaining'] ?? '' }}
-                            </span>
-                        </span>
-                    </div>
-                    
-                    {{-- ID SUDAH DITAMBAHKAN DI SINI --}}
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">Total Ganti Jam</span>
-                        <span class="text-right flex-1">
-                            <span id="total-ganti-jam-value" class="px-4 py-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">
-                                {{ $intern_target['change_time_total'] ?? '' }}
-                            </span>
-                        </span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <span class="font-semibold">sisa setelah diskon</span>
-                        <span class="text-right flex-1">
-                            <span id="sisa-setelah-diskon-value" class="px-4 py-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">
-                                {{ $intern_target['remaing_time_after_discount'] ?? '' }}
-                            </span>
-                        </span>
+            <!-- Card 1: Periode Magang & Jam Kerja -->
+            <div class="bg-white border border-gray-200 rounded-2xl shadow-xs p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                <i class="fa-regular fa-calendar-days"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-sm">Periode Magang</h3>
+                                <p id="intern-period-text" class="text-xs text-blue-600 font-semibold mt-0.5">
+                                    {{ $intern_target['start_period'] ? \Carbon\Carbon::parse($intern_target['start_period'])->format('d-m-Y') : '-' }} s/d {{ $intern_target['end_period'] ? \Carbon\Carbon::parse($intern_target['end_period'])->format('d-m-Y') : '-' }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    {{-- FORM SUDAH DIPERBAIKI DENGAN ID DAN INPUT TERSEMBUNYI --}}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Total Jam Kerja</span>
+                            <span class="px-3 py-1 text-xs font-bold text-white bg-emerald-600 rounded-lg shadow-2xs">
+                                {{ $intern_target['total_work_time'] ?? '0j 0m' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Total Masuk</span>
+                            <span class="px-3 py-1 text-xs font-bold text-white bg-gray-700 rounded-lg shadow-2xs">
+                                {{ $intern_target['admission_total'] ?? '0 Hari' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Target</span>
+                            <span class="px-3 py-1 text-xs font-bold text-white bg-emerald-600 rounded-lg shadow-2xs">
+                                {{ $intern_target['target_time'] ?? '0j 0m' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Sisa</span>
+                            <span class="px-3 py-1 text-xs font-bold text-white bg-gray-700 rounded-lg shadow-2xs">
+                                {{ $intern_target['time_target_remaining'] ?? '0j 0m' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Total Ganti Jam</span>
+                            <span id="total-ganti-jam-value" class="px-3 py-1 text-xs font-bold text-white bg-gray-700 rounded-lg shadow-2xs">
+                                {{ $intern_target['change_time_total'] ?? '0j 0m' }}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                            <span class="font-semibold text-gray-700">Sisa Setelah Diskon</span>
+                            <span id="sisa-setelah-diskon-value" class="px-3 py-1 text-xs font-bold text-white bg-gray-700 rounded-lg shadow-2xs">
+                                {{ $intern_target['remaing_time_after_discount'] ?? '0j 0m' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Diskon Jam -->
+                <div class="mt-4 pt-3 border-t border-gray-100">
                     <form id="discount-form" action="{{ route('discount-time.store') }}" method="POST">
                         @csrf
                         <input name="schedule_id" type="hidden" value="{{ $schedule_data['schedule']['id'] ?? '' }}">
-                        
-                        <!-- WAJIB: Input tersembunyi untuk mengirim target yang konsisten -->
                         <input type="hidden" name="cumulative_target_minutes" value="{{ $target_in_minutes ?? 0 }}">
                         
-                        <div class="flex items-center space-x-4">
-                            <input type="number" placeholder="diskon jam (Menit)" name="discount_time" id="discount-input" value="{{ $intern_target['discount_time'] ?? 0 }}"
-                                class="flex-1 py-1 px-2 w-10 text-sm border rounded-xl focus:outline-none focus:ring focus:ring-gray-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                            <button type="submit" id="save-discount-btn"
-                                class="px-3 py-1 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 focus:outline-none focus:ring focus:ring-blue-300">
-                                Simpan
-                            </button>
+                        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2">
+                            <label for="discount-input" class="text-xs font-semibold text-gray-700 whitespace-nowrap">Diskon Jam (menit):</label>
+                            <div class="flex items-center gap-2 flex-1 w-full sm:w-auto">
+                                <input type="number" placeholder="Menit" name="discount_time" id="discount-input" value="{{ $intern_target['discount_time'] ?? 0 }}"
+                                    class="flex-1 py-1.5 px-3 text-xs border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                                <button type="submit" id="save-discount-btn"
+                                    class="px-4 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition shadow-2xs cursor-pointer shrink-0">
+                                    Simpan
+                                </button>
+                            </div>
                         </div>
                     </form>
-
                 </div>
             </div>
 
-            <!-- Third Card -->
-            <div class="bg-white border border-gray-300 rounded-lg shadow-md p-3 mb-2">
-                <div class="font-semibold border-b border-gray-500 mb-2 pb-2">Total Presensi(ditandai)</div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Masuk</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['admit_total'] ?? '' }}x</span></span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Istirahat Keluar</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['break_start_total'] ?? '' }}x</span></span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Izin Keluar</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['permit_total'] ?? '' }}x</span></span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Ganti Jam Total</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['adjustable_total'] ?? '' }}x</span></span>
+            <!-- Card 2: Total Presensi (ditandai) -->
+            <div class="bg-white border border-gray-200 rounded-2xl shadow-xs p-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
+                                <i class="fa-solid fa-clipboard-check"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-gray-900 text-sm">Total Presensi (Ditandai)</h3>
+                                <p class="text-[11px] text-gray-500">Akumulasi tanda kehadiran siswa</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="flex flex-col space-y-2">
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Pulang</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['back_total'] ?? '' }}x</span></span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Istirahat Kembali</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['break_back_total'] ?? '' }}x</span></span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Izin Kembali</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['permit_back_total'] ?? '' }}x</span></span>
-                        </div>
 
-                        <div class="flex items-center justify-between">
-                            <span class="font-semibold">Ganti Jam Diterima</span>
-                            <span class="text-right flex-1"><span
-                                    class="px-4 p-1 text-sm font-medium text-center text-white bg-gray-700 rounded-xl">{{ $intern_target['accepted_adjustable_total'] ?? '' }}x</span></span>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs">
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Masuk</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['admit_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Istirahat Keluar</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['break_start_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Izin Keluar</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['permit_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Ganti Jam Total</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['adjustable_total'] ?? '0' }}x</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col gap-2">
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Pulang</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['back_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Istirahat Kembali</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['break_back_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Izin Kembali</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['permit_back_total'] ?? '0' }}x</span>
+                            </div>
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded-xl border border-gray-100">
+                                <span class="font-semibold text-gray-700">Ganti Jam Diterima</span>
+                                <span class="px-2.5 py-0.5 text-xs font-bold text-white bg-gray-700 rounded-lg">{{ $intern_target['accepted_adjustable_total'] ?? '0' }}x</span>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
+        </div>
 
-            <!-- Form -->
-            <div class="bg-white border border-gray-300 rounded-lg shadow-md p-6 flex-1 max-w-md mb-2">
-                <form class="space-y-4" action="{{ route('intern.storeNote', ['id' => $intern_data->id]) }}" method="POST">
-                    @csrf
-                    <div class="flex flex-col space-y-2">
-                        <textarea id="text-input" name="attention_message" rows="4"
-                            class="p-3 w-full border border-gray-800 rounded-md focus:outline-none focus:border-blue-500"
-                            placeholder="Tambahkan catatan untuk User">{{ $notes }}</textarea>
+        <!-- Row 2: Form Catatan / Pesan Mentor (Ditaruh di bawah periode magang & total presensi) -->
+        <div class="bg-white border border-gray-200 rounded-2xl shadow-xs p-5 mt-4">
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-bullhorn"></i>
                     </div>
-                    <div class="flex justify-end space-x-4">
-                        <button type="submit"
-                            class="bg-gray-700 text-white px-4 py-2 rounded-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">Tambahkan</button>
-                        <button type="button" id="btn-cancel-note"
-                            class="bg-gray-300 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500">Batal</button>
+                    <div>
+                        <h3 class="font-bold text-gray-900 text-sm">Catatan / Pesan Mentor untuk Siswa</h3>
+                        <p class="text-[11px] text-gray-500">Pesan ini akan tampil langsung di dashboard pemagang</p>
                     </div>
-                </form>
+                </div>
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                    <i class="fa-solid fa-user-tie text-[10px]"></i> Catatan Mentor
+                </span>
             </div>
+            <form id="note-form" class="space-y-3" action="{{ route('intern.storeNote', ['id' => $intern_data->id]) }}" method="POST">
+                @csrf
+                <div>
+                    <textarea id="text-input" name="attention_message" rows="3"
+                        class="p-3 w-full border border-gray-300 rounded-xl text-xs md:text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                        placeholder="Tuliskan catatan khusus atau arahan tugas untuk siswa ini...">{{ $notes }}</textarea>
+                </div>
+                <div class="flex justify-end items-center gap-2">
+                    <button type="button" id="btn-cancel-note"
+                        class="bg-gray-100 text-gray-700 px-4 py-2 text-xs font-semibold rounded-xl hover:bg-gray-200 transition-colors cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit"
+                        class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2 text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-floppy-disk"></i>
+                        <span>Simpan Catatan</span>
+                    </button>
+                </div>
+            </form>
         </div>
 
         @if (session('status'))
             <div id="success-message"
-                class="mb-2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative transition-opacity duration-500"
+                class="mt-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-xl relative transition-opacity duration-500 shadow-xs"
                 role="alert">
-                <strong class="font-bold">Success!</strong>
-                <span class="block sm:inline">{{ session('status') }}</span>
+                <strong class="font-bold">Sukses!</strong>
+                <span class="block sm:inline ml-1">{{ session('status') }}</span>
                 <span class="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer" onclick="removeMessage()">
-                    <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg"
+                    <svg class="fill-current h-5 w-5 text-green-600" role="button" xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 20 20">
                         <title>Close</title>
                         <path
@@ -213,99 +232,91 @@
         @endif
 
         @if ($errors->any())
-            <div class="alert alert-danger">
+            <div class="mt-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-xl text-xs space-y-1">
                 @foreach ($errors->all() as $error)
                     <p>{{ $error }}</p>
                 @endforeach
             </div>
         @endif
 
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white shadow-md rounded-lg border-separate border-spacing-1">
+        <!-- List Kehadiran Table Container -->
+        <div class="overflow-x-auto bg-white shadow-xs rounded-2xl border border-gray-200 mt-4 min-h-[350px] pb-28">
+            <table class="min-w-full text-xs text-center border-collapse">
                 <thead>
-                    <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
-
-                        <th rowspan="2" class="px-4 py-2 border-r">No</th>
-                        <th rowspan="2" class="px-4 py-2 text-left border-r">Tanggal</th>
-                        <!-- Left-aligned for Tanggal column -->
-                        <th colspan="2" class="px-4 py-2 border-r">Jam Kerja</th> <!-- Heading for Jam Kerja -->
-                        <th colspan="2" class="px-4 py-2 border-r">Jam Istirahat</th>
-                        <!-- Heading for Jam Istirahat -->
-                        <th colspan="2" class="px-4 py-2 border-r">Total Jam Kerja</th>
-                        <!-- Heading for Total Jam Kerja -->
-                        <th rowspan="2" class="px-4 py-2 border-r">Kehadiran</th>
-                        <th rowspan="2" class="px-4 py-2 border-r">Location</th>
-                        <th rowspan="2" class="px-4 py-2 border-r">Log Activity</th>
-                        <th rowspan="2" class="px-4 py-2">Aksi</th>
+                    <tr class="bg-slate-800 text-white text-[11px] uppercase tracking-wider font-semibold">
+                        <th rowspan="2" class="py-2.5 px-3 border-r border-slate-700">No</th>
+                        <th rowspan="2" class="py-2.5 px-3 text-left border-r border-slate-700">Tanggal</th>
+                        <th colspan="2" class="py-2 px-3 border-r border-slate-700">Jam Kerja</th>
+                        <th colspan="2" class="py-2 px-3 border-r border-slate-700">Jam Istirahat</th>
+                        <th colspan="2" class="py-2 px-3 border-r border-slate-700">Total Jam Kerja</th>
+                        <th rowspan="2" class="py-2.5 px-3 border-r border-slate-700">Kehadiran</th>
+                        <th rowspan="2" class="py-2.5 px-3 border-r border-slate-700">Lokasi</th>
+                        <th rowspan="2" class="py-2.5 px-3 border-r border-slate-700">Log Activity</th>
+                        <th rowspan="2" class="py-2.5 px-3">Aksi</th>
                     </tr>
-                    <tr class="bg-gray-200 text-gray-700 text-sm uppercase leading-normal text-center">
-                        <!-- Sub-headings for the merged columns -->
-                        <th class="px-4 py-2 border-r border-t">Masuk</th>
-                        <th class="px-4 py-2 border-r border-t">Pulang</th>
-                        <th class="px-4 py-2 border-r border-t">Mulai</th>
-                        <th class="px-4 py-2 border-r border-t">Selesai</th>
-                        <th class="px-4 py-2 border-r border-t">Total Jam</th>
-                        <th class="px-4 py-2 border-r border-t">(+/-)</th>
+                    <tr class="bg-slate-700 text-slate-200 text-[10px] uppercase tracking-wider font-medium">
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">Masuk</th>
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">Pulang</th>
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">Mulai</th>
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">Selesai</th>
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">Total Jam</th>
+                        <th class="py-1.5 px-2.5 border-r border-slate-600">(+/-)</th>
                     </tr>
                 </thead>
 
-                <tbody id="report-tbody" class="text-sm font-normal text-gray-800">
+                <tbody id="report-tbody" class="divide-y divide-gray-100 text-xs text-gray-800">
                 </tbody>
-
             </table>
 
-            <div id="loading-spinner" class="flex justify-center items-center py-4 hidden">
-                <div class="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-10 w-10"></div>
+            <div id="loading-spinner" class="flex justify-center items-center py-8 hidden">
+                <div class="loader ease-linear rounded-full border-4 border-t-4 border-blue-500 h-8 w-8 animate-spin"></div>
             </div>
 
-            <div id="no-data-message" class="text-center py-4 text-gray-600 hidden">
-                No data available
+            <div id="no-data-message" class="text-center py-8 text-xs text-gray-500 hidden">
+                Tidak ada data kehadiran yang ditemukan.
             </div>
         </div>
 
         <!-- Pagination Controls -->
-        <div class="mt-4 flex justify-center items-center space-x-2 border rounded-md p-2">
+        <div class="mt-4 flex flex-wrap justify-between items-center gap-3 bg-white p-3 rounded-2xl border border-gray-200 shadow-xs">
             <button id="prev-page"
-                class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100" disabled>
-                Previous
+                class="cursor-pointer bg-white text-gray-700 font-semibold text-xs px-3.5 py-1.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fa-solid fa-chevron-left mr-1"></i> Sebelumnya
             </button>
 
-            <!-- Page numbers will be dynamically added here -->
-            <div id="page-numbers" class="flex space-x-2"></div>
+            <!-- Page numbers -->
+            <div id="page-numbers" class="flex flex-wrap items-center gap-1.5"></div>
 
-            <button id="next-page" class="bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100">
-                Next
+            <button id="next-page" class="cursor-pointer bg-white text-gray-700 font-semibold text-xs px-3.5 py-1.5 rounded-xl border border-gray-300 hover:bg-gray-50 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                Selanjutnya <i class="fa-solid fa-chevron-right ml-1"></i>
             </button>
         </div>
 
-        <!-- Buttons placed side by side -->
-        <div class="mt-4 flex justify-end space-x-4">
-
+        <!-- Action Export Buttons -->
+        <div class="mt-4 flex justify-end items-center gap-3">
             <button id="download-pdf"
-                class="px-3 py-2 text-sm font-medium text-center text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
-                <i class="fa-solid fa-download"></i>
+                class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer">
+                <i class="fa-solid fa-file-pdf"></i>
                 <span>Download PDF</span>
             </button>
 
-            <!-- Download Log Activity Button -->
             <a href="/admin/presence/log-activity/{{ $intern_id }}" target="_blank"
-                class="px-3 py-2 text-sm font-medium text-center text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800">
+                class="px-4 py-2 text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer">
                 <i class="fa-solid fa-download"></i>
                 <span>Download Log Activity</span>
             </a>
-
         </div>
     </main>
 
     <!-- Modal Edit Presensi -->
-    <div id="editModal" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-        <div class="bg-white rounded-lg overflow-hidden shadow-lg max-w-sm w-full">
-            <div class="px-6 py-4">
-                <h2 class="text-lg font-semibold mb-4 text-center">Edit Presensi</h2>
-                <p class="bg-red-300 p-2 rounded mb-5">
-                    Anda akan merubah presensi <span id="field1"></span> tanggal
-                    <span id="date-display" class="font-semibold">---</span> atas nama:
-                    <span id="name-display" class="font-semibold">---</span>
+    <div id="editModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 p-4 hidden">
+        <div class="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-sm w-full mx-auto max-h-[90vh] overflow-y-auto">
+            <div class="p-5 sm:p-6">
+                <h2 class="text-lg font-semibold mb-3 text-center text-gray-800">Edit Presensi</h2>
+                <p class="bg-red-50 text-red-700 border border-red-200 p-3 rounded-lg mb-4 text-xs sm:text-sm">
+                    Anda akan merubah presensi <span id="field1" class="font-bold"></span> tanggal
+                    <span id="date-display" class="font-bold">---</span> atas nama:
+                    <span id="name-display" class="font-bold">---</span>
                 </p>
                 <form id="editForm" action="" method="POST">
                     @csrf
@@ -315,21 +326,21 @@
                     <input type="hidden" name="current_page" id="current-page" value="1">
                     <!-- Tambahkan input hidden untuk halaman -->
                     <div class="mb-4">
-                        <label for="time" class="block text-gray-700 text-sm font-bold mb-2">Waktu:</label>
+                        <label for="time" class="block text-gray-700 text-sm font-semibold mb-2">Waktu:</label>
                         <input type="time" name="time" id="time" step="1"
-                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600"
+                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm"
                             required>
                     </div>
                     <div class="mb-4">
-                        <label for="message" class="block text-gray-700 text-sm font-bold mb-2">Keterangan:</label>
+                        <label for="message" class="block text-gray-700 text-sm font-semibold mb-2">Keterangan:</label>
                         <input type="text" name="message" id="message"
-                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600">
+                            class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 text-sm">
                     </div>
-                    <div class="flex justify-end">
+                    <div class="flex justify-end gap-2">
                         <button type="button" onclick="closeModal()"
-                            class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 mr-2">Batal</button>
+                            class="px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition">Batal</button>
                         <button type="submit"
-                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Simpan</button>
+                            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition">Simpan</button>
                     </div>
                 </form>
             </div>
@@ -337,30 +348,30 @@
     </div>
 
     <!-- Modal Status Kehadiran -->
-    <div id="modal-presence" class="fixed inset-0 flex items-center justify-center bg-gray-900 bg-opacity-50 hidden">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-md relative">
-            <h2 class="text-2xl font-semibold mb-4 text-center">Status Kehadiran</h2>
+    <div id="modal-presence" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900 bg-opacity-50 p-4 hidden">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-2xl w-full max-w-md relative max-h-[90vh] overflow-y-auto">
+            <h2 class="text-xl sm:text-2xl font-semibold mb-4 text-center text-gray-800">Status Kehadiran</h2>
             <form id="permit-form" method="POST" action="">
                 @csrf
                 <input type="hidden" id="id" name="id" />
                 <input type="hidden" id="id-schedule" name="id-schedule" />
                 <input type="hidden" id="id-shift" name="id-shift" />
                 <div class="mb-4">
-                    <label for="keterangan" class="block text-gray-700 mb-2">Keterangan Ketidakhadiran<span
+                    <label for="keterangan" class="block text-gray-700 text-sm font-medium mb-1.5">Keterangan Ketidakhadiran<span
                             class="text-red-500">*</span></label>
                     <textarea id="keterangan" name="keterangan" rows="4"
-                        class="w-full h-20 border border-gray-300 rounded-lg p-2" required></textarea>
+                        class="w-full h-20 border border-gray-300 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
                 </div>
                 <div class="mb-4">
-                    <label for="link-google-drive" class="block text-gray-700 mb-2">Link Google Drive<span
+                    <label for="link-google-drive" class="block text-gray-700 text-sm font-medium mb-1.5">Link Google Drive<span
                             class="text-red-500">*</span></label>
                     <input type="url" id="link-google-drive" name="link-google-drive"
-                        class="w-full border border-gray-300 rounded-lg p-2" required />
+                        class="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required />
                 </div>
                 <div class="mb-4">
-                    <label for="kategori-izin" class="block text-gray-700 mb-2">Kategori Izin<span
+                    <label for="kategori-izin" class="block text-gray-700 text-sm font-medium mb-1.5">Kategori Izin<span
                             class="text-red-500">*</span></label>
-                    <select id="kategori-izin" name="kategori-izin" class="w-full border border-gray-300 rounded-lg p-2"
+                    <select id="kategori-izin" name="kategori-izin" class="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         required>
                         @foreach ($listPermitCategory as $category)
                             <option value="{{ $category['id'] }}">{{ $category['name'] }}</option>
@@ -368,47 +379,64 @@
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label for="jam-option" class="block text-gray-700 mb-2">Status<span
+                    <label for="jam-option" class="block text-gray-700 text-sm font-medium mb-1.5">Status<span
                             class="text-red-500">*</span></label>
-                    <select id="jam-option" name="jam-option" class="w-full border border-gray-800 rounded-lg p-2" required>
+                    <select id="jam-option" name="jam-option" class="w-full border border-gray-300 rounded-xl p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         <option value="1">Tidak Ganti Jam</option>
                         <option value="2">Ganti Jam</option>
                     </select>
                 </div>
-                <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">Simpan</button>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('modal-presence').classList.add('hidden')"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition text-sm">Batal</button>
+                    <button type="submit" class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition text-sm">Simpan</button>
                 </div>
             </form>
-            <button id="close-modal" class="absolute top-2 right-2 text-gray-700 hover:text-gray-900">
-                <i class="fas fa-times"></i>
+            <button id="close-modal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 p-1 rounded-lg">
+                <i class="fas fa-times text-base"></i>
             </button>
         </div>
     </div>
 
     <!-- Modal Log Activity -->
-    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
-        <div class="bg-white p-4 rounded-lg w-11/12 max-w-xl">
-            <h2 class="text-lg font-semibold mb-4">Log Activity</h2>
-            <form id="log-activity-form" action="" method="POST">
+    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-2xs hidden z-50 p-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-gray-800">Log Activity</h2>
+                        <p class="text-xs text-gray-500">Tanggal: <span id="log-activity-date-text" class="font-semibold text-gray-700">---</span></p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModalActivity()" class="text-gray-400 hover:text-gray-600 cursor-pointer p-1 rounded-lg hover:bg-gray-100 transition">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+            <form id="log-activity-form" action="" method="POST" class="flex-1 flex flex-col overflow-y-auto">
                 @csrf
                 <!-- Textarea -->
-                <div class="mb-4">
+                <div class="mb-4 flex-1">
                     <input type="hidden" id="attdId" name="attd_id" />
                     <input type="hidden" id="activity-date" name="date" />
-                    <textarea id="log-activity" name="activity"
-                        class="mt-1 p-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring focus:border-blue-500"
-                        rows="4"></textarea>
+                    <label for="log-activity" class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Isi Aktivitas Harian</label>
+                    <textarea id="log-activity" name="activity" required
+                        placeholder="Tuliskan aktivitas atau kegiatan pemagang di sini..."
+                        class="p-3 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm leading-relaxed"
+                        rows="5"></textarea>
                 </div>
 
-                <!-- Tombol Tutup -->
-                <div class="flex justify-end">
-                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                        Perbarui
+                <!-- Tombol -->
+                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 shrink-0">
+                    <button type="button" onclick="closeModalActivity()"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors cursor-pointer text-xs">
+                        Batal
                     </button>
-                    <div class="px-1"></div>
-                    <button type="button" id="close-modal-btn" onclick="closeModalActivity()"
-                        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-                        Tutup
+                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-xs transition-colors cursor-pointer text-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-floppy-disk text-xs"></i>
+                        <span>Simpan Log</span>
                     </button>
                 </div>
             </form>
@@ -416,74 +444,88 @@
     </div>
 
     <!-- Modal Update Shift -->
-    <div id="modalUpdateShift" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center hidden">
-        <div class="bg-white rounded-lg w-1/3 p-6">
+    <div id="modalUpdateShift" class="fixed inset-0 z-50 bg-gray-900 bg-opacity-50 flex justify-center items-center p-4 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-md sm:max-w-lg p-5 sm:p-6 max-h-[90vh] overflow-y-auto shadow-2xl">
             <!-- Modal Header -->
-            <div class="flex justify-between items-center">
-                <h3 class="text-xl font-semibold">Update Shift tanggal <span id="dateShiftText"></span></h3>
-                <button class="text-gray-600" onclick="closeModalShift()">&times;</button>
+            <div class="flex justify-between items-center pb-3 border-b border-gray-100">
+                <h3 class="text-base sm:text-lg font-bold text-gray-900">Update Shift tanggal <span id="dateShiftText" class="text-blue-600"></span></h3>
+                <button class="text-gray-400 hover:text-gray-600 p-1 rounded-lg" onclick="closeModalShift()">&times;</button>
             </div>
 
             <form action="{{ route('update.Shift') }}" method="POST">
                 @csrf
 
                 <!-- Modal Body -->
-                <div class="mt-4">
+                <div class="mt-4 space-y-3">
                     <input id="scheduleId" name="scheduleId" type="hidden" value="" />
                     <!-- Shift Saat Ini -->
-                    <label for="currentShift" class="block text-sm font-medium text-gray-700">Shift Saat Ini</label>
-                    <select id="currentShift" name="currentShift"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        @foreach ($shifts as $shift)
-                            <option value="{{ $shift->id }}" {{ $shift->id == old('currentShift') ? 'selected' : '' }}>
-                                {{ $shift->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                    <div>
+                        <label for="currentShift" class="block text-xs font-semibold text-gray-700">Shift Saat Ini</label>
+                        <select id="currentShift" name="currentShift"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            @foreach ($shifts as $shift)
+                                <option value="{{ $shift->id }}" {{ $shift->id == old('currentShift') ? 'selected' : '' }}>
+                                    {{ $shift->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <label for="work_type" class="mt-3 block text-sm font-medium text-gray-700">Pilih tipe kerja</label>
-                    <select id="work_type" name="work_type"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="wfo"> WFO </option>
-                        <option value="wfh"> WFH </option>
-                    </select>
+                    <div>
+                        <label for="work_type" class="block text-xs font-semibold text-gray-700">Pilih tipe kerja</label>
+                        <select id="work_type" name="work_type"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            <option value="wfo"> WFO </option>
+                            <option value="wfh"> WFH </option>
+                        </select>
+                    </div>
 
+                    <div>
+                        <label for="schedule_type" class="block text-xs font-semibold text-gray-700">Tipe Jadwal</label>
+                        <select id="schedule_type" name="schedule_type"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            <option value="1"> Ganti Jam</option>
+                            <option value="0"> Jadwal Biasa </option>
+                        </select>
+                    </div>
 
-                    <label for="schedule_type" class="mt-3 block text-sm font-medium text-gray-700">Tipe Jadwal</label>
-                    <select id="schedule_type" name="schedule_type"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="1"> Ganti Jam</option>
-                        <option value="0"> Jadwal Biasa </option>
-                    </select>
+                    <div>
+                        <label for="approved_change_time" class="block text-xs font-semibold text-gray-700">Terima Ganti jam</label>
+                        <select id="approved_change_time" name="approved_change_time"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            <option value="1"> Ya </option>
+                            <option value="0"> Tidak </option>
+                        </select>
+                    </div>
 
+                    <div>
+                        <label for="back_first" class="block text-xs font-semibold text-gray-700">Pulang lebih Awal</label>
+                        <select id="back_first" name="back_first"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            <option value="1"> Ya </option>
+                            <option value="0"> Tidak </option>
+                        </select>
+                    </div>
 
-                    <label for="approved_change_time" class="mt-3 block text-sm font-medium text-gray-700">Terima Ganti
-                        jam</label>
-                    <select id="approved_change_time" name="approved_change_time"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="1"> Ya </option>
-                        <option value="0"> Tidak </option>
-                    </select>
-
-                    <label for="back_first" class="mt-3 block text-sm font-medium text-gray-700">Pulang lebih Awal</label>
-                    <select id="back_first" name="back_first"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="1"> Ya </option>
-                        <option value="0"> Tidak </option>
-                    </select>
-
-                    <label for="break_first" class="mt-3 block text-sm font-medium text-gray-700">Istirahat lebih
-                        Awal</label>
-                    <select id="break_first" name="break_first"
-                        class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
-                        <option value="1"> Ya </option>
-                        <option value="0"> Tidak </option>
-                    </select>
+                    <div>
+                        <label for="break_first" class="block text-xs font-semibold text-gray-700">Istirahat lebih Awal</label>
+                        <select id="break_first" name="break_first"
+                            class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-xl shadow-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm">
+                            <option value="1"> Ya </option>
+                            <option value="0"> Tidak </option>
+                        </select>
+                    </div>
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="flex justify-end space-x-4 mt-6">
-                    <button class="bg-red-600 text-white hover:bg-red-700 px-4 py-2 rounded" type="submit">Simpan</button>
+                <div class="flex justify-end gap-2 mt-6 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="closeModalShift()"
+                        class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition text-xs sm:text-sm">
+                        Batal
+                    </button>
+                    <button class="bg-red-600 text-white hover:bg-red-700 px-5 py-2 rounded-xl font-medium transition text-xs sm:text-sm shadow-xs" type="submit">
+                        Simpan
+                    </button>
                 </div>
             </form>
         </div>
@@ -583,17 +625,34 @@
             }
         });
 
-        function openModalActivity(activity, id, attdId, date) {
+        function openModalActivity(btnOrActivity, id, attdId, date) {
             const modal = document.getElementById('modal');
 
             const textarea = document.getElementById('log-activity');
             const form = document.getElementById('log-activity-form');
             const attd_id = document.getElementById('attdId');
             const activityDate = document.getElementById('activity-date');
-            form.action = `../../log-activity/update-isi/${id}`;
+
+            let rawActivity = '';
+            if (typeof btnOrActivity === 'string') {
+                rawActivity = (btnOrActivity === 'Belum membuat Log Activity') ? '' : btnOrActivity;
+            } else if (btnOrActivity && btnOrActivity.getAttribute) {
+                try {
+                    rawActivity = decodeURIComponent(btnOrActivity.getAttribute('data-activity') || '');
+                } catch (e) {
+                    rawActivity = btnOrActivity.getAttribute('data-activity') || '';
+                }
+            }
+
+            form.action = `/admin/log-activity/update-isi/${id || 'kosong'}`;
             attd_id.value = attdId;
-            textarea.value = activity;
+            textarea.value = rawActivity;
             activityDate.value = date;
+
+            const dateTextEl = document.getElementById('log-activity-date-text');
+            if (dateTextEl) {
+                dateTextEl.textContent = date || '---';
+            }
 
             modal.classList.remove('hidden');
         }
@@ -664,99 +723,46 @@
 });
 
 // Auto refresh untuk form catatan
-$('#discount-form').on('submit', function(e) {
-    // 1. Mencegah form dari reload halaman
-    e.preventDefault();
-
-    const form = $(this);
-    const button = $('#save-discount-btn');
-    const originalButtonText = button.text();
-
-    // 2. Nonaktifkan tombol selama proses
-    button.prop('disabled', true).text('Menyimpan...');
-
-    // 3. Kirim data via AJAX
-    $.ajax({
-        url: form.attr('action'),
-        method: 'POST',
-        data: form.serialize(), // Mengambil semua data dari form
-        
-        // Fungsi ini berjalan jika request berhasil
-        success: function(response) {
-            if (response.success) {
-                // 4. INI BAGIAN KUNCI PERBAIKANNYA
-                // Langsung perbarui teks di halaman dengan data akurat dari server.
-                const target = response.intern_target;
-                $('#sisa-aktual-value').text(target.remaing_time_after_calculate);
-                $('#total-ganti-jam-value').text(target.change_time_total);
-                $('#sisa-setelah-diskon-value').text(target.remaing_time_after_discount);
-
-                // Update juga nilai input diskon itu sendiri agar konsisten
-                $('#discount-input').val(target.discount_time);
-
-                // Tampilkan notifikasi sukses menggunakan fungsi yang sudah Anda punya
-                showNotification(response.message, 'success');
-            } else {
-                // Tampilkan notifikasi jika ada pesan kegagalan dari server
-                showNotification(response.message || 'Gagal menyimpan data.', 'error');
-            }
-        },
-        
-        // Fungsi ini berjalan jika request gagal (error server)
-        error: function(xhr) {
-            const errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan pada server.';
-            showNotification(errorMsg, 'error');
-        },
-        
-        // Fungsi ini berjalan setelah request selesai (baik berhasil maupun gagal)
-        complete: function() {
-            // 5. Kembalikan tombol ke keadaan semula
-            button.prop('disabled', false).text(originalButtonText);
-        }
-    });
-});
-// Fungsi untuk reload intern target data
 // Fungsi untuk reload intern target data
 function reloadInternTarget() {
     $.ajax({
-        url: `/api/intern-target/${internId}`, // Sesuaikan dengan endpoint API Anda
+        url: `/api/intern-target/${internId}`,
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-            // Update semua nilai di card kedua
             if(data.intern_target) {
                 const target = data.intern_target;
                 
                 // Update periode
-                $('.bg-white.border.border-gray-300:eq(0) h2').html(
-                    `Periode Magang : ${target.start_period || ''} s/d ${target.end_period || ''}`
+                $('#intern-period-text').text(
+                    `${target.start_period || ''} s/d ${target.end_period || ''}`
                 );
                 
-                // Update nilai-nilai dalam card (TAMBAHKAN UPDATE UNTUK SISA SETELAH DISKON)
+                // Update nilai-nilai dalam card
                 updateCardValue('Total Jam Kerja', target.total_work_time);
                 updateCardValue('Total Masuk', target.admission_total);
                 updateCardValue('Target', target.target_time);
                 updateCardValue('Sisa', target.time_target_remaining);
-                updateCardValue('Sisa Aktual', target.remaing_time_after_calculate);
                 updateCardValue('Total Ganti Jam', target.change_time_total);
-                updateCardValue('sisa setelah diskon', target.remaing_time_after_discount); // PERBAIKAN DISINI
+                updateCardValue('Sisa Setelah Diskon', target.remaing_time_after_discount);
+                
+                $('#total-ganti-jam-value').text(target.change_time_total || '0j 0m');
+                $('#sisa-setelah-diskon-value').text(target.remaing_time_after_discount || '0j 0m');
                 
                 // Update discount_time input value
                 if(target.discount_time !== undefined) {
-                    $('input[name="discount_time"]').val(target.discount_time);
+                    $('#discount-input').val(target.discount_time);
                 }
-            }
-            
-            // Update card ketiga (Total Presensi)
-            if(data.intern_target) {
-                updatePresenceCount('Masuk', data.intern_target.admit_total);
-                updatePresenceCount('Istirahat Keluar', data.intern_target.break_start_total);
-                updatePresenceCount('Izin Keluar', data.intern_target.permit_total);
-                updatePresenceCount('Ganti Jam Total', data.intern_target.adjustable_total);
-                updatePresenceCount('Pulang', data.intern_target.back_total);
-                updatePresenceCount('Istirahat Kembali', data.intern_target.break_back_total);
-                updatePresenceCount('Izin Kembali', data.intern_target.permit_back_total);
-                updatePresenceCount('Ganti Jam Diterima', data.intern_target.accepted_adjustable_total);
+                
+                // Update Total Presensi (ditandai)
+                updatePresenceCount('Masuk', target.admit_total);
+                updatePresenceCount('Istirahat Keluar', target.break_start_total);
+                updatePresenceCount('Izin Keluar', target.permit_total);
+                updatePresenceCount('Ganti Jam Total', target.adjustable_total);
+                updatePresenceCount('Pulang', target.back_total);
+                updatePresenceCount('Istirahat Kembali', target.break_back_total);
+                updatePresenceCount('Izin Kembali', target.permit_back_total);
+                updatePresenceCount('Ganti Jam Diterima', target.accepted_adjustable_total);
             }
         },
         error: function(xhr) {
@@ -766,18 +772,18 @@ function reloadInternTarget() {
 }
 
 function updateCardValue(label, value) {
-    $('.bg-white.border.border-gray-300').eq(0).find('.font-semibold').each(function() {
-        if($(this).text().trim() === label) {
-            $(this).siblings('span').find('span.px-4').text(value || '0j 0m');
+    $('.font-semibold').each(function() {
+        if($(this).text().trim().toLowerCase() === label.trim().toLowerCase()) {
+            $(this).siblings('span').text(value || '0j 0m');
             return false; 
         }
     });
 }
 
 function updatePresenceCount(label, value) {
-    $('.bg-white.border.border-gray-300').eq(1).find('.font-semibold').each(function() {
-        if($(this).text().trim() === label) {
-            $(this).siblings('span').find('span.px-4').text(value ? value + 'x' : '0x');
+    $('.font-semibold').each(function() {
+        if($(this).text().trim().toLowerCase() === label.trim().toLowerCase()) {
+            $(this).siblings('span').text(value ? value + 'x' : '0x');
             return false; 
         }
     });
@@ -922,41 +928,43 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
 
                             // Generate the main row
                             var mainRow = `
-                                        <tr class="border-b border-gray-300 text-center mb-2">
-                                            <td ${rowspan} class="border-t text-center align-middle">${nomorUrut}</td>
-                                            <td ${rowspan} class="border-t text-center align-middle">
-                                                ${schedule.date || '---'}
-                                                <button class="px-1 text-sm" onclick="openModalShift('${schedule.id}', '${schedule.shift_id}', '${schedule.date}', '${schedule.work_type}', ${schedule.is_change_schedule_approved}, ${schedule.isChangeSchedule}, ${schedule.isBackFirst}, ${schedule.is_break_first})">
-                                                    <i class="fa-solid fa-gear"></i>
+                                        <tr class="border-b border-gray-100 text-center hover:bg-slate-50/50 transition-colors">
+                                            <td ${rowspan} class="py-2.5 px-3 border-t border-gray-100 text-center align-middle font-medium text-gray-500 text-xs">${nomorUrut}</td>
+                                            <td ${rowspan} class="py-2.5 px-3 border-t border-gray-100 text-left align-middle whitespace-nowrap text-xs">
+                                                <span class="font-semibold text-gray-800">${schedule.date || '---'}</span>
+                                                <button class="ml-1.5 text-gray-400 hover:text-blue-600 transition cursor-pointer p-0.5" title="Pengaturan Shift" onclick="openModalShift('${schedule.id}', '${schedule.shift_id}', '${schedule.date}', '${schedule.work_type}', ${schedule.is_change_schedule_approved}, ${schedule.isChangeSchedule}, ${schedule.isBackFirst}, ${schedule.is_break_first})">
+                                                    <i class="fa-solid fa-gear text-xs"></i>
                                                 </button>
                                             </td>
-                                            <td class="p-2 border-t text-center align-middle">
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                 ${generateAttendanceCell('default', 'Jam Mulai', 'start_time', attendance.start_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.start_time_message)}
                                             </td>
-                                            <td class="border-t text-center align-middle">
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                 ${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance.end_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.end_time_message)}
                                             </td>
-                                            <td class="border-t text-center align-middle">
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                 ${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance.break_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.break_time_message)}
                                             </td>
-                                            <td class="border-t text-center align-middle">
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                 ${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance.back_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.back_time_message)}
                                             </td>
-                                            <td class="border-t text-center align-middle">${attendance.total_min_format}</td>
-                                            <td class="border-t text-center align-middle ${attendance.target_time >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${attendance.total_min_format}</td>
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${attendance.target_time >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
                                                 ${attendance.target_time_format}
+                                                ${(attendance.mandatory_replace_minutes || 0) > 0 ? '<span class="text-[10px] text-rose-500 block font-normal">+ ' + Math.floor(attendance.mandatory_replace_minutes / 60) + 'j ' + (attendance.mandatory_replace_minutes % 60) + 'm (wajib ganti)</span>' : ''}
                                             </td>
                                             ${attendanceType}
                                             ${mapsValue}
-                                            <td ${rowspan} class="border-t text-center align-middle">
-                                                <button id="open-modal-btn"
-                                                        data-activity="${logActivity?.activity || 'Belum membuat Log Activity'}"
-                                                        onclick="openModalActivity('${logActivity?.activity || 'Belum membuat Log Activity'}','${logActivity?.id || 'kosong'}','${schedule.id}','${schedule.date}')"
-                                                        class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">
-                                                    Cek Disini
+                                            <td ${rowspan} class="py-2.5 px-2.5 border-t border-gray-100 text-center align-middle">
+                                                <button type="button"
+                                                        data-activity="${encodeURIComponent(logActivity?.activity || '')}"
+                                                        onclick="openModalActivity(this, '${logActivity?.id || 'kosong'}', '${schedule.id}', '${schedule.date}')"
+                                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer">
+                                                    <i class="fa-regular fa-file-lines text-[10px]"></i>
+                                                    <span>Cek Log</span>
                                                 </button>
                                             </td>
-                                            <td  class="border-t text-center align-middle">
+                                            <td class="py-2.5 px-2.5 border-t border-gray-100 text-center align-middle">
                                                 ${statusIconsMain}
                                             </td>
                                         </tr>
@@ -967,7 +975,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             $.each(adjustableAttendances, function (adjIndex, adjustable) {
                                 // Determine background color based on is_approved
                                 var bgColor = adjustable.is_approved === 1 ?
-                                    'bg-blue-100' : 'bg-red-100';
+                                    'bg-blue-50/70' : 'bg-rose-50/70';
 
                                 // Generate status icons for adjustable attendance
                                 var statusIconsAdjustable = getStatusIconsAdjustable(
@@ -975,24 +983,24 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
 
                                 // Generate the adjustable attendance row
                                 var adjustableRow = `
-                                            <tr class="border-b border-gray-300 text-center ${bgColor} mx-4">
-                                                <td class="p-2 border-t text-center align-middle">
+                                            <tr class="border-b border-gray-100 text-center ${bgColor}">
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                     ${generateAttendanceCell('adst', 'Jam Mulai', 'start_time', adjustable.start_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.start_time_message)}
                                                 </td>
-                                                <td class="border-t text-center align-middle">
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                     ${generateAttendanceCell('adst', 'Jam Pulang', 'end_time', adjustable.end_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.end_time_message)}
                                                 </td>
-                                                <td class="border-t text-center align-middle">
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                     ${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable.break_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.break_time_message)}
                                                 </td>
-                                                <td class="border-t text-center align-middle">
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                     ${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable.back_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.back_time_message)}
                                                 </td>
-                                                <td class="border-t text-center align-middle">${adjustable.total_min_format}</td>
-                                                <td class="border-t text-center align-middle ${adjustable.target_time >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${adjustable.total_min_format}</td>
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${adjustable.target_time >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
                                                     ${adjustable.target_time >= 0 ? '+' : '-'} ${adjustable.target_time}
                                                 </td>
-                                                <td class="border-t text-center align-middle">
+                                                <td class="py-2 px-2.5 border-t border-gray-100 text-center align-middle">
                                                     ${statusIconsAdjustable}
                                                 </td>
                                             </tr>
@@ -1024,154 +1032,181 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
 
             /**
              * Generates an attendance cell with optional message tooltip.
-             * @param {string} tipe
-             * @param {string} label - The label for the modal.
-             * @param {string} field - The field name.
-             * @param {string|null} time - The time value.
-             * @param {number} scheduleId - The schedule ID.
-             * @param {string} date - The date of attendance.
-             * @param {string} name - The name associated with the attendance.
-             * @param {string|null} message - The message to display on hover.
-             * @returns {string} - The generated HTML for the cell.
              */
             function generateAttendanceCell(tipe, label, field, time, scheduleId, date, name, message) {
-                // Format waktu dengan detik
                 const formattedTime = formatTimeWithSeconds(time);
-
-                // Dapatkan halaman saat ini
                 var currentPage = pageNow;
 
+                if (!time || formattedTime === '---') {
+                    return `<span class="text-gray-400 font-mono text-[11px]">-</span>`;
+                }
+
                 return `
-                            <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${scheduleId}', '${date}', '${name}', '${message}', ${currentPage})"
-                                class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline">
-                                ${formattedTime}
-                            </span>
-                            ${message ? `
-                                <span class="relative group">
-                                    <i class="fa-solid fa-circle-info text-red-600 cursor-pointer text-sm"></i>
-                                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block
-                                                bg-gray-700 text-white text-sm rounded px-2 py-1 z-10 min-w-max max-w-xs">
-                                        ${message}
-                                    </div>
-                                </span>` : ''}
-                        `;
+                    <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${scheduleId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage})"
+                        class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline font-mono text-[11px] font-medium" title="Klik untuk edit waktu">
+                        ${formattedTime}
+                    </span>
+                `;
             }
 
             /**
-             * Generates status icons for the main attendance row based on status_id.
-             * @param {number} status_id - The status ID from log_activity.
-             * @param {number} logActivityId - The ID of the log activity.
-             * @returns {string} - The generated HTML for the status icons.
+             * Generates status dropdown for the main attendance row based on status_id.
+             * Always displays all 5 core actions (Log Activity approval/rejection, Attendance status toggle, Presence reset, Delete presence).
              */
             function getStatusIconsMain(status_id, logActivityId, attendance, schedule, attdStatus) {
-                if (status_id != null) { // Pending
-                    return `
-                                <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="inline group ">
-                                    @csrf
-                                    <input type="hidden" name="status" value="2">
-                                    <button type="submit" class="bg-transparent border-none cursor-pointer group">
-                                        <i class="fa-solid fa-check-circle ${status_id == 2 ? "text-green-600" : "text-gray-500"} text-xl hover:text-gray-800"></i>
-                                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                                            Setujui Log Activty
-                                        </span>
-                                    </button>
-                                </form>
-                                <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="inline group ">
-                                    @csrf
-                                    <input type="hidden" name="status" value="3">
-                                    <button type="submit" class="bg-transparent border-none cursor-pointer group">
-                                        <i class="fa-solid fa-xmark-circle ${status_id == 3 ? "text-red-600" : "text-gray-500"} text-xl hover:text-gray-800"></i>
-                                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                                            Tolak Log Activty
-                                        </span>
-                                    </button>
-                                </form>
-                                <form onsubmit="return confirm('Apa kamu yakin ingin merubah status kehadiran tanggal ${schedule.date} menjadi ${attdStatus.id == 2 ? 'Tidak Hadir' : 'Hadir'}?');" action="../../attendance/updatestatusattd/${schedule.id}" method="POST" class="inline group ">
-                                    @csrf
-                                    <input type="hidden" name="status" value="3">
-                                    <button type="submit" class="bg-transparent border-none cursor-pointer group" >
-                                        <i class="fa-solid fa-file-lines text-gray-500 text-xl hover:text-gray-800"></i>
-                                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                                            Tolak Log Activty
-                                        </span>
-                                    </button>
-                                </form>
-                                <form onsubmit="return confirm('Apa kamu yakin ingin mereset tanggal ${schedule.date}?');" action="../../attendance/reset/${attendance.id}" method="POST" class="inline group ">
-                                    @csrf
-                                    <input type="hidden" name="status" value="3">
-                                    <button type="submit" class="bg-transparent border-none cursor-pointer group" >
-                                        <i class="fa-solid fa-recycle text-gray-500 text-xl hover:text-gray-800"></i>
-                                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                                            Tolak Log Activty
-                                        </span>
-                                    </button>
-                                </form>
-                                <form onsubmit="return confirm('Apa kamu yakin ingin menghapus tanggal ${schedule.date}?');" action="../../attendance/delete/${schedule.id}" method="POST" class="inline group ">
-                                    @csrf
-                                    <input type="hidden" name="status" value="3">
-                                    <button type="submit" class="bg-transparent border-none cursor-pointer group" >
-                                        <i class="fa-solid fa-trash text-red-600 text-xl hover:text-gray-800"></i>
-                                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                                            Tolak Log Activty
-                                        </span>
-                                    </button>
-                                </form>
-                            `;
+                const hasLogActivity = logActivityId && logActivityId !== 'kosong' && logActivityId !== 0 && logActivityId !== '0';
+                const isHadir = (attdStatus && attdStatus.id == 2);
+                const toggleStatusText = isHadir ? 'Ubah Jadi Tidak Hadir' : 'Ubah Jadi Hadir';
+                const attdId = attendance ? attendance.id : null;
+
+                let approveLogItem = '';
+                let rejectLogItem = '';
+                if (hasLogActivity) {
+                    approveLogItem = `
+                        <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="m-0">
+                            <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                            <input type="hidden" name="status" value="2">
+                            <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left cursor-pointer ${status_id == 2 ? 'bg-emerald-50/70 font-semibold text-emerald-800' : ''}">
+                                <i class="fa-solid fa-circle-check text-emerald-600 w-4 text-center"></i>
+                                <span>Setujui Log Activity ${status_id == 2 ? '(Disetujui)' : ''}</span>
+                            </button>
+                        </form>
+                    `;
+                    rejectLogItem = `
+                        <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="m-0">
+                            <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                            <input type="hidden" name="status" value="3">
+                            <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left cursor-pointer ${status_id == 3 ? 'bg-rose-50/70 font-semibold text-rose-800' : ''}">
+                                <i class="fa-solid fa-circle-xmark text-rose-600 w-4 text-center"></i>
+                                <span>Tolak Log Activity ${status_id == 3 ? '(Ditolak)' : ''}</span>
+                            </button>
+                        </form>
+                    `;
                 } else {
-                    return `-`;
+                    approveLogItem = `
+                        <div class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed opacity-60 select-none" title="Belum ada Log Activity">
+                            <i class="fa-solid fa-circle-check text-gray-300 w-4 text-center"></i>
+                            <span>Setujui Log Activity</span>
+                        </div>
+                    `;
+                    rejectLogItem = `
+                        <div class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed opacity-60 select-none" title="Belum ada Log Activity">
+                            <i class="fa-solid fa-circle-xmark text-gray-300 w-4 text-center"></i>
+                            <span>Tolak Log Activity</span>
+                        </div>
+                    `;
                 }
+
+                let resetAttdItem = '';
+                if (attdId) {
+                    resetAttdItem = `
+                        <form onsubmit="return confirm('Apa kamu yakin ingin mereset presensi tanggal ${schedule?.date || ''}?');" action="../../attendance/reset/${attdId}" method="POST" class="m-0">
+                            <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                            <input type="hidden" name="status" value="3">
+                            <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors text-left cursor-pointer">
+                                <i class="fa-solid fa-rotate-left text-amber-600 w-4 text-center"></i>
+                                <span>Reset Presensi</span>
+                            </button>
+                        </form>
+                    `;
+                } else {
+                    resetAttdItem = `
+                        <div class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed opacity-60 select-none" title="Belum ada data presensi">
+                            <i class="fa-solid fa-rotate-left text-gray-300 w-4 text-center"></i>
+                            <span>Reset Presensi</span>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="relative inline-block text-left dropdown-action-container">
+                        <button type="button" onclick="window.toggleActionDropdown(event, this)" class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-2xs hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer">
+                            <span>Aksi</span>
+                            <i class="fa-solid fa-chevron-down text-[9px] text-gray-400"></i>
+                        </button>
+                        <div class="dropdown-menu-list hidden absolute right-0 top-full mt-1.5 w-56 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-left divide-y divide-gray-100">
+                            <div class="py-1">
+                                <div class="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Log Activity</div>
+                                ${approveLogItem}
+                                ${rejectLogItem}
+                            </div>
+                            <div class="py-1">
+                                <div class="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kehadiran</div>
+                                <form onsubmit="return confirm('Apa kamu yakin ingin merubah status kehadiran tanggal ${schedule?.date || ''} menjadi ${isHadir ? 'Tidak Hadir' : 'Hadir'}?');" action="../../attendance/updatestatusattd/${schedule?.id || ''}" method="POST" class="m-0">
+                                    <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                    <input type="hidden" name="status" value="3">
+                                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left cursor-pointer">
+                                        <i class="fa-solid fa-user-pen text-blue-600 w-4 text-center"></i>
+                                        <span>${toggleStatusText}</span>
+                                    </button>
+                                </form>
+                                ${resetAttdItem}
+                            </div>
+                            <div class="py-1">
+                                <form onsubmit="return confirm('Apa kamu yakin ingin menghapus jadwal dan presensi tanggal ${schedule?.date || ''}?');" action="../../attendance/delete/${schedule?.id || ''}" method="POST" class="m-0">
+                                    <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                    <input type="hidden" name="status" value="3">
+                                    <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition-colors text-left cursor-pointer font-medium">
+                                        <i class="fa-solid fa-trash text-rose-600 w-4 text-center"></i>
+                                        <span>Hapus Presensi</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                `;
             }
 
             /**
-    * Generates status icons for adjustable attendance rows based on is_approved.
-    * Adds tooltips with Tailwind CSS for better user experience.
-    * @param {number} is_approved - The approval status (0: Not Approved, 1: Approved, 2: Rejected).
-    * @param {number} adjustableId - The ID of the adjustable attendance entry.
-    * @returns {string} - The generated HTML for the status icons with tooltips.
-    */
+             * Generates status dropdown for adjustable attendance rows based on is_approved.
+             */
             function getStatusIconsAdjustable(is_approved, adjustableId) {
-                if (is_approved != null) { // Not approved
+                if (is_approved != null) {
                     return `
-                <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline group ">
-                    @csrf
-                    <input type="hidden" name="is_approved" value="1">
-                    <button type="submit" class="bg-transparent border-none cursor-pointer group">
-                        <i class="fa-solid fa-check-circle ${is_approved == 1 ? "text-blue-600" : "text-gray-500"} text-xl hover:text-gray-800"></i>
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                            Setujui Ganti Jam
-                        </span>
-                    </button>
-                </form>
-                <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline group ">
-                    @csrf
-                    <input type="hidden" name="is_approved" value="2">
-                    <button type="submit" class="bg-transparent border-none cursor-pointer group">
-                        <i class="fa-solid fa-xmark-circle ${is_approved == 2 ? "text-red-500" : "text-gray-500"} text-xl hover:text-gray-800"></i>
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                            Tolak Ganti Jam
-                        </span>
-                    </button>
-                </form>
-                <!-- TAMBAHKAN RECYCLE DAN DELETE -->
-                <form action="../../adjustable-attendance/restore/${adjustableId}" method="POST" class="inline group ">
-                    @csrf
-                    <button type="submit" class="bg-transparent border-none cursor-pointer group">
-                        <i class="fa-solid fa-recycle text-green-600 text-xl hover:text-green-800"></i>
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                            Restore Ganti Jam
-                        </span>
-                    </button>
-                </form>
-                <form action="../../adjustable-attendance/delete/${adjustableId}" method="POST" class="inline group ">
-                    @csrf
-                    <button type="submit" class="bg-transparent border-none cursor-pointer group" onclick="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
-                        <i class="fa-solid fa-trash text-red-600 text-xl hover:text-red-800"></i>
-                        <span class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-700 text-white text-xs rounded px-2 py-1 z-10">
-                            Hapus Ganti Jam
-                        </span>
-                    </button>
-                </form>
-            `;
+                        <div class="relative inline-block text-left dropdown-action-container">
+                            <button type="button" onclick="window.toggleActionDropdown(event, this)" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-2xs hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer">
+                                <span>Aksi</span>
+                                <i class="fa-solid fa-chevron-down text-[9px] text-gray-400"></i>
+                            </button>
+                            <div class="dropdown-menu-list hidden absolute right-0 top-full mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-left divide-y divide-gray-100">
+                                <div class="py-1">
+                                    <div class="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ganti Jam</div>
+                                    <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
+                                        <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                        <input type="hidden" name="is_approved" value="1">
+                                        <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left cursor-pointer ${is_approved == 1 ? 'bg-emerald-50/70 font-semibold text-emerald-800' : ''}">
+                                            <i class="fa-solid fa-circle-check text-emerald-600 w-4 text-center"></i>
+                                            <span>Setujui Ganti Jam ${is_approved == 1 ? '(Disetujui)' : ''}</span>
+                                        </button>
+                                    </form>
+                                    <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
+                                        <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                        <input type="hidden" name="is_approved" value="2">
+                                        <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left cursor-pointer ${is_approved == 2 ? 'bg-rose-50/70 font-semibold text-rose-800' : ''}">
+                                            <i class="fa-solid fa-circle-xmark text-rose-600 w-4 text-center"></i>
+                                            <span>Tolak Ganti Jam ${is_approved == 2 ? '(Ditolak)' : ''}</span>
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="py-1">
+                                    <form action="../../adjustable-attendance/restore/${adjustableId}" method="POST" class="m-0">
+                                        <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                        <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left cursor-pointer">
+                                            <i class="fa-solid fa-rotate-left text-blue-600 w-4 text-center"></i>
+                                            <span>Restore Ganti Jam</span>
+                                        </button>
+                                    </form>
+                                    <form action="../../adjustable-attendance/delete/${adjustableId}" method="POST" class="m-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
+                                        <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                        <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition-colors text-left cursor-pointer font-medium">
+                                            <i class="fa-solid fa-trash text-rose-600 w-4 text-center"></i>
+                                            <span>Hapus Ganti Jam</span>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    `;
                 } else {
                     return `-`;
                 }
@@ -1179,74 +1214,147 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
 
             /**
              * Generates the attendance type cell based on attdStatus.id.
-             * @param {object} attdStatus - The attendance status object.
-             * @param {object} schedule - The schedule object.
-             * @param {object|null} permitData - The permit data object.
-             * @param {number} rowspan - The rowspan value based on adjustableAttendance count.
-             * @returns {string} - The generated HTML for the attendance type cell.
              */
             function generateAttendanceType(attdStatus, schedule, permitData, rowspan) {
                 var cellContent = '';
                 if (attdStatus.id === 1 || attdStatus.id === 5) {
+                    const badgeColor = attdStatus.id === 5 ? 'bg-rose-50 text-rose-700 border-rose-200' : 'bg-slate-100 text-slate-700 border-slate-200';
                     cellContent = `
-                                <button class="open-modal-presence hover:underline"
-                                        data-schedule-id="${schedule.id ?? ''}"
-                                        data-shift-id="${schedule.shift_id}">
-                                    ${attdStatus.name} <i class="fa-solid fa-circle-info text-gray-800"></i>
-                                </button>
-                            `;
+                        <button class="open-modal-presence inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeColor} hover:opacity-80 transition cursor-pointer"
+                                data-schedule-id="${schedule.id ?? ''}"
+                                data-shift-id="${schedule.shift_id}">
+                            <span>${attdStatus.name}</span>
+                            <i class="fa-solid fa-circle-info text-[10px]"></i>
+                        </button>
+                    `;
                 } else if (attdStatus.id === 3) {
                     const permitCategoryId = permitData?.permit_category_id || '';
                     const description = (permitData?.description || '').toLowerCase();
                     const isSakit = (permitCategoryId == 1 || permitCategoryId == 2 || description.includes('sakit'));
                     const statusName = isSakit ? 'Izin Sakit' : (attdStatus.name || 'Izin');
+                    const badgeColor = isSakit ? 'bg-purple-50 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200';
 
                     cellContent = `
-                                <button class="open-modal-presence hover:underline"
-                                        data-schedule-id="${schedule.id}"
-                                        data-shift-id="${schedule.shift_id}"
-                                        data-permit-id="${permitData?.id || ''}"
-                                        data-description="${permitData?.description || 'Tidak ada keterangan'}"
-                                        data-proof-url="${permitData?.proof_url || 'Tidak ada link'}"
-                                        data-permit-category-id="${permitData?.permit_category_id || ''}"
-                                        data-ischange-schedule="${schedule.isChangeSchedule || ''}">
-                                    ${statusName} <i class="fa-solid fa-circle-info"></i>
-                                </button>
-                            `;
+                        <button class="open-modal-presence inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeColor} hover:opacity-80 transition cursor-pointer"
+                                data-schedule-id="${schedule.id}"
+                                data-shift-id="${schedule.shift_id}"
+                                data-permit-id="${permitData?.id || ''}"
+                                data-description="${permitData?.description || 'Tidak ada keterangan'}"
+                                data-proof-url="${permitData?.proof_url || 'Tidak ada link'}"
+                                data-permit-category-id="${permitData?.permit_category_id || ''}"
+                                data-ischange-schedule="${schedule.isChangeSchedule || ''}">
+                            <span>${statusName}</span>
+                            <i class="fa-solid fa-circle-info text-[10px]"></i>
+                        </button>
+                    `;
+                } else if (attdStatus.id === 2) {
+                    cellContent = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Hadir</span>`;
                 } else {
-                    cellContent = attdStatus.name;
+                    cellContent = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-gray-100 text-gray-700 border border-gray-200">${attdStatus.name}</span>`;
                 }
 
                 return `
-                            <td ${rowspan} class="text-center align-middle ${[1, 5, 3].includes(attdStatus.id) ? 'cursor-pointer text-blue-600 underline' : ''}" data-attendance-status="${attdStatus.id}">
-                                ${cellContent}
-                            </td>
-                        `;
+                    <td ${rowspan} class="py-2.5 px-2 border-t border-gray-100 text-center align-middle" data-attendance-status="${attdStatus.id}">
+                        ${cellContent}
+                    </td>
+                `;
             }
 
             /**
              * Generates the maps cell based on attendance location data.
-             * @param {object} attendance - The attendance object.
-             * @param {number} rowspan - The rowspan value based on adjustableAttendance count.
-             * @returns {string} - The generated HTML for the maps cell.
              */
             function generateMapsCell(schedule, attendance, adjustableCount) {
-                if (attendance.latitude_start && attendance.longitude_start) {
+                if (attendance && attendance.latitude_start && attendance.longitude_start) {
+                    const params = new URLSearchParams({
+                        office_id: schedule.office_id || '',
+                        intern_id: internId || '{{ $intern_id }}',
+                        user_name: '{{ $intern_data->full_name }}',
+                        date: schedule.date || '',
+                        lat_start: attendance.latitude_start,
+                        long_start: attendance.longitude_start,
+                        lat_end: attendance.latitude_end || '',
+                        long_end: attendance.longitude_end || '',
+                        page: pageNow
+                    });
+
                     return `
-                                <td ${adjustableCount > 0 ? `rowspan="${1 + adjustableCount}"` : ''} class="text-center align-middle">
-                                    <a href="{{ Route('location.user.view') }}?office_id=${schedule.office_id}&lat_start=${attendance.latitude_start}&long_start=${attendance.longitude_start}&lat_end=${attendance.latitude_end}&long_end=${attendance.longitude_end}"
-                                    target="_blank"
-                                    class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">
-                                        Cek Disini
-                                    </a>
-                                </td>
-                            `;
+                        <td ${adjustableCount > 0 ? `rowspan="${1 + adjustableCount}"` : ''} class="py-2.5 px-2 border-t border-gray-100 text-center align-middle">
+                            <a href="{{ Route('location.user.view') }}?${params.toString()}"
+                            class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg transition-colors cursor-pointer"
+                            title="Cek Lokasi & Radius Presensi">
+                                <i class="fa-solid fa-map-location-dot text-[10px]"></i>
+                                <span>Cek</span>
+                            </a>
+                        </td>
+                    `;
                 } else {
                     return `
-                                <td ${adjustableCount > 0 ? `rowspan="${1 + adjustableCount}"` : ''} class="text-center align-middle">-</td>
-                            `;
+                        <td ${adjustableCount > 0 ? `rowspan="${1 + adjustableCount}"` : ''} class="py-2.5 px-2 border-t border-gray-100 text-center align-middle text-gray-400 font-mono text-[11px]">-</td>
+                    `;
                 }
             }
+
+            // Global dropdown toggle handler
+            window.toggleActionDropdown = function(event, btn) {
+                if (!btn && event && event.nodeType) {
+                    btn = event;
+                    event = window.event;
+                }
+                if (event) {
+                    if (typeof event.stopPropagation === 'function') event.stopPropagation();
+                    if (typeof event.preventDefault === 'function') event.preventDefault();
+                }
+
+                if (!btn) return;
+
+                const container = btn.closest('.dropdown-action-container') || btn.closest('.dropdown-container');
+                if (!container) return;
+                const menu = container.querySelector('.dropdown-menu-list') || container.querySelector('.dropdown-menu');
+                if (!menu) return;
+
+                const isCurrentlyOpen = !menu.classList.contains('hidden');
+
+                // Close all other dropdowns
+                document.querySelectorAll('.dropdown-menu-list, .dropdown-menu').forEach(m => m.classList.add('hidden'));
+                document.querySelectorAll('tr, .dropdown-action-container, .dropdown-container').forEach(el => {
+                    el.style.zIndex = '';
+                });
+
+                if (!isCurrentlyOpen) {
+                    // Raise z-index of tr & container so menu is always above other rows
+                    const tr = btn.closest('tr');
+                    if (tr) {
+                        tr.style.zIndex = '50';
+                        tr.style.position = 'relative';
+                    }
+                    container.style.zIndex = '60';
+
+                    // Smart positioning (flip up if near bottom of viewport)
+                    const rect = btn.getBoundingClientRect();
+                    const spaceBelow = window.innerHeight - rect.bottom;
+                    const dropdownHeight = 220;
+
+                    if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+                        menu.classList.remove('top-full', 'mt-1.5');
+                        menu.classList.add('bottom-full', 'mb-1.5');
+                    } else {
+                        menu.classList.remove('bottom-full', 'mb-1.5');
+                        menu.classList.add('top-full', 'mt-1.5');
+                    }
+
+                    menu.classList.remove('hidden');
+                }
+            };
+
+            // Global click outside to close dropdown
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.dropdown-action-container') && !e.target.closest('.dropdown-container')) {
+                    document.querySelectorAll('.dropdown-menu-list, .dropdown-menu').forEach(m => m.classList.add('hidden'));
+                    document.querySelectorAll('tr, .dropdown-action-container, .dropdown-container').forEach(el => {
+                        el.style.zIndex = '';
+                    });
+                }
+            });
 
             var internId = "{{ $intern_id }}";
 
@@ -1455,7 +1563,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
             document.getElementById('scheduleId').value = scheduleId;
             document.getElementById('currentShift').value = shiftId;
             document.getElementById('dateShiftText').innerText = date;
-            document.getElementById("work_type").value = workType;
+            document.getElementById("work_type").value = (workType || '').toLowerCase();
             document.getElementById("schedule_type").value = isChangeSchedule;
             document.getElementById("approved_change_time").value = changeTimeStatus;
             document.getElementById("back_first").value = isBackFirst;

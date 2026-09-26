@@ -94,16 +94,25 @@ class Attendance extends Model {
 
     public function isLate(): bool
     {
+        if ($this->relationLoaded('lateAbsences')) {
+            return $this->lateAbsences->isNotEmpty();
+        }
         return $this->lateAbsences()->exists();
     }
 
     public function getTotalLateMinutes(): int
     {
-        return $this->lateAbsences()->sum('late_minutes');
+        if ($this->relationLoaded('lateAbsences')) {
+            return (int) $this->lateAbsences->sum('late_minutes');
+        }
+        return (int) $this->lateAbsences()->sum('late_minutes');
     }
 
     public function isConsideredLate(): bool
     {
+        if ($this->relationLoaded('lateAbsences')) {
+            return $this->lateAbsences->where('late_minutes', '>', 0)->isNotEmpty();
+        }
         return $this->lateAbsences()->where('late_minutes', '>', 0)->exists();
     }
 
@@ -115,7 +124,7 @@ class Attendance extends Model {
             return false;
         }
 
-        $now = Carbon::now();
+        $now = Carbon::now('Asia/Jakarta');
 
         // Gunakan adjusted_end_time jika ada, jika tidak gunakan shift end_time
         $expectedEndTime = $this->getExpectedEndTime();
@@ -125,9 +134,21 @@ class Attendance extends Model {
         }
 
         try {
-            // Gabungkan dengan tanggal attendance HANYA untuk perbandingan
-            $attendanceDate = $this->date ? $this->date->format('Y-m-d') : today()->format('Y-m-d');
-            $expectedDateTime = Carbon::parse($attendanceDate . ' ' . $expectedEndTime);
+            // Normalisasi format jam pulang jika bertipe datetime/Carbon
+            $endTimeStr = $expectedEndTime instanceof \DateTimeInterface
+                ? $expectedEndTime->format('H:i:s')
+                : (string) $expectedEndTime;
+
+            // Gabungkan dengan tanggal attendance untuk perbandingan
+            $attendanceDate = $this->date ? Carbon::parse($this->date)->format('Y-m-d') : today('Asia/Jakarta')->format('Y-m-d');
+            $expectedDateTime = Carbon::parse($attendanceDate . ' ' . $endTimeStr, 'Asia/Jakarta');
+
+            // Cek apakah shift melewati midnight (end_time < start_time)
+            $shift = $this->detailSchedules?->shift ?? $this->intern?->shift;
+            if ($shift && $shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+                // Shift malam melewati tengah malam: jam pulang berada di hari berikutnya (+1 day)
+                $expectedDateTime = $expectedDateTime->addDay();
+            }
 
             return $now->greaterThanOrEqualTo($expectedDateTime);
         } catch (\Exception $e) {
@@ -145,9 +166,10 @@ class Attendance extends Model {
             return $this->adjusted_end_time;
         }
 
-        // Fallback ke shift end_time
-        if ($this->shift && $this->shift->end_time) {
-            return $this->shift->end_time;
+        // Fallback ke shift dari detailSchedules atau relasi intern shift
+        $shift = $this->detailSchedules?->shift ?? $this->intern?->shift;
+        if ($shift && $shift->end_time) {
+            return $shift->end_time;
         }
 
         return null;

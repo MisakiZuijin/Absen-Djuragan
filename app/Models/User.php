@@ -40,11 +40,28 @@ class User extends Authenticatable
         'password'
     ];
 
+    protected $casts = [
+        'is_active' => 'boolean',
+        'is_confirm' => 'boolean',
+        'is_gps_support' => 'boolean',
+        'is_gps_activate' => 'integer',
+        'is_reset_token' => 'boolean',
+    ];
+
     public function setPasswordAttribute(string $value)
     {
         if (!empty($value)) {
             $this->attributes['password'] = Hash::make($value);
         }
+    }
+
+    public function getNameAttribute(): string
+    {
+        if ($this->relationLoaded('profile')) {
+            return $this->profile?->full_name ?? $this->username ?? '';
+        }
+
+        return $this->username ?? '';
     }
 
     public function profile()
@@ -63,14 +80,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Mendefinisikan relasi many-to-many ke model Pemagang.
+     * Mendefinisikan relasi many-to-many ke model Intern.
      * Seorang User (misal: outsider/pembimbing) bisa terhubung dengan banyak Pemagang.
      *
      * @return \Illuminate\Database\Eloquent\Relations\BelongsToMany
      */
     public function pemagangs(): BelongsToMany
     {
-        return $this->belongsToMany(Pemagang::class, 'pemagang_user');
+        return $this->belongsToMany(Intern::class, 'outsider_intern', 'outsider_id', 'intern_id');
     }
 
     public function outsider()
@@ -145,6 +162,8 @@ class User extends Authenticatable
         return $this->getActiveTasksCount() > 0;
     }
 
+    protected ?int $cachedActiveTasksCount = null;
+
     /**
      * Hitung total tugas & project aktif pemagang yang belum selesai.
      *
@@ -152,6 +171,10 @@ class User extends Authenticatable
      */
     public function getActiveTasksCount(): int
     {
+        if ($this->cachedActiveTasksCount !== null) {
+            return $this->cachedActiveTasksCount;
+        }
+
         $internId = $this->intern?->id;
         $activeProjectsCount = 0;
 
@@ -178,6 +201,30 @@ class User extends Authenticatable
             })
             ->count();
 
-        return $activeProjectsCount + $activeMentorTasksCount;
+        return $this->cachedActiveTasksCount = ($activeProjectsCount + $activeMentorTasksCount);
+    }
+
+    /**
+     * Cek apakah user adalah Super Admin (role 7).
+     */
+    public function isSuperAdmin(): bool
+    {
+        return (int) $this->role_id === 7;
+    }
+
+    /**
+     * Cek apakah user adalah Admin atau Super Admin (role 1 atau 7).
+     */
+    public function isAdmin(): bool
+    {
+        return in_array((int) $this->role_id, [1, 7], true);
+    }
+
+    /**
+     * Relasi log aktivitas sistem yang dilakukan oleh user ini.
+     */
+    public function systemActivityLogs(): HasMany
+    {
+        return $this->hasMany(SystemActivityLog::class, 'user_id');
     }
 }

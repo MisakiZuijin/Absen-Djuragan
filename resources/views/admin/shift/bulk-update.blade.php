@@ -3,10 +3,7 @@
 @section('title', 'Update Shift Massal')
 
 @section('contents')
-    @include('layouts.sidebar')
-    @include('layouts.navbar')
-
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64 bg-gray-50 min-h-screen">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 bg-gray-50 min-h-screen min-w-0">
 
         <!-- Header Halaman -->
         <div class="mb-8">

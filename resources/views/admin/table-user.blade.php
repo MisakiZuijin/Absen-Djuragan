@@ -3,29 +3,23 @@
 @section('title', 'Presensi Otomatis')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar')
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
         <!-- Header -->
-        <h1 class="text-2xl font-bold mb-2">Presensi Otomatis</h1>
-        <p class=" text-gray-600">Berikut adalah daftar pemagang yang ditandai tidak melakukan presensi pulang pada jam
+        <h1 class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Presensi Otomatis</h1>
+        <p class="text-xs sm:text-base text-gray-600">Berikut adalah daftar pemagang yang ditandai tidak melakukan presensi pulang pada jam
             yang ditentukan.</p>
 
-
-
-        <div class="mb-4 flex items-center justify-between mt-4">
+        <div class="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-4">
             <!-- Left: Total Masuk -->
-            <div class="flex justify-start items-center p-2 border  rounded-md w-auto">
+            <div class="flex justify-between sm:justify-start items-center p-2.5 border rounded-lg w-full sm:w-auto text-xs sm:text-sm">
                 <span>Total pulang Otomatis Hari ini </span>
                 <span id="total_presence"
-                    class="px-3 py-2 text-xs font-medium text-center text-white bg-green-700 rounded-lg ml-2">{{ $total_auto_end_today }}</span>
+                    class="px-2.5 py-1 text-xs font-semibold text-center text-white bg-green-700 rounded-lg ml-2">{{ $total_auto_end_today }}</span>
             </div>
 
             <!-- Right: Search and Date Fields -->
-            <div class="flex items-center space-x-4">
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                 <!-- Search Field -->
                 <div class="flex items-center border border-gray-800 rounded-md">
                     <div class="bg-white p-2 rounded-l-md">

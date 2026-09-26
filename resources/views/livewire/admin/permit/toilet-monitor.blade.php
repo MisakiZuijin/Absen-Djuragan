@@ -1,7 +1,6 @@
 <div>
-    {{-- wire:poll.5s="loadInterns" adalah kunci utama. 
-         Ini akan memanggil method loadInterns() di file PHP setiap 5 detik. --}}
-    <div wire:poll.5s="loadInterns">
+    {{-- wire:poll.15s="loadInterns" memanggil method loadInterns() setiap 15 detik --}}
+    <div wire:poll.15s="loadInterns">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Daftar Intern</h2>

@@ -44,7 +44,7 @@ class AdminPermitSakitController extends Controller
         if (!empty($search)) {
             $query->whereHas('schedule.intern', function ($internQuery) use ($search) {
                 $internQuery->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%")
+                    $userQuery->where('username', 'like', "%{$search}%")
                         ->orWhereHas('profile', function ($profileQuery) use ($search) {
                             $profileQuery->where('full_name', 'like', "%{$search}%");
                         });
@@ -132,12 +132,20 @@ class AdminPermitSakitController extends Controller
      */
     public function approveLunas(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 1, // Bebas Ganti Jam (Lunas)
             'is_change_schedule_approved' => 1,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log(
+            'APPROVE',
+            'Izin & Cuti',
+            "Admin menyetujui Izin Sakit pemagang {$internName} sebagai Bebas Ganti Jam (Lunas)",
+            ['detail_schedule_id' => $id]
+        );
 
         return redirect()->back()->with('success', 'Izin Sakit berhasil disetujui: Bebas Ganti Jam (Lunas). Pemagang tidak berhutang jam kerja.');
     }
@@ -147,12 +155,20 @@ class AdminPermitSakitController extends Controller
      */
     public function setWajibGantiJam(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::findOrFail($id);
+        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Tetap Izin Sakit (Bukan Alpha)
             'isChangeSchedule' => 2, // Wajib Ganti Jam / Hutang Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log(
+            'UPDATE',
+            'Izin & Cuti',
+            "Admin menetapkan Izin Sakit pemagang {$internName} sebagai Wajib Ganti Jam",
+            ['detail_schedule_id' => $id]
+        );
 
         return redirect()->back()->with('success', 'Status Izin Sakit berhasil ditetapkan sebagai Wajib Ganti Jam (Hutang Jam). Pemagang wajib mengganti jam shift.');
     }

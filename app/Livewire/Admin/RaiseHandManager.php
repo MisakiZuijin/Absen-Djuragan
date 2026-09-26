@@ -5,9 +5,12 @@ namespace App\Livewire\Admin;
 use App\Models\HandRaise;
 use Livewire\Component;
 use Livewire\Attributes\Url;
+use Livewire\WithPagination;
 
 class RaiseHandManager extends Component
 {
+    use WithPagination;
+
     #[Url(as: 'tab')]
     public string $activeTab = 'question';
 
@@ -17,10 +20,20 @@ class RaiseHandManager extends Component
     #[Url(as: 'div')]
     public string $selectedDivision = '';
 
+    #[Url(as: 'h_name')]
+    public string $historySearchName = '';
+
+    #[Url(as: 'h_uid')]
+    public ?int $selectedUserId = null;
+
     public string $search = '';
+
+    public mixed $divisions = [];
 
     public function mount(): void
     {
+        $this->divisions = \App\Models\Division::orderBy('name')->get();
+
         $tab = request('tab');
         if ($tab && in_array($tab, ['question', 'new_task', 'presentation', 'history'])) {
             $this->activeTab = $tab;
@@ -34,12 +47,49 @@ class RaiseHandManager extends Component
         if (request()->filled('div')) {
             $this->selectedDivision = (string) request('div');
         }
+
+        if (request()->filled('h_name')) {
+            $this->historySearchName = (string) request('h_name');
+        }
+
+        if (request()->filled('h_uid')) {
+            $this->selectedUserId = (int) request('h_uid');
+        }
+    }
+
+    public function selectHistoryUser(int $userId, string $userName): void
+    {
+        $this->selectedUserId = $userId;
+        $this->historySearchName = $userName;
+        $this->resetPage();
+    }
+
+    public function clearHistoryUser(): void
+    {
+        $this->selectedUserId = null;
+        $this->historySearchName = '';
+        $this->resetPage();
+    }
+
+    public function updatedHistorySearchName(): void
+    {
+        // Reset ID jika admin mengubah input teks secara manual
+        $this->selectedUserId = null;
+        $this->resetPage();
+    }
+
+    public function updatedSelectedDivision(): void
+    {
+        $this->resetPage();
     }
 
     public function switchTab(string $tab): void
     {
         if (in_array($tab, ['question', 'new_task', 'presentation', 'history'])) {
             $this->activeTab = $tab;
+            if ($tab === 'history') {
+                $this->resetPage();
+            }
         }
     }
 
@@ -47,6 +97,7 @@ class RaiseHandManager extends Component
     {
         if (in_array($subTab, ['question', 'new_task', 'presentation'])) {
             $this->historyTab = $subTab;
+            $this->resetPage();
         }
     }
 
@@ -64,52 +115,29 @@ class RaiseHandManager extends Component
             'resolver.profile'
         ];
 
-        // 1. Live Counters across all categories
-        $countQuestions = HandRaise::where('is_raised', true)
-            ->where('status', '!=', 'done')
-            ->where(function ($q) {
-                $q->where('type', 'question')->orWhereNull('type');
-            })
-            ->count();
+        // 1. Live Counters across all categories in 1 single conditional aggregation query
+        $today = today()->toDateString();
+        $counts = HandRaise::selectRaw("
+            COUNT(CASE WHEN is_raised = 1 AND status != 'done' AND (type = 'question' OR type IS NULL) THEN 1 END) as count_questions,
+            COUNT(CASE WHEN is_raised = 1 AND status != 'done' AND type = 'new_task' THEN 1 END) as count_new_tasks,
+            COUNT(CASE WHEN is_raised = 1 AND status != 'done' AND type = 'presentation' THEN 1 END) as count_presentations,
+            COUNT(CASE WHEN is_raised = 1 AND status != 'done' AND type = 'presentation' AND (status = 'urgent' OR DATE(presentation_date) = ?) THEN 1 END) as count_urgent_presentations,
+            COUNT(CASE WHEN status = 'done' OR (is_raised = 0 AND resolved_at IS NOT NULL) THEN 1 END) as count_done,
+            COUNT(CASE WHEN (status = 'done' OR (is_raised = 0 AND resolved_at IS NOT NULL)) AND (type = 'question' OR type IS NULL) THEN 1 END) as count_history_question,
+            COUNT(CASE WHEN (status = 'done' OR (is_raised = 0 AND resolved_at IS NOT NULL)) AND type = 'new_task' THEN 1 END) as count_history_new_task,
+            COUNT(CASE WHEN (status = 'done' OR (is_raised = 0 AND resolved_at IS NOT NULL)) AND type = 'presentation' THEN 1 END) as count_history_presentation
+        ", [$today])->first();
 
-        $countNewTasks = HandRaise::where('is_raised', true)
-            ->where('status', '!=', 'done')
-            ->where('type', 'new_task')
-            ->count();
+        $countQuestions = (int) ($counts->count_questions ?? 0);
+        $countNewTasks = (int) ($counts->count_new_tasks ?? 0);
+        $countPresentations = (int) ($counts->count_presentations ?? 0);
+        $countUrgentPresentations = (int) ($counts->count_urgent_presentations ?? 0);
+        $countDone = (int) ($counts->count_done ?? 0);
+        $countHistoryQuestion = (int) ($counts->count_history_question ?? 0);
+        $countHistoryNewTask = (int) ($counts->count_history_new_task ?? 0);
+        $countHistoryPresentation = (int) ($counts->count_history_presentation ?? 0);
 
-        $countPresentations = HandRaise::where('is_raised', true)
-            ->where('status', '!=', 'done')
-            ->where('type', 'presentation')
-            ->count();
-
-        $countUrgentPresentations = HandRaise::where('is_raised', true)
-            ->where('status', '!=', 'done')
-            ->where('type', 'presentation')
-            ->where(function ($q) {
-                $q->where('status', 'urgent')
-                  ->orWhereDate('presentation_date', today());
-            })
-            ->count();
-
-        // Base history count & sub-tab history counts
-        $baseHistory = HandRaise::where(function ($q) {
-            $q->where('status', 'done')
-              ->orWhere(function ($sq) {
-                  $sq->where('is_raised', false)->whereNotNull('resolved_at');
-              });
-        });
-
-        $countDone = (clone $baseHistory)->count();
-
-        $countHistoryQuestion = (clone $baseHistory)->where(function ($q) {
-            $q->where('type', 'question')->orWhereNull('type');
-        })->count();
-
-        $countHistoryNewTask = (clone $baseHistory)->where('type', 'new_task')->count();
-
-        $countHistoryPresentation = (clone $baseHistory)->where('type', 'presentation')->count();
-
-        $divisions = \App\Models\Division::orderBy('name')->get();
+        $divisions = !empty($this->divisions) ? $this->divisions : \App\Models\Division::orderBy('name')->get();
 
         // 2. Fetch items for the active tab with optional search & division filter
         $query = HandRaise::with($baseRelations);
@@ -130,7 +158,7 @@ class RaiseHandManager extends Component
             $query->where('is_raised', true)
                 ->where('status', '!=', 'done')
                 ->where('type', 'presentation')
-                ->orderByRaw("CASE WHEN presentation_date = CURDATE() THEN 0 ELSE 1 END")
+                ->orderByRaw("CASE WHEN status = 'pending' THEN 0 WHEN presentation_date = CURDATE() THEN 1 ELSE 2 END")
                 ->orderBy('presentation_date', 'asc')
                 ->orderBy('created_at', 'desc');
         } else { // history
@@ -159,9 +187,35 @@ class RaiseHandManager extends Component
                 });
             }
 
+            // Filter per nama/peserta khusus di history
+            if (!empty($this->selectedUserId)) {
+                $query->where('user_id', $this->selectedUserId);
+            } elseif (!empty(trim($this->historySearchName))) {
+                $nameTerm = '%' . trim($this->historySearchName) . '%';
+                $query->whereHas('user', function ($uq) use ($nameTerm) {
+                    $uq->where('username', 'like', $nameTerm)
+                       ->orWhereHas('profile', fn($pq) => $pq->where('full_name', 'like', $nameTerm));
+                });
+            }
+
             // Urutan list yang diperbaiki: selalu menempatkan yang paling baru diselesaikan di paling atas
             $query->orderByRaw('COALESCE(resolved_at, updated_at, created_at) DESC')
                   ->orderBy('id', 'desc');
+        }
+
+        // Suggestions untuk filter peserta di tab history
+        $suggestedUsers = collect();
+        if ($this->activeTab === 'history' && !empty(trim($this->historySearchName))) {
+            $searchTerm = '%' . trim($this->historySearchName) . '%';
+            $suggestedUsers = \App\Models\User::whereHas('intern')
+                ->where(function ($q) use ($searchTerm) {
+                    $q->where('username', 'like', $searchTerm)
+                      ->orWhereHas('profile', fn($pq) => $pq->where('full_name', 'like', $searchTerm))
+                      ->orWhereHas('intern.school', fn($sq) => $sq->where('name', 'like', $searchTerm));
+                })
+                ->with(['profile', 'intern.school', 'intern.division'])
+                ->limit(8)
+                ->get();
         }
 
         // Apply search filter if query string provided
@@ -188,7 +242,11 @@ class RaiseHandManager extends Component
             });
         }
 
-        $items = $query->get();
+        if ($this->activeTab === 'history') {
+            $items = $query->paginate(5);
+        } else {
+            $items = $query->get();
+        }
 
         return view('livewire.admin.raise-hand-manager', [
             'countQuestions' => $countQuestions,
@@ -202,6 +260,7 @@ class RaiseHandManager extends Component
             'divisions' => $divisions,
             'historyTab' => $this->historyTab,
             'selectedDivision' => $this->selectedDivision,
+            'suggestedUsers' => $suggestedUsers,
             'items' => $items,
             'activeTab' => $this->activeTab,
         ]);

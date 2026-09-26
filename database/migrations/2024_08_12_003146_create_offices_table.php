@@ -11,9 +11,14 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('offices', function (Blueprint $table) {
             $table->id();
-            $table->string("name", 100)->nullable(false);
-            $table->string("address", 100)->nullable(false);
+            $table->string("name", 100);
+            $table->string("address", 100);
             $table->integer("capacity")->default(5);
+            $table->text("sop_url")->nullable();
+            $table->text("rules_url")->nullable();
+            $table->text("rules_description")->nullable();
+            $table->text("piket_url")->nullable();
+            $table->text("piket_description")->nullable();
         });
     }
 

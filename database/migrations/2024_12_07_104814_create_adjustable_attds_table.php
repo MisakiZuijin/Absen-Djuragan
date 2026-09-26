@@ -1,6 +1,5 @@
 <?php
 
-use App\Utils\AdjustableStatus;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -12,26 +11,30 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('adjustable_attds', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("detail_schedule_id")->nullable(false);
-            $table->date("date")->nullable(false);
-            $table->time("start_time")->nullable(true);
-            $table->time("break_time")->nullable(true);
-            $table->time("back_time")->nullable(true);
-            $table->time("end_time")->nullable(true);
+            $table->foreignId('intern_id')->constrained('interns')->cascadeOnDelete();
+            $table->foreignId('detail_schedule_id')->constrained('detail_schedules');
+            $table->date("date");
+            $table->time("start_time")->nullable();
+            $table->time("break_time")->nullable();
+            $table->time("back_time")->nullable();
+            $table->time("end_time")->nullable();
             $table->integer("total_min")->default(0);
             $table->integer("total_break_min")->default(0);
-            $table->string("start_time_message")->nullable(true);
-            $table->string("break_time_message")->nullable(true);
-            $table->string("back_time_message")->nullable(true);
-            $table->string("end_time_message")->nullable(true);
-            $table->double("latitude_start")->nullable(true);
-            $table->double("longitude_start")->nullable(true);
-            $table->double("latitude_end")->nullable(true);
-            $table->double("longitude_end")->nullable(true);
+            $table->string("start_time_message")->nullable();
+            $table->string("break_time_message")->nullable();
+            $table->string("back_time_message")->nullable();
+            $table->string("end_time_message")->nullable();
+            $table->double("latitude_start")->nullable();
+            $table->double("longitude_start")->nullable();
+            $table->double("latitude_end")->nullable();
+            $table->double("longitude_end")->nullable();
             $table->integer("is_approved")->default(0);
-            // $table->enum("is_approved", AdjustableStatus::toArray())->default(AdjustableStatus::PENDING);
+            $table->time("original_start_time");
+            $table->time("original_end_time");
+            $table->time("adjusted_start_time");
+            $table->time("adjusted_end_time");
 
-            $table->foreign("detail_schedule_id")->references("id")->on("detail_schedules");
+            $table->index(['intern_id', 'date']);
         });
     }
 

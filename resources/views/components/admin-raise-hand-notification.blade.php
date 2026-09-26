@@ -18,11 +18,8 @@
 @push('scripts')
     <script>
         $(document).ready(function () {
-            console.log('Raise hand notification component loaded');
-
             // Untuk admin - update notifikasi real-time
             function updateRaiseHandNotifications() {
-                console.log('Checking for raise hand updates...');
                 $.ajax({
                     url: '{{ route("admin.raiseHand.count") }}',
                     method: 'GET',
@@ -30,21 +27,16 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function (response) {
-                        console.log('Raise hand count response:', response);
                         const countBadge = $('#raiseHandCount');
 
                         if (response.success && response.count > 0) {
                             countBadge.text(response.count).removeClass('d-none');
-                            console.log('Raise hand count updated to:', response.count);
                         } else {
                             countBadge.addClass('d-none');
-                            console.log('No raise hand requests');
                         }
                     },
                     error: function (xhr, status, error) {
                         console.error('Error fetching raise hand count:', error);
-                        console.log('XHR Status:', status);
-                        console.log('Response:', xhr.responseText);
 
                         // Fallback: tetap coba update setiap 30 detik jika ada error
                         setTimeout(updateRaiseHandNotifications, 30000);
@@ -62,7 +54,6 @@
             // Juga update saat halaman menjadi visible kembali (ketika user kembali ke tab)
             document.addEventListener('visibilitychange', function () {
                 if (!document.hidden) {
-                    console.log('Page became visible, updating notifications');
                     updateRaiseHandNotifications();
                 }
             });
@@ -92,6 +83,6 @@
                     }
                 })
                 .catch(err => console.error(err));
-        }, 2000); // cek tiap 2 detik
+        }, 15000); // cek tiap 15 detik
     </script>
 @endpush

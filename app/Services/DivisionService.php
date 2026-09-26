@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateDivisionRequest;
 use Illuminate\Http\Request;
 use App\Models\Projects;
 use App\Models\DetailProjects;
+use App\Models\Division;
 use Exception;
 use function Sentry\captureException;
 
@@ -27,9 +28,9 @@ class DivisionService
     public function getAll(): ActionResult
     {
         try {
-            $datas =  $this->divisionRepository->getAll();
+            $datas = Division::withCount('intern')->get();
             foreach ($datas as $data) {
-                $data["count"] =  $this->internRepository->countByDivision($data->id);
+                $data["count"] = $data->intern_count;
             }
             return new ActionResult(true, "success retrieve data", $datas);
         } catch (\Throwable $e) {
@@ -159,11 +160,19 @@ class DivisionService
 
             if ($action === 'Tambah') {
                 // Tambah anggota ke dalam project
-                foreach ($userIds as $userId) {
-                    DetailProjects::updateOrCreate([
-                        'project_id' => $projectId,
-                        'intern_id' => $userId,
-                    ]);
+                $existing = DetailProjects::where('project_id', $projectId)
+                    ->whereIn('intern_id', $userIds)
+                    ->pluck('intern_id')
+                    ->all();
+                $toInsert = array_diff($userIds, $existing);
+                if (!empty($toInsert)) {
+                    $insertRecords = array_map(function ($userId) use ($projectId) {
+                        return [
+                            'project_id' => $projectId,
+                            'intern_id' => $userId,
+                        ];
+                    }, $toInsert);
+                    DetailProjects::insert($insertRecords);
                 }
                 $message = 'Members successfully added to the project.';
             } elseif ($action === 'Hapus') {

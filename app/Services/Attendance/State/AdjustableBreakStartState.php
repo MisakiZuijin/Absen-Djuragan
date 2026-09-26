@@ -4,7 +4,6 @@ namespace App\Services\Attendance\State;
 
 use App\Utils\DateNow;
 use App\DTO\AttendanceDTO;
-use App\Helper\LogConsole;
 use App\Helper\ActionResult;
 use App\Utils\AttendanceStatus;
 use App\Services\Attendance\AttendanceState;
@@ -23,25 +22,15 @@ class AdjustableBreakStartState implements AttendanceState {
         $detailScheduleId = $data->getDetailSchedule();
         $adjustableId = $data->getAdjustableId();
 
-        LogConsole::info("=== AdjustableBreakStartState Debug ===");
-        LogConsole::info("Adjustable ID: " . ($adjustableId ?? 'NULL'));
-        LogConsole::info("Schedule ID: " . ($scheduleId ?? 'NULL'));
-        LogConsole::info("Detail Schedule ID: " . ($detailScheduleId ?? 'NULL'));
-        LogConsole::info("Time Now: " . $timeNow);
-        LogConsole::info("===============================");
-
         // Validate adjustable ID
         if (!$adjustableId || $adjustableId <= 0) {
-            LogConsole::info("ERROR: Invalid adjustable ID: " . $adjustableId);
             return new ActionResult(false, "ID adjustable tidak valid", null);
         }
 
         // Verify adjustable record exists
         try {
             $adjustableRecord = $this->adjustableAttdRepository->getById($adjustableId);
-            LogConsole::info("Found adjustable record ID: " . $adjustableRecord->id);
         } catch (\Exception $e) {
-            LogConsole::info("Adjustable record not found: " . $e->getMessage());
             return new ActionResult(false, "Data ganti jam tidak ditemukan", null);
         }
 

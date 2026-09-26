@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Helpers\ResponseHelper;
+use App\Helper\ResponseHelper;
 use App\Http\Requests\InternScheduleRequest;
 use App\Services\OfficeService;
 use App\Services\ScheduleService;
@@ -62,8 +62,12 @@ class ScheduleController extends Controller
         $holidayData = $this->holidayService->getAll();
         $schedulData = $this->scheduleService->getScheduleByInternId($internId);
 
-        $intern = Intern::with('user.profile')->find($internId);
-        $fullName = $intern->user->profile->full_name ?? 'Nama tidak tersedia';
+        $schedule = $schedulData->isSuccess() ? ($schedulData->getData()['schedule'] ?? null) : null;
+        $fullName = $schedule?->intern?->user?->profile?->full_name;
+        if (!$fullName) {
+            $intern = Intern::with('user.profile')->find($internId);
+            $fullName = $intern?->user?->profile?->full_name ?? 'Nama tidak tersedia';
+        }
 
         $data = [
             "name" => $fullName,
@@ -86,7 +90,7 @@ class ScheduleController extends Controller
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer|min:1900|max:2100',
             'shift_id' => 'required|integer',
-            'work_type' => 'required|string',
+            'work_type' => 'required|string|in:wfo,wfh',
             'office_id' => 'required|integer',
             'schedule_type' => 'required|integer',
             'back_earlier' => 'required|integer'

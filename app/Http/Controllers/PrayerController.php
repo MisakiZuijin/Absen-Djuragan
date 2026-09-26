@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Prayer;
-use App\Models\PrayerRequest;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
@@ -37,13 +36,6 @@ class PrayerController extends Controller
             'prayer_type' => $request->input('prayer_type', 'shalat'),
             'started_at' => now(),
             'status' => 'active'
-        ]);
-
-        // Update prayer request status
-        $prayerRequest = PrayerRequest::firstOrCreate(['user_id' => $user->id]);
-        $prayerRequest->update([
-            'is_praying' => true,
-            'started_at' => now()
         ]);
 
         return response()->json([
@@ -84,15 +76,6 @@ class PrayerController extends Controller
             'status' => 'completed'
         ]);
 
-        // Update prayer request status
-        $prayerRequest = PrayerRequest::where('user_id', $user->id)->first();
-        if ($prayerRequest) {
-            $prayerRequest->update([
-                'is_praying' => false,
-                'started_at' => null
-            ]);
-        }
-
         return response()->json([
             'success' => true,
             'message' => 'Sesi shalat berhasil diakhiri',
@@ -116,12 +99,10 @@ class PrayerController extends Controller
             ->where('status', 'active')
             ->first();
 
-        $prayerRequest = PrayerRequest::where('user_id', $user->id)->first();
-
         return response()->json([
             'success' => true,
             'has_active_prayer' => $activePrayer ? true : false,
-            'is_praying' => $prayerRequest ? $prayerRequest->is_praying : false,
+            'is_praying' => $activePrayer ? true : false,
             'prayer_data' => $activePrayer
         ]);
     }
@@ -172,15 +153,6 @@ class PrayerController extends Controller
 
         // Cancel prayer session
         $prayer->update(['status' => 'cancelled']);
-
-        // Update prayer request status
-        $prayerRequest = PrayerRequest::where('user_id', $user->id)->first();
-        if ($prayerRequest) {
-            $prayerRequest->update([
-                'is_praying' => false,
-                'started_at' => null
-            ]);
-        }
 
         return response()->json([
             'success' => true,

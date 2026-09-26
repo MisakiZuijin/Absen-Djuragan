@@ -11,9 +11,10 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('divisions', function (Blueprint $table) {
             $table->id();
-            $table->string("name", 30)->nullable(false);
-            $table->text("icon")->nullable(true);
-            $table->text("description")->nullable(true);
+            $table->string("name", 30);
+            $table->text("meet_url")->nullable();
+            $table->text("icon")->nullable();
+            $table->text("description")->nullable();
         });
     }
 

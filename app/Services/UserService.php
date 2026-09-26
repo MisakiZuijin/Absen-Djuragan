@@ -7,7 +7,6 @@ use App\Repositories\Interface\UserRepository;
 use App\Http\Requests\UpdateProfileRequest;
 use Illuminate\Support\Facades\DB;
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Http\Requests\StorePermitPresenceRequest;
 use App\Mail\ResetPassMailable;
 use App\Repositories\Interface\InternRepository;
@@ -19,8 +18,6 @@ use App\Models\PermitReason;
 use App\Models\DetailSchedule;
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
-use Psy\Readline\Hoa\Console;
-use Symfony\Component\Console\Logger\ConsoleLogger;
 
 use function Sentry\captureException;
 
@@ -297,7 +294,7 @@ class UserService
                 'exp' => time() + 3600
             ];
 
-            $secretKey = env('JWT_SECRET_KEY', 'ular sanca baik hati');
+            $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
             $jwt = JWT::encode($payload, $secretKey, 'HS256');
 
             $resetUrl = route('change-password.view', ['jwt' => $jwt]);
@@ -312,7 +309,6 @@ class UserService
             return new ActionResult(true, "Successfully sent password reset link, check your email", null);
         } catch (\Throwable $th) {
             captureException($th);
-            LogConsole::info($th);
             return new ActionResult(false, "Failed to send password reset link", null);
         }
     }
@@ -320,9 +316,9 @@ class UserService
     {
         try {
             $data = $request->validate([
-                "password" => 'required|min:8',
+                "password" => 'required|min:8|confirmed',
             ]);
-            $secretKey = env('JWT_SECRET_KEY', 'ular sanca baik hati');
+            $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
             $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
 
             $email = $decoded->email;
@@ -378,11 +374,8 @@ class UserService
             $detailSchedule->isChangeSchedule = isset($validated['jam-option']) ? $validated['jam-option'] : 0;
             $detailSchedule->save();
 
-            $result = $this->userRepository->createPermitPresence($validated);
-
-            return new ActionResult(true, "Permit presence  created successfully", $result);
+            return new ActionResult(true, "Permit presence created successfully", $detailSchedule);
         } catch (\Throwable $th) {
-            LogConsole::info($th);
             captureException($th); // Melacak error
             return new ActionResult(false, "Failed to create permit presence, something went wrong", null);
         }

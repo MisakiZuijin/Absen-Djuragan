@@ -100,6 +100,10 @@
         </main>
     </div>
 
+    <div id="flash-messages" class="hidden"
+        data-success="{{ session('success') ?? '' }}"
+        data-error="{{ session('error') ?? ($error ?? '') }}"></div>
+
     <script>
         // Clock update function
         function updateClock() {
@@ -154,20 +158,44 @@
         }
 
         // Handle success/error messages from session
-        @if (session('success'))
-            document.addEventListener('DOMContentLoaded', function() {
-                showNotification('success', '{{ session('success') }}');
-            });
-        @endif
-
-        @if (isset($error))
-            document.addEventListener('DOMContentLoaded', function() {
-                showNotification('error', '{{ $error }}');
-            });
-        @endif
+        document.addEventListener('DOMContentLoaded', function() {
+            const flashEl = document.getElementById('flash-messages');
+            if (flashEl) {
+                const successMsg = flashEl.getAttribute('data-success');
+                const errorMsg = flashEl.getAttribute('data-error');
+                if (successMsg) {
+                    showNotification('success', successMsg);
+                }
+                if (errorMsg) {
+                    showNotification('error', errorMsg);
+                }
+            }
+        });
 
         // Add smooth scrolling for better UX
         document.documentElement.style.scrollBehavior = 'smooth';
+
+        if (typeof $ !== 'undefined') {
+            $.ajaxSetup({
+                headers: {
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                },
+                statusCode: {
+                    419: function() {
+                        alert('Sesi Anda telah berakhir. Halaman akan dimuat ulang.');
+                        window.location.reload();
+                    },
+                    403: function() {
+                        alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+                    }
+                }
+            });
+        }
+        window.addEventListener('unhandledrejection', function(event) {
+            if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
+                window.location.reload();
+            }
+        });
     </script>
 
     <style>
@@ -176,7 +204,8 @@
             transition: all 0.2s ease-in-out;
         }
 
-        #success-notif, #error-notif {
+        #success-notif,
+        #error-notif {
             transform: translateX(100%);
         }
 
@@ -190,8 +219,15 @@
 
         /* Subtle animations */
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         header {
@@ -199,7 +235,8 @@
         }
 
         /* Focus states for accessibility */
-        button:focus, a:focus {
+        button:focus,
+        a:focus {
             outline: 2px solid #3b82f6;
             outline-offset: 2px;
         }

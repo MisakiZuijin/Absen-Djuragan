@@ -3,33 +3,24 @@
 @section('title', 'Dashboard Asisten Admin')
 
 @section('contents')
-    {{-- Memuat sidebar --}}
-    @include($sidebarView)
-
-    {{-- [PERBAIKAN] Wrapper untuk konten utama (Navbar + Main) --}}
-    <div class="md:ml-64">
-        
-        {{-- Navbar --}}
-        @include('layouts.navbar', ['user' => $user])
-
-        {{-- [PERBAIKAN] Tag <main> sekarang berada di dalam wrapper dan tidak lagi memiliki class ml-64 --}}
-        <main class="mt-24 p-6 bg-slate-50 min-h-screen">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-4 sm:p-6 lg:p-8 bg-slate-50 min-h-screen min-w-0">
+        <div class="max-w-7xl mx-auto space-y-6">
             <!-- Header Section -->
-            <div class="mb-8">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-6">
-                        <div class="p-4 bg-white rounded-2xl shadow-sm border border-slate-200">
-                            <i class="fa-solid fa-user-shield text-blue-600 text-2xl"></i>
+            <div class="mb-6 sm:mb-8">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 sm:mb-6">
+                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="p-3 sm:p-4 bg-white rounded-2xl shadow-sm border border-slate-200 shrink-0">
+                            <i class="fa-solid fa-user-shield text-blue-600 text-xl sm:text-2xl"></i>
                         </div>
                         <div>
-                            <h1 class="text-3xl font-bold text-slate-900">Dashboard Asisten Admin</h1>
-                            <p class="text-slate-600 mt-1">Kelola siswa magang dan persetujuan aktivitas</p>
+                            <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900">Dashboard Asisten Admin</h1>
+                            <p class="text-xs sm:text-sm text-slate-600 mt-0.5 sm:mt-1">Kelola siswa magang dan persetujuan aktivitas</p>
                         </div>
                     </div>
-                    <div class="bg-white px-6 py-3 rounded-2xl shadow-sm border border-slate-200">
-                        <div class="flex items-center gap-3">
-                            <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                            <span class="text-sm font-medium text-slate-700">Online</span>
+                    <div class="self-start sm:self-auto bg-white px-4 sm:px-6 py-2 sm:py-3 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="flex items-center gap-2 sm:gap-3">
+                            <div class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span class="text-xs sm:text-sm font-medium text-slate-700">Online</span>
                         </div>
                     </div>
                 </div>
@@ -48,7 +39,7 @@
             @endif
 
             <!-- Statistics Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
                 <!-- Siswa Menunggu Bantuan (Raise Hand) -->
                 <a href="{{ route('assistant.raisehand.list') }}" class="block bg-white rounded-2xl shadow-sm border border-slate-200 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
                     <div class="p-6">
@@ -358,6 +349,7 @@
                 </div>
             </div>
         @endif
+        </div>
     </main>
 
     <style>

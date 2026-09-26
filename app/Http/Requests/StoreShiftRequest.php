@@ -23,6 +23,7 @@ class StoreShiftRequest extends FormRequest {
             'end_break_time' => 'required|date_format:H:i',
             'adt_start_break_time' => 'nullable|date_format:H:i',
             'adt_end_break_time' => 'nullable|date_format:H:i',
+            'is_gps_active' => 'nullable|in:0,1',
         ];
     }
 }

@@ -4,18 +4,21 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
-    public function up(): void
-    {
+    public function up(): void {
         Schema::create('broadcasts', function (Blueprint $table) {
             $table->id();
+            $table->enum('category', ['announcement', 'scheduled_broadcast'])->default('announcement');
             $table->string('title');
             $table->text('message');
-            $table->string('image')->nullable();
+            $table->string('broadcast_type')->default('all');
+            $table->timestamp('scheduled_at')->nullable();
+            $table->boolean('requires_report')->default(false);
+            $table->text('report_question')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
         });
     }
@@ -23,8 +26,7 @@ return new class extends Migration
     /**
      * Reverse the migrations.
      */
-    public function down(): void
-    {
+    public function down(): void {
         Schema::dropIfExists('broadcasts');
     }
 };

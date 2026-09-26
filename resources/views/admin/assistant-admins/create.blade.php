@@ -4,7 +4,7 @@
 {{-- Pastikan nama section ini 'contents' agar konsisten dengan halaman lain --}}
 @section('contents')
 
-<div class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64 bg-gray-50 min-h-screen">
+<div class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 bg-gray-50 min-h-screen min-w-0">
     <div class="max-w-4xl mx-auto">
         <!-- Breadcrumb -->
         <nav class="flex mb-6" aria-label="Breadcrumb">

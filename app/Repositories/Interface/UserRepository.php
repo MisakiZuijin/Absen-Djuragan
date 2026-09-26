@@ -5,7 +5,6 @@ namespace App\Repositories\Interface;
 interface UserRepository
 {
     public function attemptLogin(mixed $credentials);
-    public function createPermitPresence(mixed $data);
     public function getAuthenticatedUser();
     public function deleteAuthenticatedUser();
     public function store(array $data);

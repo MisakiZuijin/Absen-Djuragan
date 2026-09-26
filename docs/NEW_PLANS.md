@@ -9,14 +9,14 @@
 
 | No  | Fitur                                                                                                | Prioritas    | Estimasi | Status   |
 | --- | ---------------------------------------------------------------------------------------------------- | ------------ | -------- | -------- |
-| 1   | [Izin Keperluan: Link Bukti Drive Wajib](#1-izin-keperluan-link-bukti-drive-wajib)                   | ⚡ Quick Win | 30 menit | ⬜ Belum |
-| 2   | [Popup Teks Saat Masuk (Terlambat/Tepat Waktu)](#2-popup-teks-saat-masuk-terlambattepat-waktu)       | 🟡 Sedang    | 2-3 jam  | ⬜ Belum |
-| 3   | [Izin Keluar: Peningkatan Manajemen](#3-izin-keluar-peningkatan-manajemen)                           | 🟡 Sedang    | 3-4 jam  | ⬜ Belum |
-| 4   | [Presensi Regular: Hutang Waktu dari Izin Keluar](#4-presensi-regular-hutang-waktu-dari-izin-keluar) | 🔴 Kompleks  | 3-4 jam  | ⬜ Belum |
-| 5   | [Sistem Broadcast Terjadwal](#5-sistem-broadcast-terjadwal)                                          | 🔴 Kompleks  | 5-7 jam  | ⬜ Belum |
-| 6   | [Penyesuaian Web untuk macOS/iOS](#6-penyesuaian-web-untuk-macosios)                                 | 🟡 Sedang    | 2-3 jam  | ⬜ Belum |
-| 7   | [Role Superadmin & Pembagian Hak Akses](#7-role-superadmin--pembagian-hak-akses)                     | 🟡 Sedang    | 3-4 jam  | ⬜ Belum |
-| 8   | [Penataan & Penyatuan File Migrasi Database](#8-penataan--penyatuan-file-migrasi-database)           | ⚠️ Hati-hati | 4-5 jam  | ⬜ Belum |
+| 1   | [Izin Keperluan: Link Bukti Drive Wajib](#1-izin-keperluan-link-bukti-drive-wajib)                   | ⚡ Quick Win | 30 menit | ✅ Selesai |
+| 2   | [Popup Teks Saat Masuk (Terlambat/Tepat Waktu)](#2-popup-teks-saat-masuk-terlambattepat-waktu)       | 🟡 Sedang    | 2-3 jam  | ✅ Selesai |
+| 3   | [Izin Keluar: Peningkatan Manajemen](#3-izin-keluar-peningkatan-manajemen)                           | 🟡 Sedang    | 3-4 jam  | ✅ Selesai |
+| 4   | [Presensi Regular: Hutang Waktu dari Izin Keluar](#4-presensi-regular-hutang-waktu-dari-izin-keluar) | 🔴 Kompleks  | 3-4 jam  | ✅ Selesai |
+| 5   | [Sistem Broadcast Terjadwal](#5-sistem-broadcast-terjadwal)                                          | 🔴 Kompleks  | 5-7 jam  | ✅ Selesai |
+| 6   | [Penyesuaian Web untuk macOS/iOS](#6-penyesuaian-web-untuk-macosios)                                 | 🟡 Sedang    | 2-3 jam  | ✅ Selesai |
+| 7   | [Role Superadmin & Pembagian Hak Akses](#7-role-superadmin--pembagian-hak-akses)                     | 🟡 Sedang    | 3-4 jam  | ✅ Selesai |
+| 8   | [Penataan & Penyatuan File Migrasi Database](#8-penataan--penyatuan-file-migrasi-database)           | ⚠️ Hati-hati | 4-5 jam  | ✅ Selesai |
 
 ---
 
@@ -635,24 +635,29 @@ Di bagian tabel presensi harian, tambahkan indikator jika ada hutang tambahan da
 
 ---
 
-## 5. Sistem Broadcast Terjadwal
+## 5. Sistem Broadcast Terjadwal (Halaman Terpisah dari Pengumuman)
 
 ### Deskripsi
 
-Buat halaman **Broadcast** baru yang meng-enhance sistem broadcast yang sudah ada, dengan kemampuan:
+Sistem pesan & komunikasi admin dipisahkan secara tegas menjadi **2 Halaman Terpisah**:
 
-- Mengirim teks/pertanyaan kepada pemagang
-- Admin men-setting **kapan** broadcast dikirim (jadwal)
-- Target: ke **divisi** tertentu, ke **siapa** (specific user), ke **shift** tertentu, atau ke **brand/kantor** tertentu
-- Waktu pengiriman bebas di-set admin/HR
+1. **Halaman Pengumuman (`/admin/announcements` / `admin.announcements.index`)**: Khusus untuk membuat dan mengelola **Pengumuman Banner / Informasi Umum** yang tampil statis di dashboard pemagang.
+2. **Halaman Broadcast Terjadwal (`/admin/scheduled-broadcasts` / `admin.scheduled-broadcasts.index`)**: Halaman khusus untuk Admin / HR mengirim **Teks Pesan & Pertanyaan Terjadwal** kepada pemagang dengan pengaturan:
+   - Waktu pengiriman bebas (Langsung vs Terjadwal jam & tanggal tertentu)
+   - Filter Target Presisi: **Semua Pemagang**, **Per Divisi**, **Per Shift**, **Per Kantor / Brand**, atau **Per User (Individu)**
+   - Log & Riwayat Status Pengiriman (Pending / Sent / Failed)
 
-### Analisis Kode Saat Ini
+---
 
-Broadcast yang sudah ada (`Broadcast` model):
+### Alur Navigasi & Pemisahan Menu Sidebar Admin
 
-- `title`, `message`, `broadcast_type` (all/division/specific)
-- Relasi: `divisions()` (many-to-many), `users()` (many-to-many), `images()` (hasMany)
-- **Belum ada**: scheduling, targeting by shift, targeting by brand/office
+```
+Sidebar Admin:
+ ├── 📢 Pengumuman            --> Route: /admin/announcements (Pengumuman & Banner Dashboard)
+ └── 📡 Broadcast Terjadwal   --> Route: /admin/scheduled-broadcasts (Pesan & Pertanyaan Terjadwal)
+```
+
+---
 
 ### Langkah Implementasi
 
@@ -664,31 +669,23 @@ php artisan make:migration add_scheduling_to_broadcasts_table
 
 ```php
 Schema::table('broadcasts', function (Blueprint $table) {
+    // Membedakan tipe kontent: 'announcement' (pengumuman) vs 'scheduled_broadcast' (broadcast pesan/pertanyaan)
+    $table->enum('category', ['announcement', 'scheduled_broadcast'])->default('announcement')->after('id');
+
     // Scheduling
-    $table->timestamp('scheduled_at')->nullable()->after('broadcast_type');
-    // null = kirim sekarang, ada value = kirim terjadwal
-    $table->boolean('is_sent')->default(false)->after('scheduled_at');
+    $table->timestamp('scheduled_at')->nullable()->after('broadcast_type'); // null = kirim langsung, value = jadwal
+    $table->boolean('is_sent')->default(true)->after('scheduled_at');
     $table->timestamp('sent_at')->nullable()->after('is_sent');
 
-    // Enhanced targeting (extend broadcast_type)
-    // broadcast_type tetap: 'all', 'division', 'specific'
-    // Tambah opsi baru:
-    // Ubah broadcast_type enum atau tambah kolom terpisah
-
-    // Targeting by shift
-    $table->json('target_shift_ids')->nullable()->after('sent_at');
-    // Targeting by office/brand
-    $table->json('target_office_ids')->nullable()->after('target_shift_ids');
-
-    // Pengirim
-    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->after('target_office_ids');
+    // Pivot table terpisah untuk targeting shift dan office (lihat langkah 2)
+    $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete()->after('sent_at');
 });
 ```
 
-#### Langkah 2: Migration — Tabel Pivot `broadcast_shift`
+#### Langkah 2: Migration — Tabel Pivot `broadcast_shift` & `broadcast_office`
 
 ```bash
-php artisan make:migration create_broadcast_shift_table
+php artisan make:migration create_broadcast_targeting_tables
 ```
 
 ```php
@@ -711,14 +708,13 @@ Schema::create('broadcast_office', function (Blueprint $table) {
 
 ```php
 protected $fillable = [
+    'category',          // BARU: 'announcement' vs 'scheduled_broadcast'
     'title',
     'message',
-    'broadcast_type',
+    'broadcast_type',    // 'all', 'division', 'specific', 'shift', 'office'
     'scheduled_at',      // BARU
     'is_sent',           // BARU
     'sent_at',           // BARU
-    'target_shift_ids',  // BARU
-    'target_office_ids', // BARU
     'created_by',        // BARU
 ];
 
@@ -726,40 +722,155 @@ protected $casts = [
     'scheduled_at' => 'datetime',
     'sent_at' => 'datetime',
     'is_sent' => 'boolean',
-    'target_shift_ids' => 'array',
-    'target_office_ids' => 'array',
 ];
 
-protected $with = ['divisions', 'users', 'images', 'shifts', 'offices'];
+// Relasi targeting
+public function divisions() {
+    return $this->belongsToMany(Division::class, 'broadcast_division');
+}
 
-// Relasi baru
-public function shifts()
-{
+public function users() {
+    return $this->belongsToMany(User::class, 'broadcast_user');
+}
+
+public function shifts() {
     return $this->belongsToMany(Shift::class, 'broadcast_shift');
 }
 
-public function offices()
-{
+public function offices() {
     return $this->belongsToMany(Office::class, 'broadcast_office');
 }
 
-public function creator()
-{
-    return $this->belongsTo(User::class, 'created_by');
+public function images() {
+    return $this->hasMany(BroadcastImage::class);
 }
 
-// Scope: Broadcast yang belum terkirim dan sudah waktunya
-public function scopePendingSend($query)
-{
+// Scope khusus
+public function scopeAnnouncements($query) {
+    return $query->where('category', 'announcement');
+}
+
+public function scopeScheduledBroadcasts($query) {
+    return $query->where('category', 'scheduled_broadcast');
+}
+
+public function scopePendingSend($query) {
     return $query->where('is_sent', false)
         ->where(function ($q) {
-            $q->whereNull('scheduled_at') // Kirim langsung
-              ->orWhere('scheduled_at', '<=', now()); // Sudah waktunya
+            $q->whereNull('scheduled_at')
+              ->orWhere('scheduled_at', '<=', now());
         });
 }
 ```
 
-#### Langkah 4: Buat Job untuk Broadcast Terjadwal
+#### Langkah 4: Controller Terpisah — `ScheduledBroadcastController.php`
+
+```bash
+php artisan make:controller ScheduledBroadcastController
+```
+
+**File Baru**: `app/Http/Controllers/ScheduledBroadcastController.php`
+
+```php
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Broadcast;
+use App\Models\Division;
+use App\Models\Office;
+use App\Models\Shift;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+
+class ScheduledBroadcastController extends Controller
+{
+    // Tampilkan Halaman Utama Broadcast Terjadwal
+    public function index()
+    {
+        $broadcasts = Broadcast::scheduledBroadcasts()
+            ->with(['divisions', 'users', 'shifts', 'offices', 'images'])
+            ->latest()
+            ->paginate(10);
+
+        $divisions = Division::orderBy('name')->get();
+        $users = User::whereHas('intern')->with('profile')->get();
+        $shifts = Shift::orderBy('name')->get();
+        $offices = Office::orderBy('name')->get();
+
+        return view('admin.scheduled-broadcast.index', compact(
+            'broadcasts', 'divisions', 'users', 'shifts', 'offices'
+        ));
+    }
+
+    // Simpan Broadcast Terjadwal Baru
+    public function store(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'broadcast_type' => 'required|in:all,division,specific,shift,office',
+            'divisions' => 'nullable|required_if:broadcast_type,division|array',
+            'users' => 'nullable|required_if:broadcast_type,specific|array',
+            'shifts' => 'nullable|required_if:broadcast_type,shift|array',
+            'offices' => 'nullable|required_if:broadcast_type,office|array',
+            'scheduled_at' => 'nullable|date|after:now',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $isScheduled = !empty($request->scheduled_at);
+
+            $broadcast = Broadcast::create([
+                'category' => 'scheduled_broadcast',
+                'title' => $request->title,
+                'message' => $request->message,
+                'broadcast_type' => $request->broadcast_type,
+                'scheduled_at' => $request->scheduled_at,
+                'is_sent' => !$isScheduled,
+                'sent_at' => !$isScheduled ? now() : null,
+                'created_by' => auth()->id(),
+            ]);
+
+            // Sync targeting
+            match ($request->broadcast_type) {
+                'division' => $broadcast->divisions()->sync($request->divisions ?? []),
+                'specific' => $broadcast->users()->sync($request->users ?? []),
+                'shift'    => $broadcast->shifts()->sync($request->shifts ?? []),
+                'office'   => $broadcast->offices()->sync($request->offices ?? []),
+                default    => null,
+            };
+
+            // Upload Lampiran Gambar jika ada
+            if ($request->hasFile('images')) {
+                foreach ($request->file('images') as $file) {
+                    $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
+                    $file->move(public_path('broadcast-image'), $filename);
+                    $broadcast->images()->create(['image' => $filename]);
+                }
+            }
+
+            DB::commit();
+            return redirect()->route('admin.scheduled-broadcasts.index')
+                ->with('success', $isScheduled ? 'Broadcast berhasil dijadwalkan!' : 'Broadcast berhasil dikirim!');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Gagal membuat broadcast: ' . $e->getMessage())->withInput();
+        }
+    }
+
+    public function destroy(Broadcast $broadcast)
+    {
+        $broadcast->delete();
+        return redirect()->route('admin.scheduled-broadcasts.index')->with('success', 'Broadcast berhasil dihapus.');
+    }
+}
+```
+
+#### Langkah 5: Buat Job & Schedule Auto-Send
 
 ```bash
 php artisan make:job SendScheduledBroadcasts
@@ -785,238 +896,55 @@ class SendScheduledBroadcasts implements ShouldQueue
 
     public function handle(): void
     {
-        $broadcasts = Broadcast::pendingSend()->get();
+        $pendingBroadcasts = Broadcast::pendingSend()->get();
 
-        foreach ($broadcasts as $broadcast) {
+        foreach ($pendingBroadcasts as $broadcast) {
             $broadcast->update([
                 'is_sent' => true,
                 'sent_at' => now(),
             ]);
-
-            // Broadcast sudah tersedia di database, pemagang akan melihatnya
-            // saat membuka halaman dashboard (sudah ada logika existing)
         }
     }
 }
 ```
 
-#### Langkah 5: Daftarkan Schedule
-
-**File**: `routes/console.php` atau `app/Console/Kernel.php`
+Daftarkan di `routes/console.php`:
 
 ```php
 use App\Jobs\SendScheduledBroadcasts;
 use Illuminate\Support\Facades\Schedule;
 
-// Cek setiap menit apakah ada broadcast terjadwal yang perlu dikirim
 Schedule::job(new SendScheduledBroadcasts)->everyMinute();
 ```
 
-> **PENTING**: Pastikan cron sudah berjalan di server:
->
-> ```bash
-> * * * * * cd /path-to-project && php artisan schedule:run >> /dev/null 2>&1
-> ```
->
-> Untuk development di Laragon, jalankan `php artisan schedule:work` di terminal terpisah.
+#### Langkah 6: Separate Routes & Views
 
-#### Langkah 6: Update BroadcastController
-
-**File**: `app/Http/Controllers/BroadcastController.php`
-
-Update method `store()`:
+**File**: `routes/web.php`
 
 ```php
-public function store(Request $request)
-{
-    $request->validate([
-        'title' => 'required|string|max:255',
-        'message' => 'required|string',
-        'broadcast_type' => 'required|in:all,division,specific,shift,office',
-        'divisions' => 'nullable|required_if:broadcast_type,division|array',
-        'users' => 'nullable|required_if:broadcast_type,specific|array',
-        'shifts' => 'nullable|required_if:broadcast_type,shift|array',
-        'offices' => 'nullable|required_if:broadcast_type,office|array',
-        'images' => 'nullable|array',
-        'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-        'scheduled_at' => 'nullable|date|after:now', // Jadwal kirim
-    ]);
+// Halaman 1: Pengumuman (Existing)
+Route::resource('/admin/announcements', BroadcastController::class)
+    ->names('admin.announcements');
 
-    DB::beginTransaction();
-    try {
-        $broadcast = Broadcast::create([
-            'title' => $request->title,
-            'message' => $request->message,
-            'broadcast_type' => $request->broadcast_type,
-            'scheduled_at' => $request->scheduled_at,
-            'is_sent' => $request->scheduled_at ? false : true, // Langsung terkirim jika tanpa jadwal
-            'sent_at' => $request->scheduled_at ? null : now(),
-            'created_by' => auth()->id(),
-        ]);
-
-        // Sync relasi sesuai tipe
-        match ($request->broadcast_type) {
-            'division' => $broadcast->divisions()->sync($request->divisions ?? []),
-            'specific' => $broadcast->users()->sync($request->users ?? []),
-            'shift'    => $broadcast->shifts()->sync($request->shifts ?? []),
-            'office'   => $broadcast->offices()->sync($request->offices ?? []),
-            default    => null,
-        };
-
-        // Upload gambar
-        if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $file) {
-                $filename = time() . '_' . Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.' . $file->getClientOriginalExtension();
-                $file->move(public_path('broadcast-image'), $filename);
-                $broadcast->images()->create(['image' => $filename]);
-            }
-        }
-
-        DB::commit();
-        return redirect()->to('/admin/broadcasts')->with('success', 'Pengumuman berhasil dibuat.');
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
-    }
-}
+// Halaman 2: Broadcast Terjadwal (BARU & TERPISAH)
+Route::resource('/admin/scheduled-broadcasts', ScheduledBroadcastController::class)
+    ->only(['index', 'store', 'destroy'])
+    ->names('admin.scheduled-broadcasts');
 ```
 
-#### Langkah 7: Update View Broadcast
+**File View Baru**: `resources/views/admin/scheduled-broadcast/index.blade.php`
+Halaman ini khusus menampilkan UI Form Pembuat Broadcast Pesan & Pertanyaan dengan Tab Status Pengiriman (Semua / Terjadwal / Terkirim) serta filter lengkap per Divisi, Shift, Kantor, dan User.
 
-**File**: `resources/views/admin/pengaturan-broadcast.blade.php`
-
-Tambahkan field baru di form:
-
-```html
-<!-- Scheduling -->
-<div>
-    <label class="block text-xs font-bold text-slate-700 mb-1.5">
-        Jadwal Pengiriman
-        <span class="text-slate-400 font-normal"
-            >(kosongkan untuk kirim sekarang)</span
-        >
-    </label>
-    <input
-        type="datetime-local"
-        name="scheduled_at"
-        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs"
-    />
-</div>
-
-<!-- Target Shift (tampilkan jika broadcast_type = 'shift') -->
-<div id="shiftTarget" style="display:none;">
-    <label class="block text-xs font-bold text-slate-700 mb-1.5"
-        >Target Shift</label
-    >
-    @foreach($shifts as $shift)
-    <label class="flex items-center gap-2 text-xs">
-        <input type="checkbox" name="shifts[]" value="{{ $shift->id }}" />
-        {{ $shift->name }} ({{ $shift->start_time }} - {{ $shift->end_time }})
-    </label>
-    @endforeach
-</div>
-
-<!-- Target Office/Brand (tampilkan jika broadcast_type = 'office') -->
-<div id="officeTarget" style="display:none;">
-    <label class="block text-xs font-bold text-slate-700 mb-1.5"
-        >Target Kantor/Brand</label
-    >
-    @foreach($offices as $office)
-    <label class="flex items-center gap-2 text-xs">
-        <input type="checkbox" name="offices[]" value="{{ $office->id }}" />
-        {{ $office->name }}
-    </label>
-    @endforeach
-</div>
-```
-
-Update dropdown `broadcast_type`:
-
-```html
-<select name="broadcast_type" id="broadcast_type">
-    <option value="all">Semua Pemagang</option>
-    <option value="division">Per Divisi</option>
-    <option value="specific">Per Individu</option>
-    <option value="shift">Per Shift</option>
-    <option value="office">Per Kantor/Brand</option>
-</select>
-```
-
-Tambahkan JavaScript untuk toggle visibility:
-
-```javascript
-document
-    .getElementById("broadcast_type")
-    .addEventListener("change", function () {
-        const val = this.value;
-        document.getElementById("divisionTarget").style.display =
-            val === "division" ? "block" : "none";
-        document.getElementById("specificTarget").style.display =
-            val === "specific" ? "block" : "none";
-        document.getElementById("shiftTarget").style.display =
-            val === "shift" ? "block" : "none";
-        document.getElementById("officeTarget").style.display =
-            val === "office" ? "block" : "none";
-    });
-```
-
-#### Langkah 8: Update Query Broadcast di Sisi Pemagang
-
-**File**: `app/Http/Controllers/UserController.php` (di method `userView()` atau yang menampilkan broadcast)
-
-Pastikan query broadcast hanya menampilkan yang `is_sent = true`:
-
-```php
-$broadcasts = Broadcast::where('is_sent', true)
-    ->where(function ($q) use ($user) {
-        $q->where('broadcast_type', 'all')
-          ->orWhereHas('divisions', function ($dq) use ($user) {
-              $dq->where('division_id', $user->intern?->division_id);
-          })
-          ->orWhereHas('users', function ($uq) use ($user) {
-              $uq->where('user_id', $user->id);
-          })
-          ->orWhereHas('shifts', function ($sq) use ($user) {
-              // Cek shift pemagang hari ini
-              $sq->whereIn('shift_id', $user->intern?->activeShiftIds() ?? []);
-          })
-          ->orWhereHas('offices', function ($oq) use ($user) {
-              $oq->where('office_id', $user->intern?->office_id);
-          });
-    })
-    ->latest()
-    ->get();
-```
-
-#### Langkah 9: Pass Data Tambahan ke View
-
-**File**: `app/Http/Controllers/BroadcastController.php` (method `index()`)
-
-```php
-use App\Models\Shift;
-use App\Models\Office;
-
-public function index()
-{
-    $broadcastlist = Broadcast::with('divisions', 'users', 'images', 'shifts', 'offices')
-        ->latest()->paginate(10);
-    $divisions = Division::orderBy('name')->get();
-    $users = User::whereHas('intern')->with('profile')->get();
-    $shifts = Shift::orderBy('name')->get();       // BARU
-    $offices = Office::orderBy('name')->get();     // BARU
-
-    return view('admin.pengaturan-broadcast', compact('broadcastlist', 'divisions', 'users', 'shifts', 'offices'));
-}
-```
+---
 
 ### Verifikasi
 
-1. Jalankan migrasi: `php artisan migrate`
-2. Buat broadcast tanpa jadwal → Harus langsung muncul di dashboard pemagang
-3. Buat broadcast dengan jadwal 5 menit ke depan → Jalankan `php artisan schedule:work`
-4. Setelah 5 menit, broadcast harus muncul di dashboard pemagang
-5. Test targeting per shift, per office
-6. Pastikan broadcast lama yang sudah ada tetap berfungsi normal
+1. Buka menu Admin Dashboard → Pastikan ada **2 Menu terpisah**: `Pengumuman` dan `Broadcast Terjadwal`
+2. Buka `Broadcast Terjadwal` → Form pembuatan broadcast mendukung targeting per Divisi, Shift, Kantor/Brand, & User dengan datetime picker waktu pengiriman
+3. Buat broadcast terjadwal 2 menit ke depan → Status masuk 'Terjadwal' (Pending)
+4. Jalankan `php artisan schedule:run` → Status berubah menjadi 'Terkirim' (Sent)
+5. Halaman `Pengumuman` lama tetap berjalan terpisah tanpa terganggu
+
 
 ---
 
@@ -1633,12 +1561,12 @@ git checkout -b fitur/2-popup-checkin
 
 ## Checklist Verifikasi Akhir
 
-- [ ] Link bukti Drive wajib saat izin keperluan (frontend + backend validation)
-- [ ] Popup teks saat masuk tepat waktu / terlambat, admin bisa setting
-- [ ] Izin keluar menampilkan durasi, keterangan, disetujui oleh, waktu disepakati
-- [ ] Hutang waktu bertambah jika izin keluar wajib ganti jam
-- [ ] Broadcast terjadwal bisa di-set waktu, target shift, target kantor
-- [ ] Tampilan web rapi di Safari macOS & iOS
-- [ ] Role Superadmin berfungsi dengan akses penuh + menu khusus
-- [ ] Migrasi database berhasil `migrate:fresh --seed` tanpa error
-- [ ] Semua fitur lama tetap berfungsi normal setelah perubahan
+- [x] Link bukti Drive wajib saat izin keperluan (frontend + backend validation)
+- [x] Popup teks saat masuk tepat waktu / terlambat, admin bisa setting
+- [x] Izin keluar menampilkan durasi, keterangan, disetujui oleh, waktu disepakati
+- [x] Hutang waktu bertambah jika izin keluar wajib ganti jam
+- [x] Broadcast terjadwal bisa di-set waktu, target shift, target kantor
+- [x] Tampilan web rapi di Safari macOS & iOS (+ browser Linux: Firefox/Chrome)
+- [x] Role Superadmin berfungsi dengan akses penuh + menu khusus
+- [x] Migrasi database berhasil disatukan dan tersinkronisasi tanpa error
+- [x] Semua fitur lama tetap berfungsi normal setelah perubahan

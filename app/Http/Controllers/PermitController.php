@@ -20,9 +20,11 @@ class PermitController extends Controller
         $internId = $user->intern->id;
         $permitType = $request->input('type');
 
-        // [PERBAIKAN] Cek izin aktif langsung di tabel `permit_logs`
+        // [PERBAIKAN] Cek izin aktif langsung di tabel `permit_logs` melalui relasi attendance
         // Ini lebih andal karena inilah yang dilihat oleh Asisten Admin.
-        $activePermitLog = PermitLog::where('intern_id', $internId)
+        $activePermitLog = PermitLog::whereHas('attendance', function ($q) use ($internId) {
+            $q->where('intern_id', $internId);
+        })
             ->whereNull('end_time')
             ->exists();
 
@@ -51,10 +53,11 @@ class PermitController extends Controller
 
         // [SOLUSI UTAMA] Buat entri di tabel `permit_logs`
         PermitLog::create([
-            'intern_id'  => $internId,
-            'type'       => $permitType,
-            'start_time' => $attendance->permit_start,
-            'reason'     => $reason, // Gunakan variabel $reason yang sudah aman
+            'attendance_id'   => $attendance->id,
+            'type'            => $permitType,
+            'start_time'      => $attendance->permit_start,
+            'description'     => $reason,
+            'approval_status' => $permitType === 'leave' ? 'pending' : 'approved',
         ]);
 
         return response()->json(['success' => true, 'message' => 'Izin berhasil dimulai.']);
@@ -69,7 +72,10 @@ class PermitController extends Controller
         $internId = $user->intern->id;
         
         // Akhiri izin di tabel `permit_logs` terlebih dahulu
-        $activePermitLog = PermitLog::where('intern_id', $internId)
+        $activePermitLog = PermitLog::with('attendance')
+            ->whereHas('attendance', function ($q) use ($internId) {
+                $q->where('intern_id', $internId);
+            })
             ->whereNull('end_time')
             ->latest('start_time')
             ->first();
@@ -82,13 +88,8 @@ class PermitController extends Controller
         $activePermitLog->save();
 
         // Akhiri juga izin di tabel 'attendances' (jika masih diperlukan)
-        $attendance = Attendance::where('intern_id', $internId)
-            ->whereNotNull('permit_start')
-            ->whereNull('permit_back')
-            ->latest('permit_start')
-            ->first();
-
-        if ($attendance) {
+        $attendance = $activePermitLog->attendance;
+        if ($attendance && $attendance->permit_start && !$attendance->permit_back) {
             $attendance->permit_back = $activePermitLog->end_time;
             $attendance->save();
         }

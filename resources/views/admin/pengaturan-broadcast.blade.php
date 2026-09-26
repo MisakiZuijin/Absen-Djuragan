@@ -3,145 +3,138 @@
 @section('title', 'Pengaturan Pengumuman')
 
 @section('contents')
-    @include('layouts.sidebar')
     @include('layouts.sidebar-pengaturan')
-    @include('layouts.navbar')
 
     <!-- Main Content -->
-    <main class="ml-[32rem] mt-24 p-6">
-        <!-- Header Section -->
-        <div class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-800 mb-3">Kelola Pengumuman</h1>
-            <p class="text-gray-600 leading-relaxed">Pengaturan untuk menambahkan, mengedit, dan menargetkan pengumuman kepada divisi atau pemagang tertentu.</p>
-        </div>
+    <main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
+        <div class="w-full max-w-full min-w-0 space-y-6">
 
-        <!-- Action Bar -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
-            <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-                <!-- Add Button -->
-                <button id="addbroadcastButton"
-    class="flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500">
-    <i class="fas fa-plus mr-2"></i> Tambahkan Pengumuman
-</button>
+            <!-- Header Section -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                <h1 class="text-2xl font-bold text-gray-900 mb-1">Manage Pengumuman</h1>
+                <p class="text-gray-500 text-sm">Pengaturan untuk menambahkan, mengedit, dan menargetkan pengumuman kepada divisi atau pemagang tertentu.</p>
+            </div>
 
-                <!-- Search Input -->
-                <div class="relative w-full sm:w-80">
-                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <input type="text" id="searchInput" placeholder="Cari berdasarkan judul, divisi, atau pemagang..."
-                        class="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors duration-200">
+            <!-- Action Bar -->
+            <div class="bg-white rounded-2xl shadow-xs border border-gray-100 p-4 sm:p-6">
+                <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+                    <!-- Add Button -->
+                    <button id="addbroadcastButton"
+                        class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs font-semibold text-xs sm:text-sm transition">
+                        <i class="fas fa-plus mr-2"></i> Tambahkan Pengumuman
+                    </button>
+
+                    <!-- Search Input -->
+                    <div class="relative w-full sm:w-80">
+                        <input type="text" id="searchInput" placeholder="Cari judul, divisi, atau pemagang..."
+                            class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Success Message -->
-        @if (session('success'))
-            <div id="success-message"
-                class="mb-6 bg-green-50 border-l-4 border-green-400 text-green-700 p-4 rounded-lg shadow-sm transition-all duration-500"
-                role="alert">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-3 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                    </svg>
-                    <div>
-                        <strong class="font-semibold">Berhasil!</strong>
-                        <span class="ml-1">{{ session('success') }}</span>
+            <!-- Success Message -->
+            @if (session('success'))
+                <div id="success-message"
+                    class="bg-emerald-50 border border-emerald-300 text-emerald-800 p-4 rounded-xl shadow-xs flex items-center justify-between transition-all duration-500"
+                    role="alert">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-check-circle text-emerald-600"></i>
+                        <div>
+                            <strong class="font-bold">Berhasil!</strong>
+                            <span class="ml-1 text-xs sm:text-sm">{{ session('success') }}</span>
+                        </div>
                     </div>
-                    <button class="ml-auto text-green-400 hover:text-green-600" onclick="this.closest('#success-message').style.display='none';">
-                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                        </svg>
+                    <button class="text-emerald-600 hover:text-emerald-900 font-bold" onclick="this.closest('#success-message').style.display='none';">
+                        <i class="fas fa-times"></i>
                     </button>
                 </div>
-            </div>
-        @endif
+            @endif
 
-        <!-- Table Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">No</th>
-                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Judul Pengumuman</th>
-                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Target Penerima</th>
-                            <th class="py-4 px-6 text-left text-sm font-semibold text-gray-700 uppercase tracking-wider">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="bg-white divide-y divide-gray-200">
-                        @foreach($broadcastlist as $index => $broadcast)
-                            <tr class="hover:bg-gray-50 transition-colors duration-150">
-                                <td class="py-4 px-6 text-sm text-gray-900">
-                                    <span class="bg-gray-100 text-gray-700 py-1 px-3 rounded-full text-xs font-medium">
-                                        {{ $broadcastlist->firstItem() + $index }}
-                                    </span>
-                                </td>
-                                <td class="py-4 px-6">
-                                    <div class="text-sm font-medium text-gray-900">{{ $broadcast->title }}</div>
-                                </td>
-                                <td class="py-4 px-6">
-                                    @if($broadcast->divisions->isNotEmpty())
-                                        <div class="flex items-center">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                                </svg>
-                                                Divisi
-                                            </span>
-                                            <span class="text-sm text-gray-600">{{ $broadcast->divisions->pluck('name')->join(', ') }}</span>
-                                        </div>
-                                    @elseif($broadcast->users->isNotEmpty())
-                                        <div class="flex items-center">
-                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mr-2">
-                                                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
-                                                </svg>
-                                                Pemagang
-                                            </span>
-                                            <span class="text-sm text-gray-600">{{ $broadcast->users->map(function ($user) {
-                                                return $user->profile->full_name ?? $user->name;
-                                            })->join(', ') }}</span>
-                                        </div>
-                                    @else
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                            <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
-                                            </svg>
-                                            Semua Pengguna
-                                        </span>
-                                    @endif
-                                </td>
-                                <td class="py-4 px-6">
-                                    <div class="flex space-x-2">
-                                        <button
-                                            class="editbroadcastModal inline-flex items-center px-3 py-2 border border-blue-300 text-blue-700 bg-blue-50 rounded-lg text-sm font-medium hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
-                                            data-broadcast='@json($broadcast)'>
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                                            </svg>
-                                            Edit
-                                        </button>
-                                        <button
-                                            class="deletebroadcast inline-flex items-center px-3 py-2 border border-red-300 text-red-700 bg-red-50 rounded-lg text-sm font-medium hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200"
-                                            data-id="{{ $broadcast->id }}">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                            Hapus
-                                        </button>
-                                    </div>
-                                </td>
+            <!-- Table Card -->
+            <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto min-w-0">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                                <th class="py-3.5 px-4 text-center w-16">No</th>
+                                <th class="py-3.5 px-4">Judul Pengumuman</th>
+                                <th class="py-3.5 px-4">Target Penerima</th>
+                                <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 text-xs font-medium text-gray-700">
+                            @forelse($broadcastlist as $index => $broadcast)
+                                <tr class="hover:bg-gray-50/80 transition-colors">
+                                    <td class="py-3.5 px-4 text-center text-gray-400 font-bold">
+                                        {{ $broadcastlist->firstItem() + $index }}
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        <div class="font-semibold text-gray-900 text-xs sm:text-sm">{{ $broadcast->title }}</div>
+                                    </td>
+                                    <td class="py-3.5 px-4">
+                                        @if($broadcast->divisions->isNotEmpty())
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-600 text-white shadow-xs">
+                                                    Divisi
+                                                </span>
+                                                <span class="text-gray-700 font-medium">{{ $broadcast->divisions->pluck('name')->join(', ') }}</span>
+                                            </div>
+                                        @elseif($broadcast->shifts->isNotEmpty())
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-500 text-white shadow-xs">
+                                                    <i class="fa-solid fa-business-time mr-1 text-[10px]"></i>
+                                                    Shift
+                                                </span>
+                                                <span class="text-gray-700 font-medium">{{ $broadcast->shifts->pluck('name')->join(', ') }}</span>
+                                            </div>
+                                        @elseif($broadcast->users->isNotEmpty())
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-emerald-600 text-white shadow-xs">
+                                                    Pemagang
+                                                </span>
+                                                <span class="text-gray-700 font-medium">{{ $broadcast->users->map(function ($user) {
+                                                    return $user->profile->full_name ?? $user->name;
+                                                })->join(', ') }}</span>
+                                            </div>
+                                        @else
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-purple-600 text-white shadow-xs">
+                                                Semua Pengguna
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="py-3.5 px-4 text-right pr-6">
+                                        <div class="flex items-center justify-end gap-2">
+                                            <button
+                                                class="editbroadcastModal px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition shadow-xs"
+                                                data-broadcast='@json($broadcast)'>
+                                                <i class="fas fa-edit mr-1"></i>Edit
+                                            </button>
+                                            <button
+                                                class="deletebroadcast px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-xs"
+                                                data-id="{{ $broadcast->id }}">
+                                                <i class="fas fa-trash mr-1"></i>Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="py-8 text-center text-gray-400 text-xs">
+                                        <i class="fas fa-bullhorn text-2xl mb-2 block text-gray-300"></i>
+                                        Belum ada pengumuman yang dibuat
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
 
-        <!-- Pagination -->
-        <div class="mt-6 flex justify-center">
-            {{ $broadcastlist->links() }}
+            <!-- Pagination -->
+            <div class="mt-6 flex justify-center">
+                {{ $broadcastlist->links() }}
+            </div>
         </div>
     </main>
 
@@ -225,17 +218,17 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-                    <button type="button" id="closeAddbroadcastModal" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">Batal</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">Simpan Pengumuman</button>
+                <div class="bg-gray-50/80 px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button type="button" id="closeAddbroadcastModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Simpan Pengumuman</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Edit Pengumuman -->
-    <div id="editbroadcastModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+    <div id="editbroadcastModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4 transition-all">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-gray-100 animate-in fade-in zoom-in duration-200">
             <form id="editbroadcastForm" action="" method="POST" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
@@ -243,9 +236,14 @@
                 <input type="hidden" name="deleted_images" id="deletedImagesInput">
 
                 <!-- Modal Header -->
-                <div class="bg-orange-50 px-6 py-4 border-b border-gray-200">
-                    <h2 class="text-xl font-bold text-gray-800">Edit Pengumuman</h2>
-                    <p class="text-sm text-gray-600 mt-1">Perbarui informasi pengumuman yang sudah ada</p>
+                <div class="bg-amber-50/80 px-6 py-4 border-b border-amber-100 flex items-center justify-between">
+                    <div>
+                        <h2 class="text-base font-bold text-amber-950">Edit Pengumuman</h2>
+                        <p class="text-xs text-amber-800">Perbarui informasi pengumuman yang sudah ada</p>
+                    </div>
+                    <button type="button" class="text-amber-800 hover:text-amber-950" onclick="$('#editbroadcastModal').addClass('hidden')">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
 
                 <!-- Modal Body -->
@@ -254,28 +252,27 @@
                     
                     <div class="space-y-4">
                         <div>
-                            <label for="editbroadcastTitle" class="block text-sm font-medium text-gray-700 mb-2">Judul Pengumuman <span class="text-red-500">*</span></label>
-                            <input type="text" id="editbroadcastTitle" name="title" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent" required>
+                            <label for="editbroadcastTitle" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Judul Pengumuman <span class="text-rose-500 ml-0.5">*</span></label>
+                            <input type="text" id="editbroadcastTitle" name="title" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                         </div>
 
                         <div>
-                            <label for="editbroadcastMessage" class="block text-sm font-medium text-gray-700 mb-2">Isi Pengumuman <span class="text-red-500">*</span></label>
-                            <textarea name="message" id="editbroadcastMessage" rows="6" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none" required></textarea>
+                            <label for="editbroadcastMessage" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Isi Pengumuman <span class="text-rose-500 ml-0.5">*</span></label>
+                            <textarea name="message" id="editbroadcastMessage" rows="6" class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" required></textarea>
                         </div>
 
                         <!-- Current Images -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Gambar Saat Ini</label>
-                            <div id="currentImagesContainer" class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 border border-gray-200 rounded-lg p-4 bg-gray-50 min-h-[8rem]">
-                                <p id="noCurrentImages" class="text-sm text-gray-500 col-span-full hidden">Tidak ada gambar saat ini.</p>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Gambar Saat Ini</label>
+                            <div id="currentImagesContainer" class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 border border-gray-200 rounded-xl p-4 bg-gray-50 min-h-[8rem]">
+                                <p id="noCurrentImages" class="text-xs text-gray-500 col-span-full hidden">Tidak ada gambar saat ini.</p>
                             </div>
                         </div>
 
                         <!-- Add New Images -->
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tambah Gambar Baru <span class="text-sm text-gray-500">(opsional)</span></label>
-                            <!-- [MODIFIKASI] Tombol terlihat & Input file tersembunyi -->
-                            <button type="button" id="editFilesButton" class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-orange-500 hover:text-orange-500 transition">
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tambah Gambar Baru <span class="text-gray-400 font-normal normal-case">(opsional)</span></label>
+                            <button type="button" id="editFilesButton" class="w-full px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs shadow-xs transition">
                                 <i class="fas fa-upload mr-2"></i> Pilih atau Tambahkan File
                             </button>
                             <input type="file" id="editbroadcastImg" name="images[]" accept="image/*" multiple class="hidden">
@@ -286,26 +283,26 @@
                     </div>
 
                     <!-- Target Selection -->
-                    <div class="border-t pt-6">
-                        <h3 class="text-lg font-semibold text-gray-800 mb-3">Target Penerima Pengumuman</h3>
-                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                            <p class="text-sm text-yellow-800">
-                                <svg class="w-4 h-4 inline mr-2" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                    <div class="border-t border-gray-100 pt-6">
+                        <h3 class="text-sm font-bold text-gray-800 mb-3">Target Penerima Pengumuman</h3>
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                            <p class="text-xs text-amber-800">
+                                <i class="fas fa-info-circle mr-1.5"></i>
                                 Pilih salah satu target: Divisi atau Pemagang. Jika tidak ada yang dipilih, pengumuman akan dikirim ke semua pengguna.
                             </p>
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="editDivisions" class="block text-sm font-medium text-gray-700 mb-2">Target Divisi</label>
-                                <select name="divisions[]" id="editDivisions" multiple class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 select2">
+                                <label for="editDivisions" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Target Divisi</label>
+                                <select name="divisions[]" id="editDivisions" multiple class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select2">
                                     @foreach($divisions as $division)
                                         <option value="{{ $division->id }}">{{ $division->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
                             <div>
-                                <label for="editUsers" class="block text-sm font-medium text-gray-700 mb-2">Target Pemagang</label>
-                                <select name="users[]" id="editUsers" multiple class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 select2">
+                                <label for="editUsers" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Target Pemagang</label>
+                                <select name="users[]" id="editUsers" multiple class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select2">
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}">{{ $user->profile->full_name ?? $user->name }}</option>
                                     @endforeach
@@ -316,36 +313,30 @@
                 </div>
 
                 <!-- Modal Footer -->
-                <div class="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-                    <button type="button" id="closeEditbroadcastModal" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">Batal</button>
-                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">Simpan Perubahan</button>
+                <div class="bg-gray-50/80 px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+                    <button type="button" id="closeEditbroadcastModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Konfirmasi Hapus -->
-    <div id="deletebroadcastModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
-        <div class="bg-white rounded-xl shadow-xl w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex items-center mb-4">
-                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
-                        <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16c-.77.833.192 2.5 1.732 2.5z"/></svg>
-                    </div>
-                </div>
-                <div class="text-center">
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">Konfirmasi Penghapusan</h3>
-                    <p class="text-sm text-gray-500 mb-6">Apakah Anda yakin ingin menghapus pengumuman ini? Tindakan ini tidak dapat dibatalkan.</p>
-                </div>
-                <form id="deletebroadcastForm" action="" method="POST">
-                    @csrf
-                    @method('DELETE')
-                    <div class="flex space-x-3 justify-end">
-                        <button type="button" id="closeDeletebroadcastModal" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500">Batal</button>
-                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">Ya, Hapus</button>
-                    </div>
-                </form>
+    <div id="deletebroadcastModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4 transition-all">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 border border-gray-100 animate-in fade-in zoom-in duration-200 text-center">
+            <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center text-xl mb-4">
+                <i class="fas fa-exclamation-triangle"></i>
             </div>
+            <h2 class="text-base font-bold text-gray-900 mb-2">Hapus Pengumuman</h2>
+            <p class="text-xs text-gray-500 mb-6">Apakah Anda yakin ingin menghapus pengumuman ini? Tindakan ini tidak dapat dibatalkan.</p>
+            <form id="deletebroadcastForm" action="" method="POST">
+                @csrf
+                @method('DELETE')
+                <div class="flex justify-center gap-2">
+                    <button type="button" id="closeDeletebroadcastModal" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Ya, Hapus</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -462,13 +453,17 @@
                 dropdownParent: $(document.body)
             });
 
-            // Fungsi update tipe broadcast
+            // Fungsi untuk mengupdate broadcast_type berdasarkan input yang terisi
             function updateBroadcastType(form) {
+                const divisionsSelect = form.querySelector('select[name="divisions[]"]');
+                const shiftsSelect = form.querySelector('select[name="shifts[]"]');
+                const usersSelect = form.querySelector('select[name="users[]"]');
                 const broadcastTypeInput = form.querySelector('input[name="broadcast_type"]');
-                const divisionsSelect = form.querySelector('.select2[name="divisions[]"]');
-                const usersSelect = form.querySelector('.select2[name="users[]"]');
+                
                 if ($(divisionsSelect).val() && $(divisionsSelect).val().length > 0) {
                     broadcastTypeInput.value = 'division';
+                } else if ($(shiftsSelect).val() && $(shiftsSelect).val().length > 0) {
+                    broadcastTypeInput.value = 'shift';
                 } else if ($(usersSelect).val() && $(usersSelect).val().length > 0) {
                     broadcastTypeInput.value = 'specific';
                 } else {
@@ -476,10 +471,20 @@
                 }
             }
             
-            // Event listener select (memastikan hanya satu target dipilih)
+            // Event listener select (memastikan target tunggal dipilih)
             $('#addDivisions, #editDivisions').on('change', function () {
                 const form = $(this).closest('form');
                 if ($(this).val() && $(this).val().length > 0) {
+                    form.find('.select2[name="users[]"]').val(null).trigger('change');
+                    form.find('.select2[name="shifts[]"]').val(null).trigger('change');
+                }
+                updateBroadcastType(form[0]);
+            });
+
+            $('#addShifts, #editShifts').on('change', function () {
+                const form = $(this).closest('form');
+                if ($(this).val() && $(this).val().length > 0) {
+                    form.find('.select2[name="divisions[]"]').val(null).trigger('change');
                     form.find('.select2[name="users[]"]').val(null).trigger('change');
                 }
                 updateBroadcastType(form[0]);
@@ -489,6 +494,7 @@
                 const form = $(this).closest('form');
                 if ($(this).val() && $(this).val().length > 0) {
                     form.find('.select2[name="divisions[]"]').val(null).trigger('change');
+                    form.find('.select2[name="shifts[]"]').val(null).trigger('change');
                 }
                 updateBroadcastType(form[0]);
             });
@@ -497,7 +503,9 @@
             $('#addbroadcastButton').click(() => {
                 $('#addbroadcastForm')[0].reset();
                 $('#addDivisions').val(null).trigger('change');
+                $('#addShifts').val(null).trigger('change');
                 $('#addUsers').val(null).trigger('change');
+                $('#addScheduledAt').val('');
                 addModalFiles = []; // Reset array file
                 renderPreviews(addModalFiles, '#addImagePreviewContainer'); // Kosongkan preview
                 $('#addbroadcastModal').removeClass('hidden');
@@ -527,6 +535,14 @@
                 $('#editbroadcastMessage').val(broadcast.message);
                 $('#editBroadcastType').val(broadcast.broadcast_type);
 
+                if (broadcast.scheduled_at) {
+                    const dt = new Date(broadcast.scheduled_at);
+                    const formattedDt = dt.toISOString().slice(0, 16);
+                    $('#editScheduledAt').val(formattedDt);
+                } else {
+                    $('#editScheduledAt').val('');
+                }
+
                 const currentImagesContainer = $('#currentImagesContainer');
                 const noCurrentImagesText = $('#noCurrentImages');
                 currentImagesContainer.find('.image-wrapper').remove();
@@ -550,11 +566,15 @@
                 }
 
                 $('#editDivisions').val(null).trigger('change');
+                $('#editShifts').val(null).trigger('change');
                 $('#editUsers').val(null).trigger('change');
 
                 if (broadcast.broadcast_type === 'division' && broadcast.divisions) {
                     const divisionIds = broadcast.divisions.map(d => d.id);
                     $('#editDivisions').val(divisionIds).trigger('change');
+                } else if (broadcast.broadcast_type === 'shift' && broadcast.shifts) {
+                    const shiftIds = broadcast.shifts.map(s => s.id);
+                    $('#editShifts').val(shiftIds).trigger('change');
                 } else if (broadcast.broadcast_type === 'specific' && broadcast.users) {
                     const userIds = broadcast.users.map(u => u.id);
                     $('#editUsers').val(userIds).trigger('change');

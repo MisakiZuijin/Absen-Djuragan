@@ -12,7 +12,7 @@ class RaiseHandNotificationManager {
         this.urgentCount = 0;
         this.isFirstRun = true;
         this.pollInterval = null;
-        this.pollIntervalMs = 4000;
+        this.pollIntervalMs = 15000; // Polling status bantuan setiap 15 detik
         this.isFetching = false;
         this.titleFlashInterval = null;
         this.originalDocumentTitle = document.title;
@@ -61,8 +61,6 @@ class RaiseHandNotificationManager {
         // Start polling (akan memeriksa kondisi urgent pada poll pertama)
         this.isInitialized = true;
         this.startPolling();
-
-        console.log(`🔔 Raise Hand Notification System initialized for [${this.role}] (Initial count: ${this.currentCount})`);
     }
 
     initAudio() {
@@ -73,7 +71,6 @@ class RaiseHandNotificationManager {
             if (this.isAudioUnlocked) return;
             this.isAudioUnlocked = true;
             this.hideAudioNotice();
-            console.log('🔊 Audio browser telah di-unlock melalui interaksi pengguna');
 
             // Hapus listener setelah sekali terpicu
             ['click', 'keydown', 'touchstart'].forEach(evt => {
@@ -179,7 +176,6 @@ class RaiseHandNotificationManager {
 
         // Trigger alert effects on NEW requests
         if (isNewArrival) {
-            console.log(`🔔 Permintaan raise hand baru (+${diff}, total: ${newCount}, urgent: ${urgentCount})`);
             this.playNotificationSound();
             this.showDesktopNotification(diff, newCount);
             this.flashTabTitle(diff, newCount);
@@ -200,7 +196,6 @@ class RaiseHandNotificationManager {
             const playPromise = audio.play();
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('🔊 Audio notifikasi WAV berhasil berbunyi:', soundUrl);
                     this.isAudioUnlocked = true;
                     this.hideAudioNotice();
                 }).catch(err => {
@@ -312,10 +307,8 @@ class RaiseHandNotificationManager {
     startSoundRepeat(urgentCount = 1) {
         if (this.repeatInterval) return;
 
-        console.log(`🔁 Pengulangan bunyi aktif: berbunyi berkala setiap ${this.repeatIntervalMs / 1000}s khusus untuk ${urgentCount} permintaan kondisi URGENT`);
         this.repeatInterval = setInterval(() => {
             if (this.urgentCount > 0) {
-                console.log(`🔁 Mengulang bunyi notifikasi untuk ${this.urgentCount} permintaan kondisi URGENT`);
                 this.playNotificationSound();
                 this.animateBadge();
             } else {
@@ -328,7 +321,6 @@ class RaiseHandNotificationManager {
         if (this.repeatInterval) {
             clearInterval(this.repeatInterval);
             this.repeatInterval = null;
-            console.log('⏹️ Pengulangan bunyi dinonaktifkan');
         }
     }
 
@@ -364,7 +356,6 @@ window.testNotificationSound = function(e) {
     audio.volume = 0.85;
 
     audio.play().then(() => {
-        console.log('🔊 Test suara notifikasi WAV berhasil berbunyi!');
         if (manager) {
             manager.isAudioUnlocked = true;
             manager.hideAudioNotice();

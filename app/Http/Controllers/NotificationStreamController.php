@@ -56,8 +56,6 @@ class NotificationStreamController extends Controller
                         echo "data: " . json_encode($eventData) . "\n\n";
 
                         $previousCount = $currentCount;
-
-                        Log::info("SSE: Raise hand count updated to {$currentCount}");
                     }
 
                     // Send heartbeat to keep connection alive

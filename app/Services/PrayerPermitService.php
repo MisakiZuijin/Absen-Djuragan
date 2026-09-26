@@ -63,13 +63,6 @@ public function getTodayInternsWithPrayerPermits(int $perPage = 25): LengthAware
 
     public function getPrayerDuration(PermitLog $permitLog)
     {
-        Log::info('getPrayerDuration called', [
-            'permit_id' => $permitLog->id,
-            'type' => $permitLog->type,
-            'start_time' => $permitLog->start_time,
-            'end_time' => $permitLog->end_time
-        ]);
-
         if ($permitLog->type !== 'prayer') {
             return [
                 'error' => 'Not a prayer permit',

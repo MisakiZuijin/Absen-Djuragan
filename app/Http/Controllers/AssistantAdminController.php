@@ -11,8 +11,10 @@ use App\Models\PermitLog; // Pastikan model ini sudah di-import
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Services\UserService;
 use App\Services\AssistantAdminService;
+use App\Helper\ActivityLogger;
 
 class AssistantAdminController extends Controller
 {
@@ -57,15 +59,18 @@ class AssistantAdminController extends Controller
                 'password' => 'required|string|min:8|confirmed',
             ]);
 
-            $this->assistantAdminService->createAssistantAdmin($validated);
+            $newAssistant = $this->assistantAdminService->createAssistantAdmin($validated);
+
+            ActivityLogger::log('CREATE', 'User Management', "Admin membuat akun Asisten Admin baru: {$validated['username']} ({$validated['email']})", ['user_id' => $newAssistant->id]);
 
             return redirect()
                 ->route('admin.assistant-admins.index')
                 ->with('success', 'Assistant admin berhasil dibuat.');
         } catch (\Exception $e) {
+            Log::error('Create Assistant Admin error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return back()
                 ->withInput()
-                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+                ->with('error', 'Terjadi kesalahan saat membuat akun asisten admin. Silakan coba lagi.');
         }
     }
 
@@ -88,13 +93,19 @@ class AssistantAdminController extends Controller
 
         $this->assistantAdminService->updateAssistantAdmin($assistant_admin, $validated);
 
+        ActivityLogger::log('UPDATE', 'User Management', "Admin memperbarui data akun Asisten Admin: {$assistant_admin->username}", ['user_id' => $assistant_admin->id]);
+
         return redirect()->route('admin.assistant-admins.index')
             ->with('success', 'Assistant admin updated successfully.');
     }
 
     public function destroy(User $assistant_admin)
     {
+        $uname = $assistant_admin->username;
+        $uid = $assistant_admin->id;
         $assistant_admin->delete();
+
+        ActivityLogger::log('DELETE', 'User Management', "Admin menghapus akun Asisten Admin: {$uname}", ['user_id' => $uid]);
 
         return redirect()->route('admin.assistant-admins.index')
             ->with('success', 'Assistant admin deleted successfully.');
@@ -109,16 +120,20 @@ class AssistantAdminController extends Controller
         // 1. Ambil data yang sudah ada dari service Anda
         $dashboardData = $this->assistantAdminService->getDashboardData();
 
-        // 2. [PERBAIKAN FINAL] Menggunakan nama kolom 'type' dan logika 'end_time' IS NULL
-        $pendingIzinKeluarCount = PermitLog::where('type', 'leave')->whereNull('end_time')->count();
-        $pendingIzinShalatCount = PermitLog::where('type', 'prayer')->whereNull('end_time')->count();
-        $pendingIzinToiletCount = PermitLog::where('type', 'toilet')->whereNull('end_time')->count();
+        // 2. [PERBAIKAN PERFORMA] Menggabungkan 3 query count terpisah menjadi 1 conditional aggregation query
+        $pendingPermits = PermitLog::whereNull('end_time')
+            ->selectRaw("
+                COUNT(CASE WHEN type = 'leave' THEN 1 END) as pending_leave,
+                COUNT(CASE WHEN type = 'prayer' THEN 1 END) as pending_prayer,
+                COUNT(CASE WHEN type = 'toilet' THEN 1 END) as pending_toilet
+            ")
+            ->first();
 
         // 3. Siapkan data baru untuk digabungkan
         $permitData = [
-            'pendingIzinKeluarCount' => $pendingIzinKeluarCount,
-            'pendingIzinShalatCount' => $pendingIzinShalatCount,
-            'pendingIzinToiletCount' => $pendingIzinToiletCount,
+            'pendingIzinKeluarCount' => (int) ($pendingPermits->pending_leave ?? 0),
+            'pendingIzinShalatCount' => (int) ($pendingPermits->pending_prayer ?? 0),
+            'pendingIzinToiletCount' => (int) ($pendingPermits->pending_toilet ?? 0),
         ];
 
         // 4. Gabungkan semua data dan kirim ke view
@@ -133,19 +148,17 @@ class AssistantAdminController extends Controller
     }
     public function raiseHandList()
     {
-        $handRaises = $this->assistantAdminService->getRaiseHandList();
-
         return view('assistant_admin.raise-hand-list', [
             'user' => Auth::user(),
-            'handRaises' => $handRaises,
             'sidebarView' => 'layouts.sidebar-assistant'
         ]);
     }
 
     public function confirmHandRaise(Request $request, int $id)
     {
-        $this->assistantAdminService->confirmHandRaise($id);
-        return back()->with('success', 'Raise hand siswa berhasil dikonfirmasi.');
+        $handRaise = $this->assistantAdminService->confirmHandRaise($id, $request->input('admin_response'));
+        $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Peserta';
+        return back()->with('success', "Bantuan / pertanyaan untuk {$userName} berhasil diselesaikan.");
     }
 
     public function confirmRaiseHandForm(int $id)
@@ -164,14 +177,20 @@ class AssistantAdminController extends Controller
     public function confirmRaiseHandAction(Request $request, int $id)
     {
         try {
-            $handRaise = HandRaise::findOrFail($id);
+            $handRaise = HandRaise::with('user.profile')->findOrFail($id);
+            $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Pemagang';
+            $assistantName = auth()->user()->name ?? auth()->user()->username ?? 'Asisten Admin';
+            
             $handRaise->delete();
+
+            ActivityLogger::log('RESOLVE', 'Raise Hand', "Asisten Admin {$assistantName} mengonfirmasi penyelesaian Raise Hand pemagang {$userName}", ['hand_raise_id' => $id]);
 
             return redirect()->route('assistant.raisehand.list')
                 ->with('success', 'Permintaan Raise Hand telah berhasil dikonfirmasi.');
         } catch (\Exception $e) {
-            return redirect()->back()
-                ->with('error', 'Gagal mengkonfirmasi. Terjadi kesalahan: ' . $e->getMessage());
+            Log::error('Confirm Raise Hand error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return redirect()->route('assistant.raisehand.list')
+                ->with('error', 'Gagal mengonfirmasi permintaan bantuan. Silakan coba lagi.');
         }
     }
 
@@ -195,10 +214,16 @@ class AssistantAdminController extends Controller
     // === METHOD approveLog DIPERBAIKI ===
     public function approveLog(Request $request, LogActivity $log)
     {
+        $log->loadMissing('detailSchedule.schedule.intern.user.profile');
+
         // Menggunakan nama status yang konsisten: 'Accepted'
         $approvedStatus = Status::where('name', 'Accepted')->first();
         if ($approvedStatus) {
             $log->update(['status_id' => $approvedStatus->id]);
+
+            $internName = $log->detailSchedule?->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+            $assistantName = auth()->user()->name ?? auth()->user()->username ?? 'Asisten Admin';
+            ActivityLogger::log('APPROVE', 'Logbook', "Asisten Admin {$assistantName} menyetujui logbook harian pemagang {$internName}", ['log_activity_id' => $log->id]);
 
             // Ambil tanggal dari request untuk redirect yang benar
             $redirectDate = $request->input('date', now()->toDateString());
@@ -212,10 +237,16 @@ class AssistantAdminController extends Controller
     // === METHOD rejectLog DIPERBAIKI ===
     public function rejectLog(Request $request, LogActivity $log)
     {
+        $log->loadMissing('detailSchedule.schedule.intern.user.profile');
+
         // Menggunakan nama status yang konsisten: 'Rejected'
         $rejectedStatus = Status::where('name', 'Rejected')->first();
         if ($rejectedStatus) {
             $log->update(['status_id' => $rejectedStatus->id]);
+
+            $internName = $log->detailSchedule?->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+            $assistantName = auth()->user()->name ?? auth()->user()->username ?? 'Asisten Admin';
+            ActivityLogger::log('REJECT', 'Logbook', "Asisten Admin {$assistantName} menolak logbook harian pemagang {$internName}", ['log_activity_id' => $log->id]);
 
             // Ambil tanggal dari request untuk redirect yang benar
             $redirectDate = $request->input('date', now()->toDateString());
@@ -254,7 +285,7 @@ class AssistantAdminController extends Controller
         try {
             DB::beginTransaction();
 
-            $log = LogActivity::findOrFail($id);
+            $log = LogActivity::with('detailSchedule.schedule.intern.user.profile')->findOrFail($id);
 
             // Perbarui teks aktivitas & catatan (selalu dilakukan untuk semua aksi)
             $log->activity = $request->activity;
@@ -265,15 +296,21 @@ class AssistantAdminController extends Controller
             // Logika untuk mengubah status berdasarkan aksi
             $action = $request->action;
             $message = 'Perubahan pada log aktivitas berhasil disimpan.'; // Pesan default
+            $internName = $log->detailSchedule?->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
+            $assistantName = auth()->user()->name ?? auth()->user()->username ?? 'Asisten Admin';
 
             if ($action === 'approve') {
                 $status = Status::where('name', 'Accepted')->firstOrFail();
                 $log->status_id = $status->id;
                 $message = 'Log aktivitas berhasil disetujui.';
+                ActivityLogger::log('APPROVE', 'Logbook', "Asisten Admin {$assistantName} menyetujui logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
             } elseif ($action === 'reject') {
                 $status = Status::where('name', 'Rejected')->firstOrFail();
                 $log->status_id = $status->id;
                 $message = 'Log aktivitas berhasil ditolak.';
+                ActivityLogger::log('REJECT', 'Logbook', "Asisten Admin {$assistantName} menolak logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
+            } else {
+                ActivityLogger::log('UPDATE', 'Logbook', "Asisten Admin {$assistantName} memperbarui teks logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
             }
 
             $log->save(); // Simpan semua perubahan ke database
@@ -287,7 +324,8 @@ class AssistantAdminController extends Controller
                 ->with('success', $message);
         } catch (\Exception $e) {
             DB::rollback();
-            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+            Log::error('Update Log Activity error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Terjadi kesalahan saat memperbarui log aktivitas. Silakan coba lagi.')->withInput();
         }
     }
 

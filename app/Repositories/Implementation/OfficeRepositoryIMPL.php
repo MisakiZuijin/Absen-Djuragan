@@ -17,7 +17,7 @@ class OfficeRepositoryImpl implements OfficeRepository
 
     public function getAll()
     {
-        return $this->model->all();
+        return $this->model->with('coordinates')->get();
     }
 
     public function create(array $data)

@@ -42,7 +42,9 @@ class QuotesService
     public function getByCategory(string $category)
     {
         try {
-            $result = $this->quotesRepository->getAll()->where('kategori', $category)->get();
+            $result = \Illuminate\Support\Facades\Cache::remember("quotes_category_{$category}", 3600, function () use ($category) {
+                return $this->quotesRepository->getAll()->where('kategori', $category)->get();
+            });
             return new ActionResult(true, "success retrive data quotes by category", $result);
         } catch (\Throwable $th) {
             captureException($th);

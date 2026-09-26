@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Http\Requests\LogActivityRequest;
 use App\Repositories\Interface\DetailScheduleRepository;
 use App\Repositories\Interface\LogActivityRepository;
@@ -12,6 +11,7 @@ use App\Repositories\Interface\UserRepository;
 use App\Utils\DateNow;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use function Sentry\captureException;
 
 class LogActivityService
@@ -81,8 +81,8 @@ class LogActivityService
             return new ActionResult(true, "Log Activity berhasil ditambahkan!", null);
         } catch (\Throwable $th) {
             DB::rollBack();
+            Log::error('addLogActivity error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            LogConsole::info($th);
             return new ActionResult(false, "something went wrong", null);
         }
     }

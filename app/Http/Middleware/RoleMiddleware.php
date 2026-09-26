@@ -16,7 +16,7 @@ class RoleMiddleware
         $this->userService = $userService;
     }
 
-    public function handle(Request $request, Closure $next, int $roleId): Response
+    public function handle(Request $request, Closure $next, ...$roleIds): Response
     {
         $user = $this->userService->getUserLoggedData();
 
@@ -24,7 +24,23 @@ class RoleMiddleware
             return redirect('/')->with('error', 'Anda harus login terlebih dahulu.');
         }
 
-        if ((int) $user->role_id !== $roleId) {
+        $allowedRoles = [];
+        foreach ($roleIds as $r) {
+            foreach (explode(',', (string) $r) as $subRole) {
+                if (trim($subRole) !== '') {
+                    $allowedRoles[] = (int) trim($subRole);
+                }
+            }
+        }
+
+        $userRoleId = (int) $user->role_id;
+
+        // Super Admin (7) memiliki hak akses penuh ke seluruh rute Admin (1)
+        if ($userRoleId === 7 && (in_array(1, $allowedRoles, true) || in_array(7, $allowedRoles, true))) {
+            return $next($request);
+        }
+
+        if (!in_array($userRoleId, $allowedRoles, true)) {
             return redirect('/')->with('error', 'Anda tidak memiliki akses ke halaman ini.');
         }
         return $next($request);

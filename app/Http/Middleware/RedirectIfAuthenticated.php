@@ -21,10 +21,25 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                return redirect(RouteServiceProvider::HOME);
+                $user = Auth::guard($guard)->user();
+                return redirect($this->redirectPathForRole($user->role_id ?? null));
             }
         }
 
         return $next($request);
+    }
+
+    /**
+     * Tentukan redirect path berdasarkan role_id user.
+     */
+    private function redirectPathForRole(?int $roleId): string
+    {
+        return match ($roleId) {
+            7, 1 => '/admin/home',
+            3 => '/user/home',
+            5 => '/outsider',
+            6 => '/assistant/dashboard',
+            default => '/',
+        };
     }
 }

@@ -36,12 +36,13 @@ class ProjectService
             $project = $this->projectRepository->create($data);
 
             if (!empty($data['members'])) {
-                foreach ($data['members'] as $internId) {
-                    DetailProjects::create([
+                $memberRecords = array_map(function ($internId) use ($project) {
+                    return [
                         'project_id' => $project->id,
                         'intern_id' => $internId,
-                    ]);
-                }
+                    ];
+                }, $data['members']);
+                DetailProjects::insert($memberRecords);
             }
 
             return new ActionResult(true, "Successfully added data into project", $project);
@@ -54,8 +55,25 @@ class ProjectService
     public function createProject(Request $request): ActionResult
     {
         try {
-            $data['name'] = $request->input('new_project_name');
+            $prefix = $request->input('prefix', '');
+            $rawName = $request->input('new_project_name', '');
 
+            if (!empty($prefix) && !str_starts_with($rawName, $prefix)) {
+                $projectName = trim($prefix . $rawName);
+            } else {
+                $projectName = trim($rawName);
+            }
+
+            if (empty($projectName)) {
+                return new ActionResult(false, "Nama project tidak boleh kosong", null);
+            }
+
+            $existing = NameProjects::where('name', $projectName)->first();
+            if ($existing) {
+                return new ActionResult(true, "Project sudah ada", $existing);
+            }
+
+            $data['name'] = $projectName;
             $project = $this->projectRepository->createProject($data);
 
             return new ActionResult(true, "Successfully added project", $project);
@@ -92,12 +110,13 @@ class ProjectService
             $membersToRemove = array_diff($existingMembers, $newMembers);
 
             if (!empty($membersToAdd)) {
-                foreach ($membersToAdd as $internId) {
-                    DetailProjects::create([
+                $memberRecords = array_map(function ($internId) use ($project) {
+                    return [
                         'project_id' => $project->id,
                         'intern_id' => $internId,
-                    ]);
-                }
+                    ];
+                }, $membersToAdd);
+                DetailProjects::insert($memberRecords);
             }
 
             if (!empty($membersToRemove)) {

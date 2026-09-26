@@ -3,16 +3,12 @@
 @section('title', 'Edit Profile')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar')
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
 
-        <div class="flex justify-center items-stretch bg-gray-100 p-6">
+        <div class="flex flex-col lg:flex-row justify-center items-stretch bg-gray-100 p-3 sm:p-6 gap-6">
             <!-- Left Section -->
-            <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm flex flex-col h-full">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm flex flex-col h-full mx-auto lg:mx-0">
                 <div class="flex flex-col items-center">
                     <img src="{{ asset('img/profile.jpg') }}" alt="Profile Photo" class="rounded-full w-32 h-32 mb-4">
                     <h2 class="text-xl font-semibold mb-1">{{ $user->profile->full_name }}</h2>
@@ -25,7 +21,7 @@
             </div>
 
             <!-- Right Section -->
-            <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl ml-6 flex flex-col">
+            <div class="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl flex flex-col mx-auto lg:mx-0">
 
                 <h3 class="text-lg font-semibold mb-4">Personal Details</h3>
 

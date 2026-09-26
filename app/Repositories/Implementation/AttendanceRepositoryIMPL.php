@@ -5,6 +5,7 @@ namespace App\Repositories\Implementation;
 use App\Helper\LogConsole;
 use App\Models\Attendance;
 use App\Repositories\Interface\AttendanceRepository;
+use Carbon\Carbon;
 use DateTime;
 use Exception;
 use Illuminate\Support\Facades\DB;
@@ -275,39 +276,35 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
             throw new InvalidArgumentException('Invalid end time provided');
         }
 
-        return $this->model
+        $updated = $this->model
             ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
             ->where('attendances.date', $dateNow)
             ->where('detail_schedules.shift_id', $shiftId)
             ->whereNotNull('attendances.start_time')
             ->update([
                 'attendances.end_time' => $endTime,
-                'is_auto_end' => true,
-                'attendances.total_min' => DB::raw("TIMESTAMPDIFF(MINUTE, attendances.start_time, '$endTime')")
+                'attendances.is_auto_end' => true,
+                'attendances.total_min' => DB::raw("GREATEST(0, TIMESTAMPDIFF(MINUTE, attendances.start_time, '{$endTime}'))"),
             ]);
+
+        return $updated;
     }
 
-
-    public function createPermitPresence(array $data) {}
-
-    public function updatePermitPresence(array $data) {}
-
-    public function updateShift() {}
-
-    public function storeNote() {}
-    // public function getAllChangeTime($internId)
-    // {
-    // }
 
 
     public function getByIdAndAutomaticalyStatus(int $id, $perPage = 10, $currentPage = 1)
     {
-        return $this->model->where("id", $id)->where("is_auto_end", operator: true)->orderBy("date", "desc")->get();
+        return $this->model
+            ->where("id", $id)
+            ->where("is_auto_end", true)
+            ->orderBy("date", "desc")
+            ->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
     public function getAllAutoEnd($perPage = 10, $currentPage = 1)
     {
         return $this->model
+            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
             ->where("is_auto_end", true)
             ->orderBy("date", "desc")
             ->paginate($perPage, ['*'], 'page', $currentPage);
@@ -317,6 +314,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
     public function getAutoEndStatusByDate(string $date, $perPage = 10, $currentPage = 1)
     {
         return $this->model
+            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
             ->where("attendances.date", $date)
             ->where("is_auto_end", true)
             ->orderBy("date", "desc")
@@ -326,7 +324,9 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
     public function getAutoEndStatusByName(string $name, int $perPage = 10, int $currentPage = 1)
     {
-        return $this->model->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
+        return $this->model
+            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
+            ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
             ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
             ->join('interns', 'interns.id', '=', 'schedules.intern_id')
             ->join('users', 'interns.user_id', '=', 'users.id')
@@ -339,7 +339,9 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
     public function getAutoEndStatusByDateAndName(string $name, string $date, $perPage = 10, $currentPage = 1)
     {
-        return $this->model->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
+        return $this->model
+            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
+            ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
             ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
             ->join('interns', 'interns.id', '=', 'schedules.intern_id')
             ->join('users', 'interns.user_id', '=', 'users.id')

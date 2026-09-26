@@ -3,19 +3,20 @@
 @section('title', 'Monitoring Izin Toilet')
 
 @section('contents')
-    @include($sidebarView ?? 'layouts.sidebar-assistant')
-    @include('layouts.navbar', ['user' => $user ?? null])
-
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64 bg-gray-50 min-h-screen">
-        <div class="mb-8">
-            <div class="flex items-center gap-3">
-                <div class="p-3 bg-blue-500 rounded-lg shadow-sm"><i class="fas fa-toilet text-white text-xl"></i></div>
-                <div><h1 class="text-3xl font-bold text-gray-900">Monitoring Izin Toilet</h1></div>
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen min-w-0">
+        <div class="max-w-7xl mx-auto space-y-6">
+        <div class="mb-6 sm:mb-8">
+            <div class="flex items-center gap-3 sm:gap-4">
+                <div class="p-3 sm:p-4 bg-indigo-600 rounded-2xl shadow-sm text-white shrink-0"><i class="fas fa-toilet text-xl sm:text-2xl"></i></div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl md:text-3xl font-bold text-gray-900">Monitoring Izin Toilet</h1>
+                    <p class="text-xs sm:text-sm text-gray-500 mt-0.5">Pantau status izin toilet dan durasi pemagang secara langsung</p>
+                </div>
             </div>
         </div>
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-            <div class="p-6">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">Daftar Intern</h2>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 sm:p-6">
+                <h2 class="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Daftar Intern</h2>
                 <div class="overflow-x-auto">
                     <table class="min-w-full divide-y divide-gray-200">
                         {{-- ... Thead (Kepala Tabel) tetap sama ... --}}
@@ -70,11 +71,58 @@
                     </table>
                 </div>
 
-                {{-- [DITAMBAHKAN] Link paginasi kustom --}}
-                <div class="mt-6 flex items-center justify-center">
-                    {{ $interns->links('vendor.pagination.custom-pagination') }}
+                <!-- Pagination -->
+                @if($interns->hasPages())
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200/90 shadow-2xs mt-6">
+                    <div class="text-xs text-slate-500 font-medium">
+                        Menampilkan <span class="font-bold text-slate-800">{{ $interns->firstItem() ?? 0 }}</span> - <span class="font-bold text-slate-800">{{ $interns->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $interns->total() }}</span> pemagang
+                    </div>
+                    <div class="flex items-center space-x-1.5">
+                        {{-- Prev Button --}}
+                        @if ($interns->onFirstPage())
+                            <button class="bg-gray-200 text-gray-400 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-not-allowed shadow-2xs flex items-center gap-1" disabled>
+                                <i class="fas fa-chevron-left text-[10px]"></i>
+                                <span>Prev</span>
+                            </button>
+                        @else
+                            <a href="{{ $interns->previousPageUrl() }}" class="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1">
+                                <i class="fas fa-chevron-left text-[10px]"></i>
+                                <span>Prev</span>
+                            </a>
+                        @endif
+
+                        {{-- Page Numbers --}}
+                        <div class="flex space-x-1">
+                            @foreach (range(1, $interns->lastPage()) as $page)
+                                @if ($page == $interns->currentPage())
+                                    <span class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-2xs transition">
+                                        {{ $page }}
+                                    </span>
+                                @else
+                                    <a href="{{ $interns->url($page) }}" class="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold shadow-2xs transition">
+                                        {{ $page }}
+                                    </a>
+                                @endif
+                            @endforeach
+                        </div>
+
+                        {{-- Next Button --}}
+                        @if ($interns->hasMorePages())
+                            <a href="{{ $interns->nextPageUrl() }}" class="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1">
+                                <span>Next</span>
+                                <i class="fas fa-chevron-right text-[10px]"></i>
+                            </a>
+                        @else
+                            <button class="bg-gray-200 text-gray-400 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-not-allowed shadow-2xs flex items-center gap-1" disabled>
+                                <span>Next</span>
+                                <i class="fas fa-chevron-right text-[10px]"></i>
+                            </button>
+                        @endif
+                    </div>
                 </div>
+                @endif
             </div>
+        </div>
         </div>
     </main>
 

@@ -3,63 +3,60 @@
 @section('title', 'Pengaturan Info & Libur')
 
 @section('contents')
-@include('layouts.sidebar')
 
 @include('layouts.sidebar-pengaturan')
 
-@include('layouts.navbar')
-
 <!-- Main Content -->
-<main class="ml-[32rem] mt-24 p-6">
+<main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
+    <div class="w-full max-w-full min-w-0 space-y-6">
 
     <!-- Header -->
-    <h1 class="text-2xl font-bold mb-1">Manage Info & Libur</h1>
-    <p class="mb-5 text-gray-600 text-sm">Pengaturan kalender hari libur, tautan SOP magang, dan tata tertib kantor</p>
+    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+        <h1 class="text-2xl font-bold text-gray-900 mb-1">Manage Info & Libur</h1>
+        <p class="text-gray-500 text-sm">Pengaturan kalender hari libur, tautan SOP magang, dan tata tertib kantor</p>
+    </div>
 
     @if (session('success'))
     <div id="success-message"
-        class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative transition-opacity duration-500"
+        class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 rounded-xl relative transition-opacity duration-500 shadow-xs flex items-center justify-between"
         role="alert">
-        <strong class="font-bold">Success!</strong>
-        <span class="block sm:inline">{{ session('success') }}</span>
-        <span class="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer" onclick="removeMessage()">
-            <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20">
-                <title>Close</title>
-                <path
-                    d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-            </svg>
-        </span>
+        <div>
+            <strong class="font-bold">Sukses!</strong>
+            <span class="block sm:inline ml-1">{{ session('success') }}</span>
+        </div>
+        <button type="button" class="text-emerald-600 hover:text-emerald-900" onclick="removeMessage()">
+            <i class="fas fa-times"></i>
+        </button>
     </div>
     @endif
 
     <!-- Tab Navigation -->
-    <div class="grid grid-cols-4 border-b border-gray-200 bg-white rounded-t-xl px-4 pt-2 mb-6 shadow-sm">
+    <div class="grid grid-cols-2 md:grid-cols-4 border-b border-gray-200 bg-white rounded-xl p-1.5 shadow-xs gap-1">
 
         <button type="button" onclick="switchAdminTab('holiday')" id="btn-tab-holiday"
-            class="admin-tab-btn w-full py-3 px-5 text-sm font-semibold border-b-2 border-blue-600 text-blue-600 focus:outline-none flex items-center justify-center gap-2 transition-all">
-            <i class="fa-regular fa-calendar-days text-base"></i>
+            class="admin-tab-btn w-full py-2.5 px-4 text-xs sm:text-sm font-semibold rounded-lg bg-blue-600 text-white focus:outline-none flex items-center justify-center gap-2 transition-all shadow-xs">
+            <i class="fa-regular fa-calendar-days text-sm"></i>
             <span>Hari Libur</span>
-            <span class="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-medium">
+            <span class="text-xs bg-white text-blue-700 px-2 py-0.5 rounded-full font-bold">
                 {{ count($holidaylist) }}
             </span>
         </button>
 
         <button type="button" onclick="switchAdminTab('sop')" id="btn-tab-sop"
-            class="admin-tab-btn w-full py-3 px-5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none flex items-center justify-center gap-2 transition-all">
-            <i class="fa-regular fa-file-lines text-base"></i>
+            class="admin-tab-btn w-full py-2.5 px-4 text-xs sm:text-sm font-medium rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none flex items-center justify-center gap-2 transition-all">
+            <i class="fa-regular fa-file-lines text-sm"></i>
             <span>SOP Magang</span>
         </button>
 
         <button type="button" onclick="switchAdminTab('rules')" id="btn-tab-rules"
-            class="admin-tab-btn w-full py-3 px-5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none flex items-center justify-center gap-2 transition-all">
-            <i class="fas fa-building text-base"></i>
+            class="admin-tab-btn w-full py-2.5 px-4 text-xs sm:text-sm font-medium rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none flex items-center justify-center gap-2 transition-all">
+            <i class="fas fa-building text-sm"></i>
             <span>Peraturan Kantor</span>
         </button>
 
         <button type="button" onclick="switchAdminTab('piket')" id="btn-tab-piket"
-            class="admin-tab-btn w-full py-3 px-5 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 focus:outline-none flex items-center justify-center gap-2 transition-all">
-            <i class="fa-solid fa-broom text-base"></i>
+            class="admin-tab-btn w-full py-2.5 px-4 text-xs sm:text-sm font-medium rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none flex items-center justify-center gap-2 transition-all">
+            <i class="fa-solid fa-broom text-sm"></i>
             <span>Jadwal Piket</span>
         </button>
 
@@ -67,50 +64,56 @@
 
     <!-- TAB 1: HARI LIBUR -->
     <div id="content-tab-holiday" class="admin-tab-content space-y-4">
-        <div class="flex items-center mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
             <!-- Add Holiday Button -->
             <button id="addHolidayButton"
-                class="flex items-center px-4 py-2 bg-gray-800 text-white rounded-lg shadow-md hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-green-500">
+                class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-xs font-semibold text-xs sm:text-sm transition">
                 <i class="fas fa-plus mr-2"></i> Tambahkan Hari Libur
             </button>
 
             <!-- Search Input -->
-            <div class="flex items-center ml-auto">
-                <input type="text" id="searchInput" placeholder="Cari Hari Libur"
-                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
+            <div class="relative w-full sm:w-64">
+                <input type="text" id="searchInput" placeholder="Cari Hari Libur..."
+                    class="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <i class="fas fa-search absolute left-3 top-3 text-gray-400 text-xs"></i>
             </div>
         </div>
 
         <!-- Table -->
-        <div class="overflow-x-auto">
-            <table class="min-w-full bg-white shadow-md rounded-lg overflow-hidden">
-                <thead>
-                    <tr class="bg-gray-200 text-gray-700">
-                        <th class="py-3 px-6 text-left">No</th>
-                        <th class="py-3 px-6 text-left">Tanggal</th>
-                        <th class="py-3 px-6 text-left">Nama Hari Libur</th>
-                        <th class="py-3 px-6 text-left">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody id="holidayTableBody">
-                    <!-- Rows will be dynamically inserted here -->
-                </tbody>
-            </table>
+        <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
+            <div class="overflow-x-auto min-w-0">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50/80 border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                            <th class="py-3.5 px-4 text-center w-16">No</th>
+                            <th class="py-3.5 px-4">Tanggal</th>
+                            <th class="py-3.5 px-4">Nama Hari Libur</th>
+                            <th class="py-3.5 px-4 text-right pr-6">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="holidayTableBody" class="divide-y divide-gray-100 text-xs font-medium text-gray-700">
+                        <!-- Rows will be dynamically inserted here -->
+                    </tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Pagination Controls -->
-        <div class="mt-4 flex justify-center items-center space-x-2 border rounded-md p-2">
-            <button id="prev-page"
-                class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100" disabled>
-                Previous
-            </button>
+        <div class="flex flex-wrap justify-between items-center gap-3 bg-white p-4 rounded-xl border border-gray-100 shadow-xs">
+            <span class="text-xs text-gray-500 font-medium">Navigasi Halaman</span>
+            <div class="flex items-center space-x-2">
+                <button id="prev-page"
+                    class="cursor-pointer bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:bg-gray-300 disabled:text-gray-500 transition shadow-xs" disabled>
+                    Previous
+                </button>
 
-            <!-- Page numbers will be dynamically added here -->
-            <div id="page-numbers" class="flex space-x-2"></div>
+                <!-- Page numbers will be dynamically added here -->
+                <div id="page-numbers" class="flex items-center space-x-1"></div>
 
-            <button id="next-page" class="bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100">
-                Next
-            </button>
+                <button id="next-page" class="bg-gray-800 hover:bg-gray-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold disabled:bg-gray-300 disabled:text-gray-500 transition shadow-xs">
+                    Next
+                </button>
+            </div>
         </div>
     </div>
 
@@ -155,7 +158,7 @@
                         <a id="btn-preview-sop"
                             href="{{ $offices->first()->sop_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
-                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-xs transition border border-gray-300">
+                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
                         </a>
                     </div>
@@ -168,7 +171,7 @@
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
-                    <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition flex items-center gap-2">
+                    <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs sm:text-sm shadow-xs transition flex items-center gap-2">
                         <i class="fas fa-save"></i> Simpan Pengaturan SOP
                     </button>
                 </div>
@@ -216,7 +219,7 @@
                         <a id="btn-preview-rules"
                             href="{{ $offices->first()->rules_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
-                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-xs transition border border-gray-300">
+                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
                         </a>
                     </div>
@@ -238,7 +241,7 @@
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
-                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-semibold text-sm shadow-sm transition flex items-center gap-2">
+                    <button type="submit" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold text-xs sm:text-sm shadow-xs transition flex items-center gap-2">
                         <i class="fas fa-save"></i> Simpan Peraturan Kantor
                     </button>
                 </div>
@@ -287,7 +290,7 @@
                         <a id="btn-preview-piket"
                             href="{{ $offices->first()->piket_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
-                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-xs transition border border-gray-300">
+                            class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
                         </a>
                     </div>
@@ -310,87 +313,98 @@
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
-                    <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold text-sm shadow-sm transition flex items-center gap-2">
+                    <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-semibold text-xs sm:text-sm shadow-xs transition flex items-center gap-2">
                         <i class="fas fa-save"></i> Simpan Pengaturan Piket
                     </button>
                 </div>
             </form>
         </div>
     </div>
+    </div>
 </main>
 
 <!-- Modal Tambah Hari Libur -->
-<div id="addHolidayModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-1/3">
-        <h2 class="text-xl font-bold mb-4">Tambahkan Hari Libur</h2>
-        <form action="{{ route('holidays.store') }}" method="POST">
+<div id="addHolidayModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4 transition-all">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
+            <h2 class="text-base font-bold text-gray-900">Tambahkan Hari Libur</h2>
+            <button type="button" class="text-gray-400 hover:text-gray-600 transition" onclick="$('#addHolidayModal').addClass('hidden')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form action="{{ route('holidays.store') }}" method="POST" class="space-y-4">
             @csrf
-            <div class="mb-4">
-                <label for="holidayDate" class="block text-gray-700">Tanggal<span class="text-red-500">*</span></label>
+            <div>
+                <label for="holidayDate" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tanggal<span class="text-rose-500 ml-0.5">*</span></label>
                 <input type="date" id="holidayDate" name="date"
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required>
             </div>
-            <div class="mb-4">
-                <label for="holidayName" class="block text-gray-700">Nama Hari Libur<span
-                        class="text-red-500">*</span></label>
-                <input type="text" id="holidayName" name="name"
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+            <div>
+                <label for="holidayName" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nama Hari Libur<span class="text-rose-500 ml-0.5">*</span></label>
+                <input type="text" id="holidayName" name="name" placeholder="Contoh: Hari Raya Idul Fitri"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required>
             </div>
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button type="button" id="closeAddHolidayModal"
-                    class="px-4 py-2 bg-red-600 text-white rounded-lg mr-2">Batal</button>
-                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Simpan</button>
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Simpan</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Modal Edit Hari Libur -->
-<div id="editHolidayModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-1/3">
-        <h2 class="text-xl font-bold mb-4">Update Hari Libur</h2>
-        <form id="editHolidayForm" action="" method="POST">
+<div id="editHolidayModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4 transition-all">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-100 animate-in fade-in zoom-in duration-200">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
+            <h2 class="text-base font-bold text-gray-900">Update Hari Libur</h2>
+            <button type="button" class="text-gray-400 hover:text-gray-600 transition" onclick="$('#editHolidayModal').addClass('hidden')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="editHolidayForm" action="" method="POST" class="space-y-4">
             @csrf
             {{-- @method('PUT') --}}
             <input type="hidden" id="editHolidayId" name="holidayId">
-            <div class="mb-4">
-                <label for="editHolidayDate" class="block text-gray-700">Tanggal<span
-                        class="text-red-500">*</span></label>
+            <div>
+                <label for="editHolidayDate" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tanggal<span class="text-rose-500 ml-0.5">*</span></label>
                 <input type="date" id="editHolidayDate" name="date"
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required>
             </div>
-            <div class="mb-4">
-                <label for="editHolidayName" class="block text-gray-700">Nama Hari Libur<span
-                        class="text-red-500">*</span></label>
+            <div>
+                <label for="editHolidayName" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Nama Hari Libur<span class="text-rose-500 ml-0.5">*</span></label>
                 <input type="text" id="editHolidayName" name="name"
-                    class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
+                    class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required>
             </div>
-            <div class="flex justify-end">
+            <div class="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button type="button" id="closeEditHolidayModal"
-                    class="px-4 py-2 bg-red-600 text-white rounded-lg mr-2">Batal</button>
-                <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-lg">Simpan</button>
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Simpan Perubahan</button>
             </div>
         </form>
     </div>
 </div>
 
 <!-- Delete Modal -->
-<div id="deleteHolidayModal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-6 w-1/3">
-        <h2 class="text-xl font-bold mb-4">Hapus Hari Libur</h2>
-        <p>Apakah Anda yakin ingin menghapus hari libur ini?</p>
+<div id="deleteHolidayModal" class="fixed inset-0 bg-black/60 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4 transition-all">
+    <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm border border-gray-100 animate-in fade-in zoom-in duration-200 text-center">
+        <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 mx-auto flex items-center justify-center text-xl mb-4">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 class="text-base font-bold text-gray-900 mb-2">Hapus Hari Libur</h2>
+        <p class="text-xs text-gray-500 mb-6">Apakah Anda yakin ingin menghapus data hari libur ini? Tindakan ini tidak dapat dibatalkan.</p>
         <form id="deleteHolidayForm" method="POST">
             @csrf
             @method('DELETE')
             <input type="hidden" id="deleteHolidayId" name="holidayId">
-            <div class="flex justify-end mt-4">
+            <div class="flex justify-center gap-2">
                 <button type="button" id="closeDeleteHolidayModal"
-                    class="px-4 py-2 bg-gray-600 text-white rounded-lg mr-2">Batal</button>
-                <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg">Hapus</button>
+                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Batal</button>
+                <button type="submit" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-semibold text-xs rounded-xl shadow-xs transition">Ya, Hapus</button>
             </div>
         </form>
     </div>
@@ -409,11 +423,11 @@
         $('.admin-tab-content').addClass('hidden');
         $(`#content-tab-${tabName}`).removeClass('hidden');
 
-        $('.admin-tab-btn').removeClass('border-blue-600 text-blue-600 font-semibold')
-            .addClass('border-transparent text-gray-500 font-medium');
+        $('.admin-tab-btn').removeClass('bg-blue-600 text-white font-semibold shadow-xs')
+            .addClass('text-gray-600 hover:text-gray-900 hover:bg-gray-100 font-medium');
 
-        $(`#btn-tab-${tabName}`).removeClass('border-transparent text-gray-500 font-medium')
-            .addClass('border-blue-600 text-blue-600 font-semibold');
+        $(`#btn-tab-${tabName}`).removeClass('text-gray-600 hover:text-gray-900 hover:bg-gray-100 font-medium')
+            .addClass('bg-blue-600 text-white font-semibold shadow-xs');
     }
 
     function loadOfficeRules(officeId) {
@@ -456,19 +470,36 @@
             const paginatedData = filteredData.slice(start, end);
 
             $('#holidayTableBody').html(''); // Clear table body
-            paginatedData.forEach((holiday, index) => {
+            if (paginatedData.length === 0) {
+                $('#holidayTableBody').html(`
+                    <tr>
+                        <td colspan="4" class="py-8 text-center text-gray-400 font-normal text-xs">
+                            <i class="fas fa-calendar-times text-2xl mb-2 block text-gray-300"></i>
+                            Tidak ada data hari libur ditemukan
+                        </td>
+                    </tr>
+                `);
+                return;
+            }
 
+            paginatedData.forEach((holiday, index) => {
                 $('#holidayTableBody').append(`
-                        <tr class="border-b border-gray-200">
-                            <td class="py-4 px-6">${start + index + 1}</td>
-                            <td class="py-4 px-6">${holiday.date}</td>
-                            <td class="py-4 px-6">${holiday.name}</td>
-                            <td class="py-4 px-6">
-                                <button class="editHolidayModal px-4 py-2 bg-blue-500 text-white rounded-lg shadow-md hover:bg-blue-600" data-id="${holiday.id}" data-name="${holiday.name}" data-date="${holiday.date}">Edit</button>
-                                <button class="deleteHoliday px-4 py-2 bg-red-500 text-white rounded-lg shadow-md hover:bg-red-600" data-id="${holiday.id}">Hapus</button>
-                            </td>
-                        </tr>
-                    `);
+                    <tr class="hover:bg-gray-50/80 transition-colors">
+                        <td class="py-3 px-4 text-center text-gray-400 font-bold">${start + index + 1}</td>
+                        <td class="py-3 px-4 font-semibold text-gray-900">${holiday.date}</td>
+                        <td class="py-3 px-4 text-gray-700">${holiday.name}</td>
+                        <td class="py-3 px-4 text-right pr-6">
+                            <div class="flex items-center justify-end gap-2">
+                                <button class="editHolidayModal px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-bold transition shadow-xs" data-id="${holiday.id}" data-name="${holiday.name}" data-date="${holiday.date}">
+                                    <i class="fas fa-edit mr-1"></i>Edit
+                                </button>
+                                <button class="deleteHoliday px-2.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-xs" data-id="${holiday.id}">
+                                    <i class="fas fa-trash mr-1"></i>Hapus
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
             });
         }
 
@@ -476,10 +507,10 @@
             $('#page-numbers').empty();
 
             for (let i = 1; i <= totalPages(); i++) {
-                const isActive = i === currentPage ? 'bg-blue-500 text-white' : 'bg-white text-blue-600';
+                const isActive = i === currentPage ? 'bg-blue-600 text-white font-bold' : 'bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold';
                 const pageButton = $(`
-                        <button class="page-number ${isActive} px-4 py-2 rounded-md border hover:bg-gray-100" data-page="${i}">${i}</button>
-                    `);
+                    <button class="page-number ${isActive} px-3 py-1.5 rounded-lg text-xs transition shadow-xs" data-page="${i}">${i}</button>
+                `);
 
                 pageButton.on('click', function() {
                     currentPage = i;
@@ -491,7 +522,7 @@
             }
 
             $('#prev-page').prop('disabled', currentPage === 1);
-            $('#next-page').prop('disabled', currentPage === totalPages());
+            $('#next-page').prop('disabled', currentPage === totalPages() || totalPages() === 0);
         }
 
         $('#prev-page').on('click', function() {
@@ -540,8 +571,6 @@
             $('#editHolidayId').val(holidayId);
             $('#editHolidayName').val(holidayName);
             $('#editHolidayDate').val(holidayDate);
-
-            console.log('Holiday Date:', holidayDate);
 
             // Update form action URL
             let actionUrl = '/admin/setting/update-holiday/:id';

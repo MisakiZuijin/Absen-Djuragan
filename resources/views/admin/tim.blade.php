@@ -3,12 +3,8 @@
         @section('title', 'Detail Divisi')
 
         @section('contents')
-            @include('layouts.sidebar')
-
-            @include('layouts.navbar')
-
             <!-- Main Content -->
-            <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+            <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
 
                 @if (session('success'))
                     <div id="success-message"
@@ -47,52 +43,60 @@
 
                 <div class="container mx-auto">
                     <!-- Header with Icon and Search -->
-                    <div class="flex justify-between items-center border-b border-gray-300">
+                    <!-- Header with Icon and Search -->
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pb-3 border-b border-gray-200">
                         <!-- Back Icon -->
-                        <div class="flex space-x-6">
-                            <a href="{{ route('admin.division') }}" class="text-2xl"><i
-                                    class="fa-solid fa-chevron-left"></i>
-                                Kembali</a>
+                        <div class="flex items-center">
+                            <a href="{{ route('admin.division') }}" class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-black transition">
+                                <i class="fa-solid fa-chevron-left text-xs"></i>
+                                <span>Kembali</span>
+                            </a>
                         </div>
-                        <!-- Search Box -->
-                        <div class="flex flex-col space-y-2 mb-6">
-                            <div class="flex items-center border border-gray-300 rounded-full">
-                                <div class="bg-white p-2 rounded-l-full">
-                                    <i class="ml-2 fa fa-search text-gray-500"></i>
+                        <!-- Action & Search Box -->
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.interns.create') }}"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold shadow-xs transition">
+                                <i class="fa-solid fa-plus text-[10px]"></i>
+                                <span>Tambah Pemagang</span>
+                            </a>
+                            <div class="relative w-full sm:w-60">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <i class="fa fa-search text-gray-400 text-xs"></i>
                                 </div>
-
-                                <input type="text" id="searchInput" placeholder="Cari anggota divisi"
-                                    class="w-full py-2 pl-3 pr-4 rounded-r-full text-gray-800 focus:outline-none">
+                                <input type="text" id="searchInput" placeholder="Cari anggota atau NIP..."
+                                    class="w-full pl-8 pr-4 py-1.5 text-xs border border-gray-300 rounded-full text-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-500 bg-white">
                             </div>
                         </div>
-
                     </div>
 
-                    <div class="mt-2 rounded-lg shadow-md">
-                        <!-- Filter Data Anggota -->
-                        <div class="mb-4 bg-gray-700 p-2 rounded">
-                            <h1 class="text-1xl font-semibold text-white">Filter data anggota</h1>
-                        </div>
-                        <!-- Bulk Action and Project Section -->
-                        <div class="inline-block w-full ml-2">
-                            <!-- Bulk Action Section -->
-                            <div class="flex items-center space-x-4 mb-4">
-                                <!-- Bulk Select All Checkbox -->
-                                <div class="flex items-center space-x-2">
-                                    <input type="checkbox" id="bulkAction" class="form-checkbox h-4 w-4 text-blue-400"
-                                        onclick="toggleSelectAll()">
-                                    <label for="bulkAction" class="text-black">Select All</label>
+                    <!-- Filter & Bulk Action Section (Compact & Responsive) -->
+                    <div class="mt-4 mb-4 bg-white border border-gray-200 rounded-xl p-3 shadow-sm">
+                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <!-- Left: Title & Select All -->
+                            <div class="flex items-center gap-3 flex-wrap">
+                                <div class="flex items-center gap-1.5 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                                    <i class="fa-solid fa-filter text-blue-600"></i>
+                                    <span>Filter Data Anggota</span>
                                 </div>
+                                <label class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-gray-200 bg-gray-50 hover:bg-gray-100 cursor-pointer text-xs font-medium text-gray-700 transition select-none">
+                                    <input type="checkbox" id="bulkAction" class="form-checkbox h-3.5 w-3.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                                        onclick="toggleSelectAll()">
+                                    <span>Select All</span>
+                                </label>
+                            </div>
 
+                            <!-- Right: Bulk Action, Project, & Apply Button -->
+                            <div class="flex items-center gap-2 flex-wrap">
                                 <!-- Bulk Action Dropdown -->
                                 <select id="bulkActionSelect"
-                                    class="form-select py-2 px-3 border border-gray-300 rounded-lg">
+                                    class="text-xs py-1.5 px-2.5 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500">
                                     <option value="">Bulk Action</option>
-                                    <option value="Tambah">Tambah</option>
-                                    <option value="Hapus">Hapus</option>
+                                    <option value="Tambah">Tambah ke Project</option>
+                                    <option value="Hapus">Hapus dari Project</option>
                                 </select>
 
-                                <form id="bulkActionForm" action="{{ route('bulk.action') }}" method="POST">
+                                <!-- Hidden Form for Bulk Action -->
+                                <form id="bulkActionForm" action="{{ route('bulk.action') }}" method="POST" class="hidden">
                                     @csrf
                                     <input type="hidden" id="bulkActionInput" name="action" value="">
                                     <input type="hidden" id="projectIdInput" name="projectId" value="">
@@ -100,22 +104,24 @@
                                 </form>
 
                                 <!-- Project Select Dropdown -->
-                                <label for="projectSelect" class="text-black">Project :</label>
-                                <select id="projectSelect" class="form-select py-2 px-3 border border-gray-300 rounded-lg">
-                                    <option value="">Pilih Project</option>
-                                    @foreach ($projects as $project)
-                                        <option value="{{ $project->id }}">- {{ $project->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="flex items-center gap-1.5">
+                                    <label for="projectSelect" class="text-xs font-medium text-gray-600 hidden sm:inline">Project :</label>
+                                    <select id="projectSelect" class="text-xs py-1.5 px-2.5 border border-gray-300 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500 max-w-[180px] truncate">
+                                        <option value="">Pilih Project</option>
+                                        @foreach ($projects as $project)
+                                            <option value="{{ $project->id }}">{{ $project->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
                                 <!-- Apply Bulk Action Button -->
                                 <button id="applyButton" onclick="applyBulkAction()"
-                                    class="py-2 px-4 rounded-lg border border-blue-600 text-blue-600 hover:bg-gray-700 hover:text-white hover:border-gray-700">
-                                    Apply
+                                    class="inline-flex items-center gap-1.5 py-1.5 px-3.5 rounded-md text-xs font-semibold bg-gray-800 text-white hover:bg-gray-700 shadow-sm transition">
+                                    <i class="fa-solid fa-check text-[10px]"></i>
+                                    <span>Apply</span>
                                 </button>
                             </div>
                         </div>
-
                     </div>
 
                     <div id="teamGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-2">
@@ -125,19 +131,28 @@
                             @foreach ($teams as $team)
                                 <div class="team-card bg-white border border-gray-300 rounded-lg hover:shadow-lg flex flex-col cursor-pointer">
                                     <div class="flex items-center mb-2 bg-gray-800 p-3 rounded">
-                                        <input type="checkbox" class="team-checkbox form-checkbox h-4 w-4 text-blue-400 mr-2"
-                                            value="{{ $team->user->intern->id }}">
-                                        <label for="card1"
-                                            class="text-white">{{ $team->user->profile->NIP ?? 'NIP Empty' }}</label>
+                                        <input type="checkbox" id="team-check-{{ $team->id }}" class="team-checkbox form-checkbox h-4 w-4 text-blue-400 mr-2"
+                                            value="{{ $team->id }}">
+                                        <label for="team-check-{{ $team->id }}"
+                                            class="text-white cursor-pointer">{{ $team->user->profile->NIP ?? 'NIP Empty' }}</label>
                                     </div>
-                                    <p class="text-gray-700 p-3 mb-4">{{ $team->user->profile->full_name }}</p>
+                                    <p class="text-gray-700 px-3 pt-3 font-medium">{{ $team->user->profile->full_name }}</p>
+                                    @if($team->brand)
+                                        <div class="px-3 pb-2">
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                                <i class="fa-solid fa-tag mr-1 text-[9px]"></i> {{ $team->brand->name }}
+                                            </span>
+                                        </div>
+                                    @endif
                     
                                     <!-- Sunting dan Hapus di bawah kanan -->
-                                    <div class="flex justify-end space-x-1 mt-auto mb-1 mr-1">
+                                    <div class="flex justify-end space-x-1 mt-auto mb-2 mr-2">
                                         <a href="{{ route('admin.division.edit.view', ['userId' => $team->user->id]) }}"
                                             class="text-xs text-white bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded">Sunting</a>
-                                        <a href="#" data-id="{{ $team->id }}" onclick="openDeleteModal(event, this.dataset.id)"
-                                            class="text-xs text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Hapus</a>
+                                        @if(auth()->user()->role_id == 7)
+                                            <a href="#" data-id="{{ $team->id }}" onclick="openDeleteModal(event, this.dataset.id)"
+                                                class="text-xs text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded">Hapus</a>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach

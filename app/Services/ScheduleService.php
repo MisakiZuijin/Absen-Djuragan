@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Http\Requests\InternScheduleRequest;
 use App\Repositories\Interface\AttendanceRepository;
 use App\Repositories\Interface\DetailScheduleRepository;
@@ -11,11 +10,14 @@ use App\Repositories\Interface\InternRepository;
 use App\Repositories\Interface\LogActivityRepository;
 use App\Repositories\Interface\ScheduleRepository;
 use App\Repositories\Interface\UserRepository;
+use App\Models\DetailSchedule;
 use App\Utils\DateNow;
+use Carbon\Carbon;
 use DateTime;
 use Exception;
 use Illuminate\Notifications\Action;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 use function Sentry\captureException;
@@ -113,42 +115,67 @@ class ScheduleService
                 $result1 = $this->scheduleRepository->create($data);
             }
 
-            $current_date = $start_date;
+            $current_date = clone $start_date;
             $currentShift = $shiftId;
             $officeId = $data["office_id"] ?? 1;
+
+            $attendancesToInsert = [];
+            $scheduleDatesMap = []; // date => shift_id
+
             while ($current_date <= $end_date) {
                 if ($current_date->format('N') != 7) {
-                    $attData = [
-                        "date" => $current_date->format('Y-m-d'),
+                    $dateStr = $current_date->format('Y-m-d');
+                    $attendancesToInsert[] = [
+                        "date" => $dateStr,
                         "intern_id" => $internId
                     ];
-
-                    $resultAtt = $this->attendanceRepository->create($attData);
 
                     if ($current_date->format('N') == 1 && $category == 2) {
                         $currentShift = $this->isNextShift($shiftIdBasic, $currentShift);
                     }
 
-                    $data = [
-                        "attendance_id" => $resultAtt->id,
-                        "schedule_id" => $result1->id,
-                        "shift_id" => $currentShift,
-                        "office_id" => $officeId,
-                        "date" => $current_date->format('Y-m-d'),
-                        "isChangeSchedule" => false
-                    ];
-
-                    $this->detailScheduleRepository->create($data);
+                    $scheduleDatesMap[$dateStr] = $currentShift;
                 }
                 $current_date->modify('+1 day');
+            }
+
+            if (!empty($attendancesToInsert)) {
+                // 1. Bulk insert attendances
+                \App\Models\Attendance::insert($attendancesToInsert);
+
+                // 2. Fetch created attendance IDs for this period in 1 single query
+                $createdAttendances = \App\Models\Attendance::where('intern_id', $internId)
+                    ->whereBetween('date', [$start_date->format('Y-m-d'), $end_date->format('Y-m-d')])
+                    ->pluck('id', 'date');
+
+                // 3. Build detail schedules bulk insert data
+                $detailSchedulesToInsert = [];
+                foreach ($scheduleDatesMap as $dateStr => $assignedShiftId) {
+                    $attId = $createdAttendances->get($dateStr);
+                    if ($attId) {
+                        $detailSchedulesToInsert[] = [
+                            "attendance_id" => $attId,
+                            "schedule_id" => $result1->id,
+                            "shift_id" => $assignedShiftId,
+                            "office_id" => $officeId,
+                            "date" => $dateStr,
+                            "isChangeSchedule" => 0
+                        ];
+                    }
+                }
+
+                // 4. Bulk insert detail schedules
+                if (!empty($detailSchedulesToInsert)) {
+                    \App\Models\DetailSchedule::insert($detailSchedulesToInsert);
+                }
             }
             DB::commit();
 
             return new ActionResult(true, "success added new schedule", $result1);
         } catch (\Throwable $th) {
             DB::rollBack();
+            Log::error('createSchedule error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            LogConsole::info($th);
             return new ActionResult(false, "failed to added new schedule", null);
         }
     }
@@ -242,50 +269,62 @@ class ScheduleService
     {
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
+            if (!$schedule) {
+                return new ActionResult(false, "schedule not found", null);
+            }
 
+            $listDate = array_map('intval', explode(', ', $data["date"]));
 
-            $listDate =  array_map('intval', explode(', ', $data["date"]));
-
-
-
+            $datesMap = [];
             foreach ($listDate as $date) {
-                $currentDate = $data["year"] . "-" . $data["month"] . "-" . $date;
+                $datesMap[] = sprintf('%04d-%02d-%02d', (int)$data["year"], (int)$data["month"], (int)$date);
+            }
 
-                $existData = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $currentDate);
-                if (!$existData) {
+            $existingDetailSchedules = DetailSchedule::where('schedule_id', $schedule->id)
+                ->whereIn('date', $datesMap)
+                ->get()
+                ->keyBy(function ($item) {
+                    return Carbon::parse($item->date)->format('Y-m-d');
+                });
+
+            $existingIds = $existingDetailSchedules->pluck('id')->all();
+            if (!empty($existingIds)) {
+                DetailSchedule::whereIn('id', $existingIds)->update([
+                    "shift_id" => $data["shift_id"],
+                    "office_id" => $data["office_id"],
+                    'work_type' => $data["work_type"],
+                    "isChangeSchedule" => $data["schedule_type"] == 0 ? false : true,
+                ]);
+            }
+
+            $missingDates = array_diff($datesMap, $existingDetailSchedules->keys()->all());
+            if (!empty($missingDates)) {
+                $newDetailSchedules = [];
+                foreach ($missingDates as $currentDate) {
                     $attData = [
                         "date" => $currentDate,
                         "intern_id" => $internId
                     ];
                     $resultAtt = $this->attendanceRepository->create($attData);
-                    $newData = [
+                    $newDetailSchedules[] = [
                         "attendance_id" => $resultAtt->id,
                         "schedule_id" => $schedule->id,
                         "shift_id" => $data["shift_id"],
                         "office_id" => $data["office_id"],
                         "date" => $currentDate,
-                        // "type" => "default",
-                        'work_type' =>  $data["work_type"],
-                        "isChangeSchedule" => $data["schedule_type"] == 0 ? false : true
+                        'work_type' => $data["work_type"],
+                        "isChangeSchedule" => $data["schedule_type"] == 0 ? false : true,
                     ];
-                    $this->detailScheduleRepository->create($newData);
-
-                    continue;
                 }
-                $newData = [
-                    "shift_id" => $data["shift_id"],
-                    "office_id" => $data["office_id"],
-                    "date" => $currentDate,
-                    'work_type' =>  $data["work_type"],
-                    "isChangeSchedule" => $data["schedule_type"] == 0 ? false : true
-                ];
-
-                $this->detailScheduleRepository->update($existData->id, $newData);
+                if (!empty($newDetailSchedules)) {
+                    DetailSchedule::insert($newDetailSchedules);
+                }
             }
+
             return new ActionResult(true, "success update data", null);
         } catch (Throwable $th) {
+            Log::error('updateSchedule error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            LogConsole::info($th->getMessage());
             return new ActionResult(false, "failed update data");
         }
     }

@@ -109,9 +109,38 @@ class TimeHelper
     }
 
     /**
+     * Total menit hutang waktu dari izin keluar (leave) yang disetujui
+     * dengan status wajib ganti jam, untuk satu attendance.
+     *
+     * @param mixed $attendance Model Attendance (atau object dengan properti id)
+     * @return int
+     */
+    public static function mandatoryReplaceDebtMinutes($attendance): int
+    {
+        $attendanceId = is_object($attendance) ? ($attendance->id ?? null) : null;
+        if (!$attendanceId) {
+            return 0;
+        }
+
+        if ($attendance instanceof \App\Models\Attendance && $attendance->relationLoaded('permitLogs')) {
+            return (int) $attendance->permitLogs
+                ->filter(fn($log) => $log->type === 'leave' && ((int)$log->is_mandatory_replace === 1 || $log->is_mandatory_replace === true) && $log->approval_status === 'approved')
+                ->sum(fn($log) => (int) ($log->agreed_duration_minutes ?: ($log->duration_in_minutes ?: 0)));
+        }
+
+        return (int) \App\Models\PermitLog::where('attendance_id', $attendanceId)
+            ->where('type', 'leave')
+            ->where('is_mandatory_replace', true)
+            ->where('approval_status', 'approved')
+            ->selectRaw('COALESCE(agreed_duration_minutes, duration_in_minutes, 0) as mins')
+            ->get()
+            ->sum('mins');
+    }
+
+    /**
      * Calculate daily work hours with proper break time handling
      */
-    public static function calculateDailyWorkHours($attendance, $shift, $detailSchedule = null)
+    public static function calculateDailyWorkHours($attendance, $shift, $detailSchedule = null, $additionalDebtMinutes = 0)
     {
         // Resolve detailSchedule if not passed directly
         if (!$detailSchedule && $attendance instanceof \App\Models\Attendance) {
@@ -135,8 +164,13 @@ class TimeHelper
                 'diff_minutes' => 0,
                 'diff_formatted' => '00:00',
                 'is_sufficient' => true,
+                'mandatory_replace_minutes' => 0,
             ];
         }
+
+        // Hutang tambahan dari izin keluar yang wajib ganti jam
+        $additionalDebtMinutes = max(0, (int) $additionalDebtMinutes);
+        $shiftTargetMinutes += $additionalDebtMinutes;
 
         // Initialize variables
         $startTime = $attendance->start_time ?? null;
@@ -218,6 +252,7 @@ class TimeHelper
             'diff_minutes' => $diffMinutes,
             'diff_formatted' => self::formatDifference($diffMinutes),
             'is_sufficient' => $diffMinutes >= 0,
+            'mandatory_replace_minutes' => $additionalDebtMinutes,
         ];
     }
 }

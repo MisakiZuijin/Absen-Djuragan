@@ -12,38 +12,49 @@ class LocationService
     {
         $this->officeRepository = $officeRepository;
     }
-    function checkIsInOfficeArea(float $latitude, float $longitude): object
+    public function checkIsInOfficeArea(?float $latitude, ?float $longitude, ?bool $isGpsRequired = null): object
     {
         $result = new \stdClass();
         $offices = $this->officeRepository->getAll();
-        $isInOfficeArea = false;
+        $result->officeData = $offices->first();
+        $result->isInArea = false;
 
+        $user = Auth::user();
+        if ($isGpsRequired === null) {
+            $isGpsRequired = ($user && isset($user->is_gps_activate)) ? ((int) $user->is_gps_activate === 1) : true;
+        }
+
+        if (!$isGpsRequired || is_null($latitude) || is_null($longitude)) {
+            $result->isInArea = !$isGpsRequired;
+            return $result;
+        }
+
+        $isInOfficeArea = false;
         foreach ($offices as $office) {
             if ($isInOfficeArea) break;
-            $filterCoordinate = array_filter($office->coordinates->toArray(), function ($item) {
-                return $item['is_main'] == 0;
-            });
+            $coordinates = $office->coordinates ? $office->coordinates->toArray() : [];
+            $filterCoordinate = array_values(array_filter($coordinates, function ($item) {
+                return isset($item['is_main']) && $item['is_main'] == 0;
+            }));
 
-            $filterCoordinate = array_values($filterCoordinate);
+            if (count($filterCoordinate) < 2) {
+                continue;
+            }
 
-            $lat1 = $filterCoordinate[0]['latitude'];
-            $long1 = $filterCoordinate[0]['longitude'];
-            $lat2 = $filterCoordinate[1]['latitude'];
-            $long2 = $filterCoordinate[1]['longitude'];
-
+            $lat1 = (float) $filterCoordinate[0]['latitude'];
+            $long1 = (float) $filterCoordinate[0]['longitude'];
+            $lat2 = (float) $filterCoordinate[1]['latitude'];
+            $long2 = (float) $filterCoordinate[1]['longitude'];
 
             $minLat = min($lat1, $lat2);
             $maxLat = max($lat1, $lat2);
             $minLong = min($long1, $long2);
             $maxLong = max($long1, $long2);
 
-
-            if (Auth::user()->is_gps_activate == 1) {
-                $isInOfficeArea = ($latitude >= $minLat && $latitude <= $maxLat) && ($longitude >= $minLong && $longitude <= $maxLong);
-            } else {
-                $isInOfficeArea = true;
+            $isInOfficeArea = ($latitude >= $minLat && $latitude <= $maxLat) && ($longitude >= $minLong && $longitude <= $maxLong);
+            if ($isInOfficeArea) {
+                $result->officeData = $office;
             }
-            $result->officeData = $office;
         }
         $result->isInArea = $isInOfficeArea;
         return $result;

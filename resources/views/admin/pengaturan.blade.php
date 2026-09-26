@@ -3,98 +3,151 @@
 @section('title', 'Pengaturan Quotes')
 
 @section('contents')
-    @include('layouts.sidebar')
 
     @include('layouts.sidebar-pengaturan')
 
-    @include('layouts.navbar')
-
     <!-- Main Content -->
-    <main class="ml-[32rem] mt-24 p-6">
-        @if (session('success'))
-            <div id="success-message"
-                class="mb-2 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative transition-opacity duration-500"
-                role="alert">
-                <strong class="font-bold">Success!</strong>
-                <span class="block sm:inline">{{ session('success') }}</span>
-                <span class="absolute top-0 bottom-0 right-0 px-4 py-3 cursor-pointer" onclick="removeMessage()">
-                    <svg class="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20">
-                        <title>Close</title>
-                        <path
-                            d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z" />
-                    </svg>
-                </span>
-            </div>
-        @endif
-        <div class="flex gap-6">
+    <main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
+        <div class="w-full max-w-full min-w-0 space-y-6">
 
-            <!-- Quotes List -->
-            <div class="flex-1">
-
-                <h2 class="text-xl font-semibold mb-4">Daftar Quotes</h2>
-
-                <ul class="bg-white p-4 rounded shadow">
-                    @foreach ($quotes as $quote)
-                        <li class="flex justify-between items-center border-b border-gray-200 py-2">
-                            <span>{{ $quote->quote }}</span>
-                            <form action="{{ route('quotes.delete', $quote->id) }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-500 hover:text-red-700">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </form>
-                        </li>
-                    @endforeach
-                </ul>
-
-                <form action="{{ route('quotes.store') }}" method="POST" class="mt-6">
-                    @csrf
-                    <h3 class="text-lg font-semibold mb-2">Tambah Quote</h3>
-                    <div class="flex flex-col gap-4">
-                        <input type="text" name="quote" placeholder="Masukkan kutipan baru"
-                            class="border border-gray-300 p-2 rounded" required>
-                        <input type="hidden" name="kategori" placeholder="" class="border border-gray-300 p-2 rounded"
-                            value="quote">
-                        <button type="submit"
-                            class="bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-600">Tambahkan</button>
-                    </div>
-                </form>
+            <!-- Header -->
+            <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                <h1 class="text-2xl font-bold text-gray-900 mb-1">Manage Quotes</h1>
+                <p class="text-gray-500 text-sm">Pengaturan kutipan motivasi harian dan ucapan selamat ulang tahun</p>
             </div>
 
-            <!-- Quotes Ulang Tahun -->
-            <div class="w-1/3">
-                <h2 class="text-xl font-semibold mb-4">Quotes Ulang Tahun</h2>
-                <ul class="bg-white p-4 rounded shadow mb-2">
-                    @foreach ($quotesultah as $quote)
-                        <li class="flex justify-between items-center border-b border-gray-200 py-2">
-                            <span>{{ $quote->quote }}</span>
-                            <form action="{{ route('quotes.delete', $quote->id) }}" method="POST">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-red-500 hover:text-red-700">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </form>
-                        </li>
-                    @endforeach
-                </ul>
-                <form action="{{ route('quotes.ultah.store') }}" method="POST">
-                    @csrf
-                    <div class="flex flex-col gap-4">
-                        <input type="text" name="quote" placeholder="Masukkan kutipan ulang tahun"
-                            class="border border-gray-300 p-2 rounded" required>
-                        <input type="hidden" name="kategori" placeholder="" class="border border-gray-300 p-2 rounded"
-                            value="ultah">
-                        <button type="submit"
-                            class="bg-gray-800 text-white py-2 px-4 rounded hover:bg-gray-600">Tambahkan</button>
+            @if (session('success'))
+                <div id="success-message"
+                    class="bg-emerald-50 border border-emerald-300 text-emerald-800 px-4 py-3 rounded-xl relative transition-opacity duration-500 shadow-xs flex items-center justify-between"
+                    role="alert">
+                    <div>
+                        <strong class="font-bold">Sukses!</strong>
+                        <span class="block sm:inline ml-1">{{ session('success') }}</span>
                     </div>
-                </form>
+                    <button type="button" class="text-emerald-600 hover:text-emerald-900" onclick="removeMessage()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            @endif
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <!-- Quotes List -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                        <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                            <div>
+                                <h2 class="text-base font-bold text-gray-900">Daftar Kutipan Motivasi Harian</h2>
+                                <p class="text-xs text-gray-500">Kutipan yang ditampilkan secara acak di beranda pemagang</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-lg border border-blue-200">
+                                {{ count($quotes) }} Quotes
+                            </span>
+                        </div>
+
+                        <ul class="divide-y divide-gray-100 max-h-96 overflow-y-auto pr-1">
+                            @forelse ($quotes as $quote)
+                                <li class="flex justify-between items-center py-3 gap-3 hover:bg-gray-50/60 px-2 rounded-xl transition">
+                                    <div class="flex items-start gap-2.5 min-w-0">
+                                        <i class="fas fa-quote-left text-gray-300 text-xs mt-1 shrink-0"></i>
+                                        <span class="text-xs sm:text-sm text-gray-700 font-medium leading-relaxed">{{ $quote->quote }}</span>
+                                    </div>
+                                    <form action="{{ route('quotes.delete', $quote->id) }}" method="POST" class="shrink-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kutipan ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" title="Hapus Quote" class="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center w-7 h-7">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                            @empty
+                                <li class="py-8 text-center text-gray-400 text-xs">
+                                    <i class="fas fa-quote-right text-2xl mb-2 block text-gray-300"></i>
+                                    Belum ada kutipan harian yang ditambahkan
+                                </li>
+                            @endforelse
+                        </ul>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                        <form action="{{ route('quotes.store') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <i class="fas fa-plus text-blue-600"></i> Tambah Kutipan Harian
+                            </h3>
+                            <div>
+                                <textarea name="quote" placeholder="Tuliskan kata-kata mutiara atau motivasi baru..." rows="3"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" required></textarea>
+                            </div>
+                            <input type="hidden" name="kategori" value="quote">
+                            <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition">
+                                <i class="fas fa-plus mr-1.5"></i> Tambahkan Kutipan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Quotes Ulang Tahun -->
+                <div class="space-y-6">
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                        <div class="flex items-center justify-between pb-4 mb-4 border-b border-gray-100">
+                            <div>
+                                <h2 class="text-base font-bold text-gray-900">Quotes Ulang Tahun</h2>
+                                <p class="text-xs text-gray-500">Ucapan saat pemagang berulang tahun</p>
+                            </div>
+                            <span class="px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-bold rounded-lg border border-amber-200">
+                                {{ count($quotesultah) }}
+                            </span>
+                        </div>
+
+                        <ul class="divide-y divide-gray-100 max-h-96 overflow-y-auto pr-1">
+                            @forelse ($quotesultah as $quote)
+                                <li class="flex justify-between items-center py-3 gap-3 hover:bg-gray-50/60 px-2 rounded-xl transition">
+                                    <div class="flex items-start gap-2 min-w-0">
+                                        <i class="fas fa-cake-candles text-amber-500 text-xs mt-1 shrink-0"></i>
+                                        <span class="text-xs sm:text-sm text-gray-700 font-medium leading-relaxed">{{ $quote->quote }}</span>
+                                    </div>
+                                    <form action="{{ route('quotes.delete', $quote->id) }}" method="POST" class="shrink-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus kutipan ulang tahun ini?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" title="Hapus Quote Ultah" class="p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center justify-center w-7 h-7">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </li>
+                            @empty
+                                <li class="py-8 text-center text-gray-400 text-xs">
+                                    <i class="fas fa-birthday-cake text-2xl mb-2 block text-gray-300"></i>
+                                    Belum ada kutipan ulang tahun
+                                </li>
+                            @endforelse
+                        </ul>
+                    </div>
+
+                    <div class="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+                        <form action="{{ route('quotes.ultah.store') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
+                                <i class="fas fa-plus text-amber-600"></i> Tambah Quote Ulang Tahun
+                            </h3>
+                            <div>
+                                <textarea name="quote" placeholder="Masukkan ucapan selamat ulang tahun..." rows="3"
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500" required></textarea>
+                            </div>
+                            <input type="hidden" name="kategori" value="ultah">
+                            <button type="submit"
+                                class="inline-flex items-center justify-center px-4 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition">
+                                <i class="fas fa-plus mr-1.5"></i> Tambahkan Ucapan
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
-    <script src="{{ asset('js/admin/seeting.js') }}"></script>
+    <script src="{{ asset('js/admin/setting.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const message = document.getElementById('success-message');

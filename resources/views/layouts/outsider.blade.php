@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,20 +10,21 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @livewireStyles
 </head>
+
 <body class="bg-gray-100 text-gray-800">
 
-  
+
     {{-- Header Visual --}}
     <div class="relative h-[250px]">
         @php
-            $birth_date = $user->profile->date_of_birth ?? null;
-            $today = now()->format('m-d');
-            $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
+        $birth_date = $user->profile->date_of_birth ?? null;
+        $today = now()->format('m-d');
+        $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
         @endphp
 
-        <img src="{{ asset($today === $userBirth ? 'img/bg2.jpg' : 'img/bg.jpg') }}" 
-             alt="Background Image"
-             class="w-full h-full object-cover md:rounded-br-[40px] no-select">
+        <img src="{{ asset($today === $userBirth ? 'img/bg2.jpg' : 'img/bg.jpg') }}"
+            alt="Background Image"
+            class="w-full h-full object-cover md:rounded-br-[40px] no-select">
 
         {{-- Welcome Message --}}
         <div class="absolute inset-0 flex items-center justify-center z-10 p-2 md:p-4">
@@ -80,69 +82,16 @@
     </div>
 
     {{-- Notifikasi --}}
-    <div id="success-box" class="floating-box hidden bg-green-500 text-white p-4 rounded">
+    <div id="success-box" class="floating-box {{ session('success') ? '' : 'hidden' }} bg-green-500 text-white p-4 rounded">
         <i class="fa-solid fa-check-circle"></i> {{ session('success') ?? '' }}
     </div>
 
-    <div id="error-box" class="floating-box hidden bg-red-500 text-white p-4 rounded">
+    <div id="error-box" class="floating-box {{ isset($error) ? '' : 'hidden' }} bg-red-500 text-white p-4 rounded">
         <i class="fa-solid fa-triangle-exclamation"></i> {{ $error ?? '' }}
     </div>
 
-    @livewireScripts
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-    {{-- Font Awesome --}}
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-    {{-- Clock + Typewriter Script --}}
-    <script>
-        function updateClock() {
-            const now = new Date();
-            const time = now.toTimeString().split(' ')[0];
-            document.getElementById('current-time').textContent = time;
-        }
-        setInterval(updateClock, 1000);
-        updateClock();
-
-        document.addEventListener('DOMContentLoaded', () => {
-            const texts = @json($quotes ?? []);
-            const element = document.getElementById('typewriter-text');
-
-            function changeQuote() {
-                if (!texts.length || !element) return;
-                const random = texts[Math.floor(Math.random() * texts.length)];
-                element.innerHTML = random.split(' ').map((word, i) => ((i + 1) % 4 === 0 ? word + '<br>' : word)).join(' ');
-            }
-
-            changeQuote();
-            setInterval(changeQuote, 10000);
-
-            $('.logoutModal').click(() => $('#logout-modal').removeClass('hidden'));
-            $('#closeLogout').click(() => $('#logout-modal').addClass('hidden'));
-            $(window).click(e => {
-                if (e.target.id === 'logout-modal') $('#logout-modal').addClass('hidden');
-            });
-
-            @if (session('success'))
-                $('#success-box').removeClass('hidden');
-                setTimeout(() => $('#success-box').addClass('hidden'), 3000);
-            @endif
-
-            @if (isset($error))
-                $('#error-box').removeClass('hidden');
-                setTimeout(() => $('#error-box').addClass('hidden'), 3000);
-            @endif
-        });
-    </script>
-    @stack('scripts')
-    {{-- Notifikasi --}}
-    <div id="success-box" class="floating-box hidden bg-green-500 text-white p-4 rounded">
-        <i class="fa-solid fa-check-circle"></i> {{ session('success') ?? '' }}
-    </div>
-
-    <div id="error-box" class="floating-box hidden bg-red-500 text-white p-4 rounded">
-        <i class="fa-solid fa-triangle-exclamation"></i> {{ $error ?? '' }}
-    </div>
+    {{-- Quotes Data Payload --}}
+    <script type="application/json" id="quotes-data">@json($quotes ?? [])</script>
 
     {{-- Livewire Scripts --}}
     @livewireScripts
@@ -164,7 +113,8 @@
         updateClock();
 
         document.addEventListener('DOMContentLoaded', () => {
-            const texts = @json($quotes ?? []);
+            const quotesEl = document.getElementById('quotes-data');
+            const texts = quotesEl ? JSON.parse(quotesEl.textContent || '[]') : [];
             const element = document.getElementById('typewriter-text');
 
             function changeQuote() {
@@ -183,23 +133,42 @@
                 if (e.target.id === 'logout-modal') $('#logout-modal').addClass('hidden');
             });
 
-            // Notification Boxes
-            @if (session('success'))
-                $('#success-box').removeClass('hidden');
-                setTimeout(() => $('#success-box').addClass('hidden'), 3000);
-            @endif
+            // Notification Boxes Auto Hide
+            const successBox = document.getElementById('success-box');
+            if (successBox && !successBox.classList.contains('hidden')) {
+                setTimeout(() => successBox.classList.add('hidden'), 3000);
+            }
+            const errorBox = document.getElementById('error-box');
+            if (errorBox && !errorBox.classList.contains('hidden')) {
+                setTimeout(() => errorBox.classList.add('hidden'), 3000);
+            }
 
-            @if (isset($error))
-                $('#error-box').removeClass('hidden');
-                setTimeout(() => $('#error-box').addClass('hidden'), 3000);
-            @endif
+            if (typeof $ !== 'undefined') {
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    statusCode: {
+                        419: function() {
+                            alert('Sesi Anda telah berakhir. Halaman akan dimuat ulang.');
+                            window.location.reload();
+                        },
+                        403: function() {
+                            alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+                        }
+                    }
+                });
+            }
+            window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
+                    window.location.reload();
+                }
+            });
         });
     </script>
 
     {{-- Script tambahan dari halaman menggunakan @push('scripts') --}}
     @stack('scripts')
 </body>
-</html>
 
-</body>
 </html>

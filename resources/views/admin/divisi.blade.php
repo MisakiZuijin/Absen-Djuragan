@@ -3,31 +3,32 @@
 @section('title', 'Divisi')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar', ['user' => $user])
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 md:ml-48 lg:ml-64">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
 
-        <div class="container mx-auto p-6">
+        <div class="container mx-auto">
             <!-- Header with Tabs and Search -->
-            <div class="flex justify-between items-center border-b border-gray-300">
+            <div class="flex flex-col md:flex-row justify-between md:items-center gap-3 border-b border-gray-300 pb-2 md:pb-0">
                 <!-- Tab Navigation -->
-                <div class="flex space-x-6">
+                <div class="flex space-x-4 sm:space-x-6">
                     <button id="tab1"
-                        class="text-gray-800 py-2 px-4 border-b-2 border-black font-semibold">Aktif</button>
-                    <button id="tab2" class="text-gray-500 py-2 px-4">Belum Aktif<span class="text-sm text-gray-400 mb-1">
+                        class="text-gray-800 py-2 px-3 sm:px-4 border-b-2 border-black font-semibold text-sm sm:text-base">Aktif</button>
+                    <button id="tab2" class="text-gray-500 py-2 px-3 sm:px-4 text-sm sm:text-base">Belum Aktif<span class="text-xs sm:text-sm text-gray-400 mb-1">
                             ({{ sizeOf($internWithoutDivision) }})</span></button>
                 </div>
-                <!-- Search Box -->
-                <div class="flex flex-col space-y-2 mb-1">
-                    <div class="flex items-center border border-gray-300 rounded-full">
+                <!-- Action & Search Box -->
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-1">
+                    <a href="{{ route('admin.interns.create') }}"
+                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-bold shadow-xs transition">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>Tambah Pemagang</span>
+                    </a>
+                    <div class="flex items-center border border-gray-300 rounded-full flex-1 sm:flex-initial">
                         <div class="bg-white p-2 rounded-l-full">
-                            <i class="ml-2 fa fa-search text-gray-500"></i>
+                            <i class="ml-2 fa fa-search text-gray-500 text-xs"></i>
                         </div>
                         <input type="text" id="searchInput" placeholder="Cari divisi/nama"
-                            class="py-2 pl-3 pr-4 rounded-r-full text-gray-800 focus:outline-none w-full">
+                            class="py-2 pl-2 pr-4 rounded-r-full text-gray-800 focus:outline-none w-full sm:w-64 text-xs sm:text-sm">
                     </div>
                 </div>
 

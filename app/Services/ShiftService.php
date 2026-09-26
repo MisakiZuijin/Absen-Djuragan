@@ -3,12 +3,12 @@
 namespace App\Services;
 
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Models\Shift;
 use App\Http\Requests\StoreShiftRequest;
 use App\Http\Requests\UpdateShiftRequest;
 use App\Utils\DateNow;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 use function Sentry\captureException;
 
@@ -56,11 +56,14 @@ class ShiftService
                 $data['adt_end_break_time'] = $storeShiftRequest->input('adt_end_break_time');
             }
 
+            if ($storeShiftRequest->has('is_gps_active')) {
+                $data['is_gps_active'] = (int) $storeShiftRequest->input('is_gps_active');
+            }
+
             return $this->shiftRepository->create($data);
         } catch (\Exception $e) {
-            // Log error
-            LogConsole::info($e);
-            // Optionally rethrow the exception or return a response
+            Log::error('createShift error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            captureException($e);
             throw $e;
         }
     }
@@ -89,18 +92,18 @@ class ShiftService
                 'total_time_in_minute' => $totalMinutes,
                 'start_break_time' => $updateShiftRequest->input('edit_start_break_time'),
                 'end_break_time' => $updateShiftRequest->input('edit_end_break_time'),
-            ];
-
-
-            DB::table('shifts')->where('id', $id)->update([
                 'adt_start_break_time' => $updateShiftRequest->input('edit_adt_start_break_time'),
                 'adt_end_break_time' => $updateShiftRequest->input('edit_adt_end_break_time'),
-            ]);
+            ];
 
+            if ($updateShiftRequest->has('is_gps_active')) {
+                $data['is_gps_active'] = (int) $updateShiftRequest->input('is_gps_active');
+            }
 
             return $this->shiftRepository->update($data, $id);
         } catch (\Exception $th) {
-            LogConsole::info($th);
+            Log::error('updateShift error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            captureException($th);
             throw $th;
         }
     }

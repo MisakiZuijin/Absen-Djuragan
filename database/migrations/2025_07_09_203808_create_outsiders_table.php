@@ -12,16 +12,14 @@ return new class extends Migration
     public function up(): void
     {
        Schema::create('outsiders', function (Blueprint $table) {
-        $table->id();
-        $table->unsignedBigInteger('user_id')->unique();
-        $table->enum('type', ['guru', 'ortu']);
-        $table->string('phone_number')->nullable();
-        $table->boolean('notif_enabled')->default(false);
-        $table->timestamps();
-
-        $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
-});
-
+            $table->id();
+            $table->foreignId('user_id')->unique()->constrained('users')->onDelete('cascade');
+            $table->enum('type', ['guru', 'ortu']);
+            $table->string('phone_number')->nullable();
+            $table->boolean('notif_enabled')->default(false);
+            $table->boolean('can_view_logs')->default(false);
+            $table->timestamps();
+        });
     }
 
     /**

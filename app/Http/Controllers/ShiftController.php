@@ -45,20 +45,30 @@ class ShiftController extends Controller
             abort(404, 'Kategori shift tidak ditemukan.');
         }
 
-        $interns = DetailSchedule::whereHas('shift', function ($query) use ($name) {
+        $currentShift = Shift::where('name', $name)->first();
+
+        $detailSchedules = DetailSchedule::whereHas('shift', function ($query) use ($name) {
             $query->where('name', $name);
         })
             ->whereDate('date', today())
-            ->with(['schedule.intern.user.profile', 'schedule.intern.school'])
+            ->with([
+                'schedule.intern.user.profile',
+                'schedule.intern.school',
+                'schedule.intern.division',
+                'office',
+                'shift'
+            ])
             ->get()
-            ->pluck('schedule.intern')
-            ->unique('id')
-            ->sortBy('user.profile.full_name');
+            ->unique('schedule.intern_id')
+            ->sortBy(function ($item) {
+                return $item->schedule->intern->user->profile->full_name ?? $item->schedule->intern->user->name ?? '';
+            });
 
         return view('admin.shift.index', [
-            'interns' => $interns,
+            'detailSchedules' => $detailSchedules,
             'shiftNames' => $shiftNames,
             'activeShiftName' => $name,
+            'currentShift' => $currentShift,
         ]);
     }
 
@@ -125,23 +135,27 @@ class ShiftController extends Controller
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);
 
-            // Cari semua DetailSchedule untuk intern yang dipilih dalam rentang tanggal
-            $schedulesToUpdate = DetailSchedule::whereHas('schedule', function ($query) use ($internIds) {
+            // Cari dan update semua DetailSchedule untuk intern yang dipilih dalam rentang tanggal secara massal
+            $query = DetailSchedule::whereHas('schedule', function ($query) use ($internIds) {
                 $query->whereIn('intern_id', $internIds);
-            })
-                ->whereBetween('date', [$startDate, $endDate])
-                ->get();
+            })->whereBetween('date', [$startDate, $endDate]);
 
-            if ($schedulesToUpdate->isEmpty()) {
+            $updatedCount = $query->update(['shift_id' => $shiftId]);
+
+            if ($updatedCount === 0) {
                 return redirect()->back()->with('error', 'Tidak ada jadwal yang ditemukan untuk intern yang dipilih dalam rentang tanggal tersebut.');
             }
 
-            // Lakukan update shift_id pada semua jadwal yang ditemukan
-            foreach ($schedulesToUpdate as $schedule) {
-                $schedule->update(['shift_id' => $shiftId]);
-            }
+            $adminName = auth()->user()?->name ?? 'Admin';
+            $targetShift = Shift::find($shiftId);
+            \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin {$adminName} memperbarui shift kerja massal ({$updatedCount} jadwal) menjadi shift {$targetShift?->name}", [
+                'shift_id' => $shiftId,
+                'count' => $updatedCount,
+                'start_date' => $request->start_date,
+                'end_date' => $request->end_date,
+            ]);
 
-            return redirect()->back()->with('success', "Shift berhasil diperbarui untuk " . count($schedulesToUpdate) . " jadwal.");
+            return redirect()->back()->with('success', "Shift berhasil diperbarui untuk {$updatedCount} jadwal.");
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal memperbarui shift: ' . $e->getMessage());
         }
@@ -163,15 +177,16 @@ class ShiftController extends Controller
         $schoolIds = $request->school_ids;
 
         $interns = Intern::whereIn('school_id', $schoolIds)
-            ->with('user.profile')
+            ->with(['user.profile', 'division'])
             ->whereHas('user', function ($q) {
                 $q->where('is_active', true);
             })
             ->get()
             ->map(function ($intern) {
+                $div = $intern->division ? ' • ' . $intern->division->name : '';
                 return [
                     'id' => $intern->id,
-                    'text' => $intern->user->profile->full_name ?? $intern->user->name
+                    'text' => ($intern->user->profile->full_name ?? $intern->user->name) . $div
                 ];
             });
 
@@ -187,15 +202,16 @@ class ShiftController extends Controller
     public function getInternsBySchool(School $school)
     {
         $interns = $school->interns()
-            ->with('user.profile')
+            ->with(['user.profile', 'division'])
             ->whereHas('user', function ($q) {
                 $q->where('is_active', true);
             })
             ->get()
             ->map(function ($intern) {
+                $div = $intern->division ? ' • ' . $intern->division->name : '';
                 return [
                     'id' => $intern->id,
-                    'text' => $intern->user->profile->full_name ?? $intern->user->name
+                    'text' => ($intern->user->profile->full_name ?? $intern->user->name) . $div
                 ];
             });
 

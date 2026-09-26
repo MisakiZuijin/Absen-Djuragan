@@ -63,7 +63,7 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
     public function findByInternId(int $internId)
     {
         return $this->model
-            ->with(['attendance', 'shift', 'adjustableAttendance', 'attdStatus', 'permitReason.category'])
+            ->with(['attendance.permitLogs', 'shift', 'adjustableAttendance', 'attdStatus', 'permitReason.category'])
             ->whereHas('schedule', function ($query) use ($internId) {
                 $query->where('intern_id', $internId);
             })
@@ -73,6 +73,8 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
     public function findByInternIdAndMonth(int $internId, int $month)
     {
         return $this->model
+            ->select('detail_schedules.*')
+            ->with(['shift', 'attdStatus', 'attendance.permitLogs'])
             ->join("schedules", "schedules.id", '=', 'detail_schedules.schedule_id')
             ->join("attendances", "attendances.id", '=', 'detail_schedules.attendance_id')
             ->whereMonth('detail_schedules.date', $month)
@@ -94,10 +96,13 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
         }
 
         return $this->model
+            ->select('detail_schedules.*')
+            ->with(['shift', 'attdStatus', 'attendance.permitLogs', 'schedule'])
             ->join("schedules", "schedules.id", '=', 'detail_schedules.schedule_id')
             ->join("attendances", "attendances.id", '=', 'detail_schedules.attendance_id')
             ->whereBetween("detail_schedules.date", [$startDate, $endDate])
             ->where('schedules.intern_id', $internId)
+            ->orderBy('detail_schedules.date', 'asc')
             ->get();
     }
 

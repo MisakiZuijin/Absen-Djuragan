@@ -40,7 +40,9 @@ class NotificationService
             }
 
             // 2. CADANGAN: Cek dari relasi outsiders
-            $outsiders = $intern->outsiders()->with('user.profile')->get();
+            $outsiders = $intern->relationLoaded('outsiders')
+                ? $intern->outsiders
+                : $intern->outsiders()->with('user.profile')->get();
             foreach ($outsiders as $outsider) {
                 if ($outsider->user && $outsider->user->profile && $outsider->user->profile->phone_number) {
                     $phoneNumber = $outsider->user->profile->phone_number;
@@ -83,6 +85,11 @@ class NotificationService
         $schedules = DetailSchedule::where('date', $date)
             ->where('attd_status_id', 5) // Status Alpha
             ->where('is_notification_sent', false)
+            ->with([
+                'schedule.intern.user.profile',
+                'schedule.intern.whatsappNumber',
+                'schedule.intern.outsiders.user.profile'
+            ])
             ->get();
 
         if ($schedules->isEmpty()) {

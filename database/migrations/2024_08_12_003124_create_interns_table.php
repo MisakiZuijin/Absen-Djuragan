@@ -14,6 +14,7 @@ return new class extends Migration {
             $table->unsignedBigInteger("user_id");
             $table->unsignedBigInteger("school_id")->nullable()->default(null);
             $table->unsignedBigInteger("division_id")->nullable()->default(null);
+            $table->unsignedBigInteger("brand_id")->nullable()->default(null);
             $table->string("nim", 50)->nullable();
             $table->string("attention_message")->nullable();
             $table->date("start_date")->nullable();
@@ -22,6 +23,7 @@ return new class extends Migration {
             $table->foreign("user_id")->references("id")->on("users");
             $table->foreign("school_id")->references("id")->on("schools");
             $table->foreign("division_id")->references("id")->on("divisions");
+            $table->foreign("brand_id")->references("id")->on("brands")->nullOnDelete();
         });
     }
 

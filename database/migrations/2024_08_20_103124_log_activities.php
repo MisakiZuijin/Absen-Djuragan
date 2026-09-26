@@ -11,11 +11,11 @@ return new class extends Migration {
     public function up(): void {
         Schema::create('log_activities', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger("status_id")->default(1);
-            $table->date("date")->nullable(false);
-            $table->text("activity")->nullable(false);
-
-            $table->foreign("status_id")->references("id")->on("statuses");
+            $table->foreignId("status_id")->default(1)->constrained("statuses");
+            $table->date("date");
+            $table->text("activity");
+            $table->text("assistant_notes")->nullable();
+            $table->boolean("is_approved")->default(false);
         });
     }
 

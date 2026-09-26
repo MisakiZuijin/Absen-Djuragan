@@ -4,15 +4,15 @@
 {{-- Pastikan nama section ini 'contents' agar konsisten dengan halaman lain --}}
 @section('contents')
 
-<div class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64 bg-gray-50 min-h-screen">
+<main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 bg-gray-50 min-h-screen min-w-0">
     <div class="max-w-7xl mx-auto">
         <!-- Header Section -->
-        <div class="relative bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-8 overflow-hidden">
+        <div class="relative bg-white rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-8 mb-6 sm:mb-8 overflow-hidden">
             <!-- Decorative background elements -->
             <div class="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full -translate-y-16 translate-x-16"></div>
             <div class="absolute bottom-0 left-0 w-24 h-24 bg-indigo-50 rounded-full translate-y-12 -translate-x-12"></div>
             
-            <div class="relative flex items-center justify-between">
+            <div class="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="space-y-2">
                     <div class="flex items-center space-x-3">
                         <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg">
@@ -246,7 +246,7 @@
             @endif
         </div>
     </div>
-</div>
+</main>
 
 <style>
 /* Custom pagination styling */

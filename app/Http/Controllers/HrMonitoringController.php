@@ -29,9 +29,9 @@ class HrMonitoringController extends Controller
 
     public function monitorToilet()
     {
-        $presentInternIds = Attendance::where('date', today())->pluck('intern_id');
-
-        $interns = Intern::whereIn('id', $presentInternIds)
+        $interns = Intern::whereHas('attendances', function ($query) {
+                $query->whereDate('date', today());
+            })
             ->with(['user.profile', 'division', 'activePermitLog'])
             ->paginate(25);
 
@@ -45,9 +45,9 @@ class HrMonitoringController extends Controller
 
     public function monitorPrayer()
     {
-        $presentInternIds = Attendance::where('date', today())->pluck('intern_id');
-
-        $interns = Intern::whereIn('id', $presentInternIds)
+        $interns = Intern::whereHas('attendances', function ($query) {
+                $query->whereDate('date', today());
+            })
             ->with(['user.profile', 'division', 'activePermitLog'])
             ->paginate(25);
 

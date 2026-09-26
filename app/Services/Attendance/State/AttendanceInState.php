@@ -5,7 +5,6 @@ namespace App\Services\Attendance\State;
 use App\DTO\AttendanceDTO;
 use App\DTO\ScheduleDTO;
 use App\Helper\ActionResult;
-use App\Helper\LogConsole;
 use App\Repositories\Interface\AttendanceRepository;
 use App\Repositories\Interface\DetailScheduleRepository;
 use App\Repositories\Interface\OfficeRepository;
@@ -59,19 +58,63 @@ class AttendanceInState implements AttendanceState
             $user = $this->userRepository->findById($data->getUserId());
             $now = DateNow::getCurrentDateYMD();
             $timeNow = $data->getTimeNow();
-
             $internId = $user->intern->id;
-
             $scheduleId = $data->getScheduleId();
             $detailScheduleId = $data->getDetailSchedule();
 
-            $shift = $this->shiftRepository->getByTimeRange($timeNow);
-            $mapsTrack = $this->checkIsInOfficeArea($data->getLatitude(), $data->getLongitude());
+            $existingDetailSchedule = null;
+            if ($detailScheduleId) {
+                $existingDetailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
+            } elseif ($user->intern) {
+                $existingDetailSchedule = \App\Models\DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
+                    $q->where('intern_id', $internId);
+                })->whereDate('date', $now)->first();
+
+                if ($existingDetailSchedule) {
+                    $detailScheduleId = $existingDetailSchedule->id;
+                    $scheduleId = $scheduleId ?: $existingDetailSchedule->schedule_id;
+                }
+            }
+
+            $shift = ($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow);
+            $isWfhSchedule = $existingDetailSchedule && strtolower($existingDetailSchedule->work_type ?? '') === 'wfh';
+
+            // Validasi apakah GPS diwajibkan (User WFO & Shift mengharuskan GPS & Jadwal bukan WFH)
+            $isGpsRequired = ($user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
+
+            $latitude = $data->getLatitude();
+            $longitude = $data->getLongitude();
+
+            if ($isGpsRequired) {
+                if (is_null($latitude) || is_null($longitude)) {
+                    return new ActionResult(false, "Gagal mendapatkan lokasi GPS. Pastikan GPS aktif dan izinkan akses lokasi.", null);
+                }
+
+                $mapsTrack = $this->checkIsInOfficeArea((float) $latitude, (float) $longitude, true);
+
+                // Validasi area kantor HARUS dilakukan jika GPS aktif
+                if ($mapsTrack->isInArea == false) {
+                    return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
+                }
+            } else {
+                $mapsTrack = $this->checkIsInOfficeArea(
+                    is_null($latitude) ? null : (float) $latitude,
+                    is_null($longitude) ? null : (float) $longitude,
+                    false
+                );
+            }
+
+            if (!$scheduleId && $user->intern) {
+                $existingSchedule = \App\Models\Schedule::where('intern_id', $internId)->orderByDesc('id')->first();
+                if ($existingSchedule) {
+                    $scheduleId = $existingSchedule->id;
+                }
+            }
 
             if (!$scheduleId) {
                 $scheduleId = $this->createSchedule(new ScheduleDTO(
                     $internId,
-                    $mapsTrack->officeData->id,
+                    $mapsTrack->officeData?->id,
                     $shift->id,
                     $now,
                     $now,
@@ -82,27 +125,29 @@ class AttendanceInState implements AttendanceState
             if (!$detailScheduleId) {
                 $timeToCheck = $timeNow < $shift->start_time ? $shift->start_time : $timeNow;
                 $attData = [
+                    "intern_id" => $internId,
                     "date" => $now,
                     "start_time" => $timeToCheck,
                     "start_time_message" => $data->getDescription(),
-                    "latitude_start" => $data->getLatitude(),
-                    "longitude_start" => $data->getLongitude()
+                    "latitude_start" => $latitude,
+                    "longitude_start" => $longitude
                 ];
                 $resultAtt = $this->attendanceRepository->create($attData);
                 $newData = [
                     "schedule_id" => $scheduleId,
                     "attendance_id" => $resultAtt->id,
                     "shift_id" => $shift->id,
-                    "office_id" => $mapsTrack->officeData->id,
+                    "office_id" => $mapsTrack->officeData?->id,
                     "date" => $now,
-                    'work_type' =>  "wfo",
+                    'work_type' =>  $isGpsRequired ? "wfo" : "wfh",
                     "isChangeSchedule" => true,
                     "isBackFirst" => true,
                     "attd_status_id" => 2
                 ];
                 $detailSchedule = $this->detailScheduleRepository->create($newData);
-                $result = $this->attendanceRepository->getById($resultAtt->id);
+                $result = $resultAtt;
                 DB::commit();
+                \App\Helper\ActivityLogger::log('CREATE', 'Presensi', 'Pemagang ' . (Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'User') . ' melakukan Absen Masuk.');
                 return new ActionResult(true, "Berhasil menandai presensi hari ini.", [
                     "absenceHistory" => $result,
                     "shift" => $shift,
@@ -115,20 +160,20 @@ class AttendanceInState implements AttendanceState
             if ($data->getAttendanceId() < 1) {
                 $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
 
-                if ($mapsTrack->isInArea == false) return   new ActionResult(false, "Kamu tidak di Area Kantor manapun");
-
                 $timeToCheck = $timeNow < $shift->start_time ? $shift->start_time : $timeNow;
                 $attData = [
+                    "intern_id" => $internId,
                     "date" => $now,
                     "start_time" => $timeToCheck,
                     "start_time_message" => $data->getDescription(),
-                    "latitude_start" => $data->getLatitude(),
-                    "longitude_start" => $data->getLongitude()
+                    "latitude_start" => $latitude,
+                    "longitude_start" => $longitude
                 ];
                 $resultAtt = $this->attendanceRepository->create($attData);
-                $result = $this->attendanceRepository->getById($resultAtt->id);
+                $result = $resultAtt;
                 $detailSchedule = $this->detailScheduleRepository->update($detailScheduleId, ["attendance_id" => $resultAtt->id, "shift_id" => $shift->id, "attd_status_id" => 2]);
                 DB::commit();
+                \App\Helper\ActivityLogger::log('CREATE', 'Presensi', 'Pemagang ' . (Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'User') . ' melakukan Absen Masuk.');
                 return new ActionResult(true, "Berhasil menandai presensi hari ini.", [
                     "absenceHistory" => $result,
                     // "adjustableTimeHistory" => $adjustableData,
@@ -138,8 +183,6 @@ class AttendanceInState implements AttendanceState
                 ]);
             }
 
-
-            if ($mapsTrack->isInArea == false) return new ActionResult(false, "Kamu tidak di Area Kantor manapun");
 
             $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
             if ($timeNow < DateNow::getLastHour($detailSchedule->shift->start_time, 60) && $detailSchedule->isBackFirst == false) {
@@ -153,13 +196,12 @@ class AttendanceInState implements AttendanceState
             $timeToCheck = $timeNow < $detailSchedule->shift->start_time ? $detailSchedule->shift->start_time : $timeNow;
             $this->detailScheduleRepository->update($detailScheduleId, ["attd_status_id" => 2]);
 
-            $this->attendanceRepository->update($data->getAttendanceId(), [
+            $result = $this->attendanceRepository->update($data->getAttendanceId(), [
                 "start_time" => $timeToCheck,
                 "start_time_message" => $data->getDescription(),
                 "latitude_start" => $data->getLatitude(),
                 "longitude_start" => $data->getLongitude()
             ]);
-            $result = $this->attendanceRepository->getById($data->getAttendanceId());
 
             DB::commit();
 
@@ -192,9 +234,10 @@ class AttendanceInState implements AttendanceState
             ]);
         } catch (\Throwable $th) {
             DB::rollBack();
+            Log::error('AttendanceInState error: ' . $th->getMessage() . ' in ' . $th->getFile() . ':' . $th->getLine());
+            Log::error($th->getTraceAsString());
             captureException($th);
-            LogConsole::info($th);
-            return new ActionResult(false, "Something went wrong.", null);
+            return new ActionResult(false, "Something went wrong: " . $th->getMessage(), null);
         }
     }
     // this function is duplicate, next need to make it reusable
@@ -215,37 +258,44 @@ class AttendanceInState implements AttendanceState
         }
     }
 
-    private function checkIsInOfficeArea(float $latitude, float $longitude): object
+    private function checkIsInOfficeArea(?float $latitude, ?float $longitude, bool $isGpsRequired = true): object
     {
         $result = new \stdClass();
         $offices = $this->officeRepository->getAll();
-        $isInOfficeArea = false;
+        $result->officeData = $offices->first();
+        $result->isInArea = false;
 
+        if (!$isGpsRequired || is_null($latitude) || is_null($longitude)) {
+            $result->isInArea = !$isGpsRequired;
+            return $result;
+        }
+
+        $isInOfficeArea = false;
         foreach ($offices as $office) {
             if ($isInOfficeArea) break;
-            $filterCoordinate = array_filter($office->coordinates->toArray(), function ($item) {
-                return $item['is_main'] == 0;
-            });
+            $coordinates = $office->coordinates ? $office->coordinates->toArray() : [];
+            $filterCoordinate = array_values(array_filter($coordinates, function ($item) {
+                return isset($item['is_main']) && $item['is_main'] == 0;
+            }));
 
-            $filterCoordinate = array_values($filterCoordinate);
+            if (count($filterCoordinate) < 2) {
+                continue;
+            }
 
-            $lat1 = $filterCoordinate[0]['latitude'];
-            $long1 = $filterCoordinate[0]['longitude'];
-            $lat2 = $filterCoordinate[1]['latitude'];
-            $long2 = $filterCoordinate[1]['longitude'];
-
+            $lat1 = (float) $filterCoordinate[0]['latitude'];
+            $long1 = (float) $filterCoordinate[0]['longitude'];
+            $lat2 = (float) $filterCoordinate[1]['latitude'];
+            $long2 = (float) $filterCoordinate[1]['longitude'];
 
             $minLat = min($lat1, $lat2);
             $maxLat = max($lat1, $lat2);
             $minLong = min($long1, $long2);
             $maxLong = max($long1, $long2);
 
-            if (Auth::user()->is_gps_activate == 1) {
-                $isInOfficeArea = ($latitude >= $minLat && $latitude <= $maxLat) && ($longitude >= $minLong && $longitude <= $maxLong);
-            } else {
-                $isInOfficeArea = true;
+            $isInOfficeArea = ($latitude >= $minLat && $latitude <= $maxLat) && ($longitude >= $minLong && $longitude <= $maxLong);
+            if ($isInOfficeArea) {
+                $result->officeData = $office;
             }
-            $result->officeData = $office;
         }
         $result->isInArea = $isInOfficeArea;
         return $result;

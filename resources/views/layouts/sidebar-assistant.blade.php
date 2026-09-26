@@ -1,73 +1,212 @@
-<aside class="fixed top-0 left-0 z-40 w-64 h-screen bg-gray-900 text-gray-300">
-    <div class="flex items-center justify-center h-24 border-b border-gray-800">
-        {{-- Ganti dengan path logo Anda --}}
-        <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="h-10">
+<!-- Backdrop Overlay on Mobile -->
+<div id="sidebar-backdrop" class="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 hidden transition-opacity duration-300 md:hidden" onclick="toggleAdminSidebar()"></div>
+
+<!-- Sidebar Assistant Admin -->
+<aside id="admin-sidebar"
+    class="fixed top-0 left-0 z-50 w-64 h-screen bg-gray-900 text-white flex flex-col shadow-2xl -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out sidebar-container">
+
+    <!-- Logo Header -->
+    <div class="flex items-center justify-between md:justify-center px-6 py-5 md:py-6 border-b border-gray-800">
+        <a href="{{ route('assistant.dashboard') }}" class="transition-transform duration-300 hover:scale-105">
+            <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="h-10">
+        </a>
+        <button type="button" onclick="toggleAdminSidebar()" class="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 focus:outline-none transition-colors" aria-label="Tutup Menu">
+            <i class="fa-solid fa-times text-xl"></i>
+        </button>
     </div>
 
-    <nav class="mt-4">
-        {{-- 1. Tautan ke Dashboard --}}
-        <a href="{{ route('assistant.dashboard') }}"
-           class="flex items-center px-6 py-3 transition-colors duration-200
-                  {{ request()->routeIs('assistant.dashboard') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-            {{-- Ikon Dashboard (Rumah) --}}
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
-            <span class="mx-3 font-medium">Dashboard</span>
-        </a>
+    <!-- Navigasi Utama (Scrollable) -->
+    <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-gray-800">
+        <ul class="space-y-1.5 text-gray-200">
+            <!-- Menu Item: Dashboard -->
+            <li>
+                <a href="{{ route('assistant.dashboard') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::routeIs('assistant.dashboard') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-chart-pie w-5 text-center {{ Request::routeIs('assistant.dashboard') ? 'scale-110' : '' }}"></i>
+                    <span>Dashboard</span>
+                </a>
+            </li>
 
-        {{-- 2. Tautan ke Halaman Raise Hand --}}
-        <a href="{{ route('assistant.raisehand.list') }}"
-           class="flex items-center px-6 py-3 mt-2 transition-colors duration-200
-                  {{ request()->routeIs('assistant.raisehand*') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-            {{-- Ikon Raise Hand --}}
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0zM10 11.5v-2a1.5 1.5 0 013 0v2m0 0v-2a1.5 1.5 0 013 0v2m0 0v-2.5a1.5 1.5 0 013 0v2.5m-6-13a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L10 5.414 7.414 8 6 6.586a1 1 0 010-1.414l4-4z"></path></svg>
-            <span class="mx-3 font-medium">Raise Hand</span>
-        </a>
+            <!-- Menu Item: Presensi Offline (Jika route tersedia) -->
+            @if(Route::has('assistant.absen-offline.index'))
+            <li>
+                <a href="{{ route('assistant.absen-offline.index') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/absen-offline*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-user-check w-5 text-center {{ Request::is('assistant-admin/absen-offline*') ? 'scale-110' : '' }}"></i>
+                    <span>Presensi Offline</span>
+                </a>
+            </li>
+            @endif
 
-        {{-- 3. Tautan Izin (BARU DITAMBAHKAN IKON & DISARANKAN MENGGUNAKAN ROUTE 'assistant') --}}
+            <!-- Menu Item: Raise Hand -->
+            <li>
+                <a href="{{ route('assistant.raisehand.list') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/raise-hand*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-hand-point-up w-5 text-center {{ Request::is('assistant-admin/raise-hand*') ? 'scale-110' : '' }}"></i>
+                    <span>Raise Hand</span>
+                </a>
+            </li>
 
-        {{-- Tautan ke Halaman Izin Keluar --}}
-        <a href="{{ route('assistant.izin.leave.index') }}"
-   class="flex items-center px-6 py-3 mt-2 transition-colors duration-200
-          {{ request()->routeIs('assistant.izin.keluar*') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-    {{-- Ikon Izin Keluar (Pintu Keluar) --}}
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9"></path></svg>
-    <span class="mx-3 font-medium">Izin Keluar</span>
-</a>
+            <!-- Menu Item: Persetujuan Log Aktivitas -->
+            <li>
+                <a href="{{ route('assistant.logactivity') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/log-activity*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-clipboard-check w-5 text-center {{ Request::is('assistant-admin/log-activity*') ? 'scale-110' : '' }}"></i>
+                    <span>Persetujuan Log</span>
+                </a>
+            </li>
 
-        {{-- Tautan ke Halaman Izin Shalat --}}
-        <a href="{{ route('assistant.izin.prayer.index') }}"
-   class="flex items-center px-6 py-3 mt-2 transition-colors duration-200
-          {{ request()->routeIs('assistant.izin.shalat*') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-    {{-- Ikon Izin Shalat (Jam) --}}
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-    <span class="mx-3 font-medium">Izin Shalat</span>
-</a>
+            <!-- Dropdown: Monitoring Izin -->
+            <li class="has-submenu {{ Request::is('assistant-admin/izin*') ? 'active' : '' }}">
+                <a href="{{ route('assistant.izin.leave.index') }}"
+                    class="flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white">
+                    <div class="flex items-center gap-x-4">
+                        <i class="fa-solid fa-clipboard-list w-5 text-center"></i>
+                        <span>Monitoring Izin</span>
+                    </div>
+                    <i class="fa-solid fa-chevron-down text-xs transition-transform duration-300"></i>
+                </a>
+                <ul class="submenu pt-2 pl-8 space-y-2">
+                    <li>
+                        <a href="{{ route('assistant.izin.leave.index') }}"
+                            class="flex items-center gap-x-3 py-2 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/izin/leave*') || Request::is('assistant-admin/izin/keluar*') ? 'text-white font-semibold bg-gray-700 px-2.5 shadow-xs' : 'text-gray-400 hover:text-white hover:translate-x-1' }}">
+                            <i class="fa-solid fa-right-from-bracket fa-2xs {{ Request::is('assistant-admin/izin/leave*') || Request::is('assistant-admin/izin/keluar*') ? 'scale-125' : '' }}"></i>
+                            Izin Keluar
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('assistant.izin.prayer.index') }}"
+                            class="flex items-center gap-x-3 py-2 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/izin/prayer*') || Request::is('assistant-admin/izin/shalat*') ? 'text-white font-semibold bg-gray-700 px-2.5 shadow-xs' : 'text-gray-400 hover:text-white hover:translate-x-1' }}">
+                            <i class="fa-solid fa-mosque fa-2xs {{ Request::is('assistant-admin/izin/prayer*') || Request::is('assistant-admin/izin/shalat*') ? 'scale-125' : '' }}"></i>
+                            Izin Shalat
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('assistant.izin.toilet.index') }}"
+                            class="flex items-center gap-x-3 py-2 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/izin/toilet*') ? 'text-white font-semibold bg-gray-700 px-2.5 shadow-xs' : 'text-gray-400 hover:text-white hover:translate-x-1' }}">
+                            <i class="fa-solid fa-toilet fa-2xs {{ Request::is('assistant-admin/izin/toilet*') ? 'scale-125' : '' }}"></i>
+                            Izin Toilet
+                        </a>
+                    </li>
+                </ul>
+            </li>
 
-        {{-- Tautan ke Halaman Izin Toilet --}}
-       <a href="{{ route('assistant.izin.toilet.index') }}"
-   class="flex items-center px-6 py-3 mt-2 transition-colors duration-200
-          {{ request()->routeIs('assistant.izin.toilet*') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-    {{-- Ikon Izin Toilet (Orang) --}}
-    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-4.663M12 10.375a4.125 4.125 0 100-8.25 4.125 4.125 0 000 8.25zM10.125 5.25h3.75M12 3v2.25z"></path></svg>
-    <span class="mx-3 font-medium">Izin Toilet</span>
-</a>
+            <!-- Pemisah sebelum Logout -->
+            <hr class="my-3 border-gray-800">
 
-
-        {{-- 4. Tautan ke Halaman Log Aktivitas --}}
-        <a href="{{ route('assistant.logactivity') }}"
-           class="flex items-center px-6 py-3 mt-2 transition-colors duration-200
-                  {{ request()->routeIs('assistant.logactivity*') ? 'bg-gray-700 text-white' : 'hover:bg-gray-700' }}">
-            {{-- Ikon Log Aktivitas --}}
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
-            <span class="mx-3 font-medium">Persetujuan Log</span>
-        </a>
+            <!-- Menu Item: Logout -->
+            <li>
+                <button
+                    class="logoutModal w-full flex items-center gap-x-4 px-4 py-2.5 rounded-xl text-left transition-all duration-200 text-gray-300 hover:bg-rose-600 hover:text-white hover:translate-x-1">
+                    <i class="fa-solid fa-power-off w-5 text-center"></i>
+                    <span>Log Out</span>
+                </button>
+            </li>
+        </ul>
     </nav>
-
-    {{-- Tombol Logout di bagian bawah sidebar --}}
-    <div class="absolute bottom-0 w-full border-t border-gray-800">
-        <a href="{{ route('logout.action') }}" class="flex items-center w-full px-6 py-4 transition-colors duration-200 text-gray-300 hover:bg-red-700 hover:text-white">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-            <span class="mx-3 font-medium">Log Out</span>
-        </a>
-    </div>
 </aside>
+
+<!-- CSS Modern -->
+<style>
+    .submenu {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .has-submenu.active > .submenu {
+        max-height: 500px;
+    }
+
+    .has-submenu.active > a .fa-chevron-down {
+        transform: rotate(180deg);
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .scrollbar-thumb-gray-700::-webkit-scrollbar-thumb {
+        background-color: #374151;
+        border-radius: 4px;
+    }
+
+    .scrollbar-track-gray-800::-webkit-scrollbar-track {
+        background-color: #111827;
+    }
+
+    .hover\:translate-x-1:hover {
+        transform: translateX(0.25rem);
+    }
+
+    .scale-110 {
+        transform: scale(1.1);
+    }
+
+    .scale-125 {
+        transform: scale(1.25);
+    }
+</style>
+
+<!-- JavaScript Interaktif & Responsif Mobile -->
+<script>
+    function toggleAdminSidebar() {
+        const sidebar = document.getElementById('admin-sidebar') || document.querySelector('.sidebar-container');
+        const backdrop = document.getElementById('sidebar-backdrop');
+        if (!sidebar) return;
+
+        const isClosed = sidebar.classList.contains('-translate-x-full');
+        if (isClosed) {
+            sidebar.classList.remove('-translate-x-full');
+            sidebar.classList.add('translate-x-0');
+            if (backdrop) backdrop.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden', 'md:overflow-auto');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+            sidebar.classList.remove('translate-x-0');
+            if (backdrop) backdrop.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden', 'md:overflow-auto');
+        }
+    }
+    window.toggleAdminSidebar = toggleAdminSidebar;
+
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 768) {
+            const backdrop = document.getElementById('sidebar-backdrop');
+            if (backdrop) backdrop.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const sidebar = document.getElementById('admin-sidebar') || document.querySelector('.sidebar-container');
+            if (sidebar && !sidebar.classList.contains('-translate-x-full') && window.innerWidth < 768) {
+                toggleAdminSidebar();
+            }
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const submenuTriggers = document.querySelectorAll('.has-submenu > a');
+
+        submenuTriggers.forEach(trigger => {
+            trigger.addEventListener('click', function(event) {
+                const parentLi = this.parentElement;
+                const isAlreadyActive = parentLi.classList.contains('active');
+                const isLink = this.getAttribute('href') && this.getAttribute('href') !== '#';
+
+                if (isAlreadyActive && isLink) {
+                    event.preventDefault();
+                    parentLi.classList.remove('active');
+                } else if (!isAlreadyActive && isLink) {
+                    event.preventDefault();
+                    parentLi.classList.add('active');
+                    setTimeout(() => {
+                        window.location.href = this.getAttribute('href');
+                    }, 250);
+                }
+            });
+        });
+    });
+</script>

@@ -125,31 +125,47 @@ document.addEventListener("DOMContentLoaded", function () {
             const stageNumberData = [3, 4, 5, 6];
             const text = attdDescription ? attdDescription.value : "";
 
-            // Stage 3-6 SELALU ambil koordinat GPS dari browser
+            // Stage 3-6 (Masuk, Pulang, Ganti Jam)
             if (stageNumberData.includes(choosen_stage)) {
-                getLocationWithRetry(5)
-                    .then(function ({ latitude, longitude }) {
-                        Livewire.dispatch("actionAttd", {
-                            stage: choosen_stage,
-                            text: text,
-                            latitude: latitude,
-                            longitude: longitude,
-                            attendanceId: GVAttendanceId,
-                            adjustableId: GVAdjustableId,
-                        });
+                if (is_gps_available) {
+                    getLocationWithRetry(5)
+                        .then(function ({ latitude, longitude }) {
+                            Livewire.dispatch("actionAttd", {
+                                stage: choosen_stage,
+                                text: text,
+                                latitude: latitude,
+                                longitude: longitude,
+                                attendanceId: GVAttendanceId,
+                                adjustableId: GVAdjustableId,
+                            });
 
-                        if (attdDescription) attdDescription.value = "";
-                    })
-                    .catch(function (error) {
-                        showErrorMessage(
-                            "Gagal mendapatkan lokasi: " +
-                                (error.message || error),
-                        );
-                    })
-                    .finally(function () {
-                        circularLoading.classList.add("hidden");
-                        submitButton.classList.remove("hidden");
+                            if (attdDescription) attdDescription.value = "";
+                        })
+                        .catch(function (error) {
+                            showErrorMessage(
+                                "Gagal mendapatkan lokasi: " +
+                                    (error.message || error),
+                            );
+                        })
+                        .finally(function () {
+                            circularLoading.classList.add("hidden");
+                            submitButton.classList.remove("hidden");
+                        });
+                } else {
+                    // WFH / GPS Non-Aktif: Langsung dispatch tanpa meminta akses GPS perangkat
+                    Livewire.dispatch("actionAttd", {
+                        stage: choosen_stage,
+                        text: text,
+                        latitude: null,
+                        longitude: null,
+                        attendanceId: GVAttendanceId,
+                        adjustableId: GVAdjustableId,
                     });
+
+                    if (attdDescription) attdDescription.value = "";
+                    circularLoading.classList.add("hidden");
+                    submitButton.classList.remove("hidden");
+                }
             } else {
                 // Stage non-GPS (mis. pengajuan izin) — dispatch tanpa koordinat
                 Livewire.dispatch("actionAttd", {
@@ -455,11 +471,10 @@ function switchPermitType(type) {
 
         if (labelProof)
             labelProof.innerHTML =
-                'Link Dokumen Pendukung <span class="text-slate-400 font-normal">(opsional)</span>';
+                'Link Google Drive Bukti Keperluan <span class="text-rose-500">*</span>';
         if (inputProof) {
-            inputProof.required = false;
-            inputProof.placeholder =
-                "https://drive.google.com/file/d/... (opsional)";
+            inputProof.required = true;
+            inputProof.placeholder = "https://drive.google.com/file/d/...";
             inputProof.className =
                 "w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500";
         }
@@ -608,3 +623,90 @@ $(document).on("click", '[id^="broadcastModalbyId-"]', function (event) {
         $(this).addClass("hidden").removeClass("flex");
     }
 });
+
+// ==============================================
+// [BARU] CHECK-IN POPUP — listener event Livewire
+// Di-dispatch oleh AttdStatusButton::actionAttd() saat stage = Masuk.
+// ==============================================
+document.addEventListener("DOMContentLoaded", () => {
+    if (window.Livewire) {
+        Livewire.on("show-checkin-popup", (data) => {
+            const popup = data?.popup ?? data ?? null;
+            showCheckinPopup(popup);
+        });
+    }
+});
+
+function showCheckinPopup(popup) {
+    if (!popup) return;
+
+    // Hindari popup ganda
+    document.getElementById("checkinPopup")?.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "checkinPopup";
+    overlay.className =
+        "fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4";
+
+    const isLate = popup.type === "late";
+
+    const box = document.createElement("div");
+    box.className =
+        "bg-white rounded-2xl shadow-xl max-w-xs sm:max-w-sm w-full p-5 sm:p-6 text-center max-h-[90vh] flex flex-col justify-center animate-fadeIn";
+
+    // Gambar (jika admin upload)
+    if (popup.image) {
+        const img = document.createElement("img");
+        img.src = popup.image;
+        img.alt = "Check-in";
+        img.className = "w-28 h-28 sm:w-32 sm:h-32 mx-auto mb-3 sm:mb-4 rounded-xl object-cover";
+        box.appendChild(img);
+    }
+
+    // Judul
+    const title = document.createElement("div");
+    title.className =
+        "text-base sm:text-lg font-bold mb-2 " +
+        (isLate ? "text-red-600" : "text-emerald-600");
+    title.textContent = isLate ? "⚠️ Terlambat" : "✅ Tepat Waktu";
+    box.appendChild(title);
+
+    // Pesan (textContent = aman dari XSS)
+    const msg = document.createElement("p");
+    msg.className = "text-xs sm:text-sm text-slate-600 mb-4 whitespace-pre-line leading-relaxed max-h-48 overflow-y-auto";
+    msg.textContent = popup.message;
+    box.appendChild(msg);
+
+    // Tombol tutup
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className =
+        "w-full sm:w-auto px-6 py-2.5 bg-slate-800 text-white rounded-xl text-xs sm:text-sm font-semibold hover:bg-slate-700 transition cursor-pointer mx-auto";
+    btn.textContent = "Mengerti";
+    btn.addEventListener("click", () => overlay.remove());
+    box.appendChild(btn);
+
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+}
+
+// ==============================================
+// [PLAN #6] iOS Safari: keyboard virtual menutupi input yang
+// sedang fokus → scroll input ke tengah layar setelah keyboard muncul.
+// Deteksi mencakup iPadOS 13+ (userAgent "MacIntel" + touch).
+// ==============================================
+(function () {
+    const isIOS =
+        /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    if (!isIOS) return;
+
+    document.addEventListener("focusin", function (e) {
+        const tag = e.target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") {
+            setTimeout(() => {
+                e.target.scrollIntoView({ behavior: "smooth", block: "center" });
+            }, 300);
+        }
+    });
+})();

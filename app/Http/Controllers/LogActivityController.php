@@ -46,14 +46,15 @@ class LogActivityController extends Controller
         $today = Carbon::today();
 
         // Cari detail schedule hari ini
-        $todaysDetailSchedule = DetailSchedule::whereHas('schedule', function ($query) use ($user) {
-            $query->where('intern_id', $user->intern->id);
-        })->whereDate('date', $today)->first();
+        $todaysDetailSchedule = DetailSchedule::with('logActivity')
+            ->whereHas('schedule', function ($query) use ($user) {
+                $query->where('intern_id', $user->intern->id);
+            })->whereDate('date', $today)->first();
 
-        // Riwayat logbook pemagang
+        // Riwayat logbook pemagang (dibatasi 50 data terbaru untuk performa)
         $logActivityHistory = LogActivity::whereHas('detailSchedule.schedule', function ($query) use ($user) {
             $query->where('intern_id', $user->intern->id);
-        })->with('status')->latest('date')->get();
+        })->with('status')->latest('date')->take(50)->get();
 
         // Cari logbook hari ini
         $todaysLogActivity = $todaysDetailSchedule?->logActivity ?? $logActivityHistory->first(function ($log) {
@@ -93,6 +94,9 @@ class LogActivityController extends Controller
             return redirect()->back()->with('error', $result->getMessage());
         }
 
+        $userName = Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log('CREATE', 'Logbook', "Pemagang {$userName} mengisi logbook harian.");
+
         return redirect()->back()->with('success', $result->getMessage());
     }
 
@@ -105,6 +109,9 @@ class LogActivityController extends Controller
         if (!$result->isSuccess()) {
             return redirect()->back()->with('error', $result->getMessage());
         }
+
+        $userName = Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'Pemagang';
+        \App\Helper\ActivityLogger::log('UPDATE', 'Logbook', "Pemagang {$userName} memperbarui isi logbook harian.");
 
         return redirect()->back()->with('success', 'Data Logbook Harian berhasil diperbarui');
     }
@@ -134,6 +141,8 @@ class LogActivityController extends Controller
     {
         $this->logActivityService->UpdateLGActivity($request, $id);
 
+        \App\Helper\ActivityLogger::log('APPROVE', 'Logbook', "Admin menyetujui/memperbarui status Logbook ID {$id}.");
+
         return redirect()->back()->with('status', 'Status Log Activity berhasil diperbarui');
     }
 
@@ -143,28 +152,89 @@ class LogActivityController extends Controller
             'status_id' => 2
         ]);
 
+        \App\Helper\ActivityLogger::log('APPROVE', 'Logbook', "Admin menyetujui seluruh logbook pada tanggal {$date} (Yes All).");
+
         return redirect()->back()->with('status', 'Log Activity Hari Ini Sudah Disetujui Semua');
     }
 
-    public function updateIsi(Request $request, int $id)
+    public function updateIsi(Request $request, string $id)
     {
-        if ($id == "kosong") {
-            $request->attd_id;
-            $log = LogActivity::create([
-                'activity' => $request->activity,
-                'date' => $request->date,
-                'status_id' => 2,
-            ]);
-            DetailSchedule::where('id', $request->attd_id)->update([
-                'log_activity_id' => $log->id,
-            ]);
-            return redirect()->back()->with('status', 'Log Activity Sudah Diperbarui');
-        } else {
-            $logActivity = LogActivity::find($id);
-            $logActivity->update([
-                'activity' => $request->activity,
-            ]);
+        $activityText = trim($request->activity ?? '');
+
+        if ($activityText === '') {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Isi aktivitas tidak boleh kosong!'
+                ], 422);
+            }
+            return redirect()->back()->with('error', 'Isi aktivitas tidak boleh kosong!');
         }
-        return redirect()->back()->with('status', 'Log Activity Sudah Diperbarui');
+
+        try {
+            if ($id === "kosong" || $id === "0" || empty($id) || $id === "null") {
+                $log = LogActivity::create([
+                    'activity' => $activityText,
+                    'date' => $request->date ? Carbon::parse($request->date)->format('Y-m-d') : Carbon::today()->format('Y-m-d'),
+                    'status_id' => 2,
+                ]);
+
+                if ($request->filled('attd_id')) {
+                    DetailSchedule::where('id', $request->attd_id)->update([
+                        'log_activity_id' => $log->id,
+                    ]);
+                }
+
+                \App\Helper\ActivityLogger::log('CREATE', 'Logbook', "Admin menambahkan Log Activity baru untuk tanggal {$request->date}.");
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => true,
+                        'message' => 'Log Activity Berhasil Ditambahkan'
+                    ]);
+                }
+                return redirect()->back()->with('status', 'Log Activity Berhasil Ditambahkan');
+            } else {
+                $logActivity = LogActivity::find((int) $id);
+                if ($logActivity) {
+                    $logActivity->update([
+                        'activity' => $activityText,
+                    ]);
+
+                    \App\Helper\ActivityLogger::log('UPDATE', 'Logbook', "Admin memperbarui isi Log Activity ID {$id}.");
+                } else {
+                    // Fallback jika ID tidak ditemukan, buat baru
+                    $log = LogActivity::create([
+                        'activity' => $activityText,
+                        'date' => $request->date ? Carbon::parse($request->date)->format('Y-m-d') : Carbon::today()->format('Y-m-d'),
+                        'status_id' => 2,
+                    ]);
+
+                    if ($request->filled('attd_id')) {
+                        DetailSchedule::where('id', $request->attd_id)->update([
+                            'log_activity_id' => $log->id,
+                        ]);
+                    }
+                }
+            }
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Log Activity Sudah Diperbarui'
+                ]);
+            }
+            return redirect()->back()->with('status', 'Log Activity Sudah Diperbarui');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Gagal update isi Log Activity: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Terjadi kesalahan saat menyimpan: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menyimpan log activity.');
+        }
     }
 }

@@ -76,6 +76,4 @@ class UserRepositoryIMPL implements UserRepository
 
         return $entity;
     }
-
-    public function createPermitPresence(mixed $data) {}
 }

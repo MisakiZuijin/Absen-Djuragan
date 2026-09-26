@@ -12,7 +12,9 @@ return new class extends Migration {
             $table->foreignId('project_id')->nullable()->constrained('projects')->onDelete('set null');
             $table->string('type', 30)->default('question')->index();
             $table->string('presentation_mode', 20)->nullable();
+            $table->text('meet_url')->nullable();
             $table->date('presentation_date')->nullable()->index();
+            $table->time('scheduled_time')->nullable();
             $table->string('status', 30)->default('pending')->index();
             $table->text('notes')->nullable();
             $table->text('reason')->nullable();

@@ -44,7 +44,7 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getAll()
     {
-        return $this->model->get();
+        return $this->model->with(['user.profile', 'brand'])->get();
     }
 
     public function getAllWithPaggination(int $pagination, int $currentPage)
@@ -81,12 +81,12 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getWithoutDivision()
     {
-        return $this->model->where("division_id", null)->get();
+        return $this->model->with(['user.profile', 'brand'])->where("division_id", null)->get();
     }
 
     public function getByDivisionId(int $id)
     {
-        return $this->model->where("division_id", $id)->get();
+        return $this->model->with(['user.profile', 'brand'])->where("division_id", $id)->get();
     }
 
     public function getMultiByNamePagination(string $name, int $pagnt, int $currentPage)
@@ -95,6 +95,7 @@ class InternRepositoryIMPL implements InternRepository
         $skip = $pagnt * ($currentPage - 1);
 
         $query = $this->model
+            ->select('interns.*')
             ->join("users", "interns.user_id", "users.id")
             ->join("profiles", "profiles.user_id", "users.id")
             ->where('profiles.full_name', 'LIKE', "%$name%")

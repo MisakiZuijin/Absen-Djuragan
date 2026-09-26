@@ -2,28 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use App\Helper\LogConsole;
+use App\Models\Brand;
 use App\Models\NameProjects;
-use App\Services\UserService;
 use App\Services\DivisionService;
 use App\Services\InternService;
+use App\Services\ProjectService;
 use App\Services\SchoolService;
 use App\Services\ShiftService;
-use App\Models\Projects;
-use App\Services\ProjectService;
+use App\Services\UserService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class DivisionController extends Controller
 {
-    protected $userService;
-    protected $divisionService;
-    protected $schoolService;
-    protected $shiftService;
-    protected $internService;
-    protected $projectService;
+    protected UserService $userService;
+    protected DivisionService $divisionService;
+    protected SchoolService $schoolService;
+    protected ShiftService $shiftService;
+    protected InternService $internService;
+    protected ProjectService $projectService;
 
-    public function __construct(UserService $userService, DivisionService $divisionService, SchoolService $schoolService, ShiftService $shiftService, InternService $internService, ProjectService $projectService)
-    {
+    public function __construct(
+        UserService $userService,
+        DivisionService $divisionService,
+        SchoolService $schoolService,
+        ShiftService $shiftService,
+        InternService $internService,
+        ProjectService $projectService
+    ) {
         $this->divisionService = $divisionService;
         $this->userService = $userService;
         $this->schoolService = $schoolService;
@@ -32,12 +39,11 @@ class DivisionController extends Controller
         $this->projectService = $projectService;
     }
 
-    public function divisionView()
+    public function divisionView(): View
     {
         $userData = $this->userService->getUserLoggedData();
         $division = $this->divisionService->getAll();
         $internWihtoutDivision = $this->divisionService->getAllWithNoDivision();
-
 
         $data = [
             "user" => $userData,
@@ -48,7 +54,7 @@ class DivisionController extends Controller
         return view('admin.divisi')->with($data);
     }
 
-    public function divisionTeamView($divisionId)
+    public function divisionTeamView(int $divisionId): View
     {
         $userData = $this->userService->getUserLoggedData();
         $internData = $this->divisionService->getAllTeamInDivision($divisionId);
@@ -63,11 +69,10 @@ class DivisionController extends Controller
             $data["teams"] = $internData->getData();
         }
 
-
         return view('admin.tim')->with($data);
     }
 
-    public function divisionTeamEditView($userId)
+    public function divisionTeamEditView(int $userId): View
     {
         $userData = $this->userService->getUserLoggedData();
         $teamData = $this->userService->getUserById($userId);
@@ -75,6 +80,7 @@ class DivisionController extends Controller
         $division = $this->divisionService->getAll();
         $shifts = $this->shiftService->getAllShift();
         $project = NameProjects::all();
+        $brands = Brand::where('is_active', true)->orderBy('name')->get();
 
         $data = [
             "user" => $userData,
@@ -82,6 +88,7 @@ class DivisionController extends Controller
             "divisions" => $division->getData(),
             "shifts" => $shifts->isSuccess() ? $shifts->getData() : null,
             "projects" => $project,
+            "brands" => $brands,
         ];
 
         $isProjectVisible = true;
@@ -89,7 +96,7 @@ class DivisionController extends Controller
         if ($teamData->isSuccess()) {
             $team = $teamData->getData();
             if ($team->intern) {
-                $team->intern->loadMissing(['account', 'division']);
+                $team->intern->loadMissing(['account', 'division', 'brand']);
             }
             $teamProject = $team->intern->detailProject;
             foreach ($teamProject as $project) {
@@ -105,14 +112,24 @@ class DivisionController extends Controller
         return view('admin.sunting-anggota', $data);
     }
 
-    public function destroy($internId)
+    public function destroy(int $internId): RedirectResponse
     {
+        // Hanya Super Admin (Role 7) yang memiliki hak untuk menghapus data pemagang
+        if ((int) auth()->user()->role_id !== 7) {
+            abort(403, 'Aksi Ditolak: Hanya Super Admin yang memiliki hak akses untuk menghapus akun pemagang.');
+        }
+
+        $intern = \App\Models\Intern::with('user.profile')->find($internId);
+        $internName = $intern?->user?->profile?->full_name ?? $intern?->user?->username ?? "ID #{$internId}";
+
         $this->internService->deleteInternDivision($internId);
 
-        return redirect()->back()->with('success', 'Data berhasil diperbarui!');
+        \App\Helper\ActivityLogger::log('DELETE', 'User Management', "Super Admin menghapus data pemagang: {$internName}");
+
+        return redirect()->back()->with('success', "Data pemagang {$internName} berhasil dihapus!");
     }
 
-    public function bulkAction(Request $request)
+    public function bulkAction(Request $request): RedirectResponse
     {
         $this->divisionService->updateProject($request);
 

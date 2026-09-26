@@ -8,6 +8,7 @@ use App\Models\School;
 use App\Models\Outsider;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Hash;
 
@@ -158,10 +159,15 @@ class OutsiderController extends Controller
             }
 
             DB::commit();
+
+            $adminName = auth()->user()?->name ?? 'Admin';
+            \App\Helper\ActivityLogger::log('CREATE', 'User Management', "Admin {$adminName} membuat akun Mentor/Outsider: {$validated['full_name']} ({$validated['type']})", ['user_id' => $user->id]);
+
             return redirect()->route('admin.outsiders.index')->with('success', 'Outsider berhasil ditambahkan.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal menambahkan outsider: ' . $e->getMessage())->withInput();
+            Log::error('Create Outsider error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Gagal menambahkan outsider. Silakan periksa kembali data Anda.')->withInput();
         }
     }
 
@@ -260,10 +266,15 @@ class OutsiderController extends Controller
             }
 
             DB::commit();
+
+            $adminName = auth()->user()?->name ?? 'Admin';
+            \App\Helper\ActivityLogger::log('UPDATE', 'User Management', "Admin {$adminName} memperbarui akun Mentor/Outsider: {$validated['full_name']}", ['user_id' => $user->id]);
+
             return redirect()->route('admin.outsiders.index')->with('success', 'Outsider berhasil diperbarui.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('error', 'Gagal memperbarui outsider: '.$e->getMessage())->withInput();
+            Log::error('Update Outsider error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Gagal memperbarui data outsider. Silakan coba lagi.')->withInput();
         }
     }
 
@@ -272,6 +283,8 @@ class OutsiderController extends Controller
      */
     public function destroy(User $user)
     {
+        $name = $user->profile?->full_name ?? $user->username;
+        $uid = $user->id;
         DB::transaction(function () use ($user) {
             $user->load('outsider');
             if ($user->outsider) {
@@ -281,6 +294,9 @@ class OutsiderController extends Controller
             $user->profile()->delete();
             $user->delete();
         });
+
+        $adminName = auth()->user()?->name ?? 'Admin';
+        \App\Helper\ActivityLogger::log('DELETE', 'User Management', "Admin {$adminName} menghapus akun Mentor/Outsider: {$name}", ['user_id' => $uid]);
 
         return redirect()->route('admin.outsiders.index')->with('success', 'Data Outsider berhasil dihapus.');
     }

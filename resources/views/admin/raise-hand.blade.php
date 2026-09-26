@@ -3,11 +3,7 @@
 @section('title', 'Manajemen Raise Hand & Presentasi')
 
 @section('contents')
-    {{-- Memuat sidebar dan navbar untuk layout Admin --}}
-    @include('layouts.sidebar')
-    @include('layouts.navbar')
-
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64 bg-gray-50 min-h-screen">
+    <div class="ml-64 mt-20 p-4 md:p-6 bg-gray-50 min-h-screen">
         <!-- Header Section -->
         <div class="mb-8">
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -29,7 +25,7 @@
         </div>
 
         @livewire('admin.raise-hand-manager')
-    </main>
+    </div>
 
     <!-- MODAL 1: PROSES TANGGAPAN (BERTANYA / BERI TUGAS / EDIT TUGAS) -->
     <div id="processModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] hidden p-4">
@@ -507,6 +503,105 @@
         </div>
     </div>
 
+    <!-- MODAL 5: PERSETUJUAN JADWAL PRESENTASI (TERIMA / RESCHEDULE / TOLAK) -->
+    <div id="approvePresentationModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] hidden p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl animate-fadeIn flex flex-col border border-gray-100">
+            <!-- Header Modal -->
+            <div class="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-11 h-11 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 shadow-sm border border-indigo-100">
+                        <i class="fa-solid fa-calendar-check text-xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold text-gray-900">Persetujuan Jadwal Presentasi</h3>
+                        <p class="text-xs text-gray-500">Konfirmasi, jadwalkan ulang, atau tolak pengajuan presentasi pemagang</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeApprovePresentationModal()" class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400 hover:text-gray-600 text-xl font-bold transition">&times;</button>
+            </div>
+
+            <form id="formApprovePresentation" method="POST" action="" class="space-y-4">
+                @csrf
+                <input type="hidden" name="action" id="appr-action" value="accept_presentation">
+                <input type="hidden" name="tab" value="presentation">
+
+                <!-- Detail Peserta, Shift & Judul Project -->
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 text-xs space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Data Pengajuan Pemagang</span>
+                        <span id="appr-mode-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800">
+                            <i class="fa-solid fa-building text-[9px]"></i> Tatap Muka
+                        </span>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                        <div class="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                            <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">Nama Pemagang:</span>
+                            <div class="font-extrabold text-slate-900 text-xs truncate" id="appr-user-name">-</div>
+                        </div>
+                        <div class="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                            <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">Shift Kerja:</span>
+                            <div class="font-extrabold text-amber-900 text-xs truncate flex items-center gap-1">
+                                <i class="fa-regular fa-clock text-amber-600 text-[11px]"></i>
+                                <span id="appr-user-shift">-</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                        <span class="text-[10px] text-slate-400 block font-semibold mb-0.5">Materi / Judul Presentasi:</span>
+                        <div class="font-bold text-slate-800 text-xs break-words" id="appr-presentation-title">-</div>
+                    </div>
+                </div>
+
+                <!-- Input Tanggal & Jam Presentasi -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" for="appr-presentation-date">
+                            Tanggal Presentasi <span class="text-red-500">*</span>
+                        </label>
+                        <input type="date" name="presentation_date" id="appr-presentation-date" required
+                            class="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1" for="appr-scheduled-time">
+                            Jam Pelaksanaan (WIB) <span class="text-red-500">*</span>
+                        </label>
+                        <input type="time" name="scheduled_time" id="appr-scheduled-time" required
+                            class="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                    </div>
+                </div>
+
+                <!-- Input Catatan / Instruksi Mentor -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1" for="appr-notes">
+                        Catatan / Note Pembimbing <span class="text-slate-400 font-normal">(opsional)</span>
+                    </label>
+                    <textarea name="notes" id="appr-notes" rows="3"
+                        class="w-full text-xs p-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 leading-relaxed"
+                        placeholder="Contoh: Siapkan demo aplikasi di laptop dan ringkasan modul fitur..."></textarea>
+                </div>
+
+                <!-- 3 Tombol Aksi: Tolak, Reschedule, Terima -->
+                <div class="grid grid-cols-3 gap-2 pt-3 border-t border-gray-100">
+                    <button type="button" onclick="submitApproveDecision('reject_presentation')"
+                        class="py-2.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-xmark text-xs"></i>
+                        <span>Tolak</span>
+                    </button>
+                    <button type="button" onclick="submitApproveDecision('reschedule_presentation')"
+                        class="py-2.5 px-3 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer">
+                        <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                        <span>Reschedule</span>
+                    </button>
+                    <button type="button" onclick="submitApproveDecision('accept_presentation')"
+                        class="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-check text-xs"></i>
+                        <span>Terima</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         let currentActiveTab = 'question';
         let autoRefreshTimer = null;
@@ -547,12 +642,12 @@
             filterCurrentTable();
         }
 
-        function openProcessModal(id, name, type, note) {
+        function openProcessModal(id, name, type, note, currentResponse) {
             const form = document.getElementById('formProcessModal');
             if (form) form.action = confirmUrlTemplate.replace(':id', id);
 
             const actEl = document.getElementById('proc-action');
-            if (actEl) actEl.value = '';
+            if (actEl) actEl.value = 'respond_question';
             const tabEl = document.getElementById('proc-tab');
             if (tabEl) tabEl.value = 'question';
             const userEl = document.getElementById('proc-user-name');
@@ -561,8 +656,8 @@
             if (noteEl) noteEl.textContent = note || '-';
             const respEl = document.getElementById('proc-response');
             if (respEl) {
-                respEl.value = '';
-                respEl.required = false;
+                respEl.value = currentResponse || '';
+                respEl.required = true;
             }
 
             // Sembunyikan field judul tugas
@@ -582,14 +677,23 @@
             const iconWrap = document.getElementById('proc-icon-wrap');
             const icon = document.getElementById('proc-icon');
 
-            if (titleEl) titleEl.textContent = 'Proses & Berikan Tanggapan / Jawaban';
-            if (subTitleEl) subTitleEl.textContent = 'Kirim jawaban kendala dan selesaikan pertanyaan siswa';
-            if (noteLabelEl) noteLabelEl.textContent = 'Pertanyaan / Kendala Siswa:';
-            if (responseLabelEl) responseLabelEl.textContent = 'Tanggapan / Jawaban Solusi (Opsional)';
-            if (submitBtn) {
-                submitBtn.className = 'px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5';
-                submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Tanggapan & Selesaikan';
+            if (currentResponse && currentResponse.trim().length > 0) {
+                if (titleEl) titleEl.textContent = 'Edit Tanggapan / Jawaban Mentor';
+                if (subTitleEl) subTitleEl.textContent = 'Perbarui tanggapan atau solusi untuk pertanyaan pemagang';
+                if (submitBtn) {
+                    submitBtn.className = 'px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5';
+                    submitBtn.innerHTML = '<i class="fa-solid fa-save"></i> Simpan Perubahan Tanggapan';
+                }
+            } else {
+                if (titleEl) titleEl.textContent = 'Berikan Tanggapan / Solusi Kendala';
+                if (subTitleEl) subTitleEl.textContent = 'Kirim balasan solusi ke pemagang (akan muncul sebagai popup di pemagang)';
+                if (submitBtn) {
+                    submitBtn.className = 'px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5';
+                    submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Tanggapan ke Pemagang';
+                }
             }
+            if (noteLabelEl) noteLabelEl.textContent = 'Pertanyaan / Kendala Siswa:';
+            if (responseLabelEl) responseLabelEl.innerHTML = 'Tanggapan / Jawaban Solusi <span class="text-red-500">*</span>';
             if (iconWrap) iconWrap.className = 'w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600';
             if (icon) icon.className = 'fa-solid fa-reply text-lg';
 
@@ -936,8 +1040,105 @@
         }
         window.closeDetailHistoryModal = closeDetailHistoryModal;
 
+        function openApprovePresentationModal(id, name, shift, title, mode, date, time, notes) {
+            const form = document.getElementById('formApprovePresentation');
+            if (form) form.action = confirmUrlTemplate.replace(':id', id);
+
+            const nameEl = document.getElementById('appr-user-name');
+            if (nameEl) nameEl.textContent = name || '-';
+
+            const shiftEl = document.getElementById('appr-user-shift');
+            if (shiftEl) shiftEl.textContent = shift || 'Belum Diatur';
+
+            const titleEl = document.getElementById('appr-presentation-title');
+            if (titleEl) titleEl.textContent = title || '-';
+
+            const modeBadge = document.getElementById('appr-mode-badge');
+            if (modeBadge) {
+                if (mode === 'online') {
+                    modeBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800';
+                    modeBadge.innerHTML = '<i class="fa-solid fa-video text-[9px]"></i> Online (GMeet)';
+                } else {
+                    modeBadge.className = 'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800';
+                    modeBadge.innerHTML = '<i class="fa-solid fa-building text-[9px]"></i> Tatap Muka';
+                }
+            }
+
+            const dateInput = document.getElementById('appr-presentation-date');
+            if (dateInput) {
+                dateInput.value = date || new Date().toISOString().split('T')[0];
+            }
+
+            const timeInput = document.getElementById('appr-scheduled-time');
+            if (timeInput) {
+                timeInput.value = time || '10:00';
+            }
+
+            const notesInput = document.getElementById('appr-notes');
+            if (notesInput) {
+                notesInput.value = notes || '';
+            }
+
+            const modal = document.getElementById('approvePresentationModal');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.style.display = 'flex';
+            }
+        }
+        window.openApprovePresentationModal = openApprovePresentationModal;
+
+        function closeApprovePresentationModal() {
+            const modal = document.getElementById('approvePresentationModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.style.display = 'none';
+            }
+        }
+        window.closeApprovePresentationModal = closeApprovePresentationModal;
+
+        function submitApproveDecision(action) {
+            const form = document.getElementById('formApprovePresentation');
+            const actionInput = document.getElementById('appr-action');
+            if (!form || !actionInput) return;
+
+            actionInput.value = action;
+
+            if (action === 'reject_presentation') {
+                if (!confirm('Apakah Anda yakin ingin MENOLAK pengajuan presentasi ini?')) {
+                    return;
+                }
+                const dateInp = document.getElementById('appr-presentation-date');
+                const timeInp = document.getElementById('appr-scheduled-time');
+                if (dateInp) dateInp.required = false;
+                if (timeInp) timeInp.required = false;
+            } else if (action === 'reschedule_presentation') {
+                if (!confirm('Simpan dan jadwalkan ulang presentasi ini?')) {
+                    return;
+                }
+            }
+
+            form.submit();
+        }
+        window.submitApproveDecision = submitApproveDecision;
+
         // Delegasi Event Global untuk Tombol Aksi (Aman untuk Rendering AJAX & Karakter Khusus)
         document.addEventListener('click', function(e) {
+            const approvePresBtn = e.target.closest('.btn-trigger-approve-presentation');
+            if (approvePresBtn) {
+                e.preventDefault();
+                openApprovePresentationModal(
+                    approvePresBtn.dataset.id,
+                    approvePresBtn.dataset.name,
+                    approvePresBtn.dataset.shift || '',
+                    approvePresBtn.dataset.title || '',
+                    approvePresBtn.dataset.mode || 'offline',
+                    approvePresBtn.dataset.date || '',
+                    approvePresBtn.dataset.time || '',
+                    approvePresBtn.dataset.notes || ''
+                );
+                return;
+            }
+
             const giveTaskBtn = e.target.closest('.btn-trigger-give-task');
             if (giveTaskBtn) {
                 e.preventDefault();
@@ -995,7 +1196,8 @@
                     procBtn.dataset.id,
                     procBtn.dataset.name,
                     procBtn.dataset.type,
-                    procBtn.dataset.notes
+                    procBtn.dataset.notes,
+                    procBtn.dataset.response || ''
                 );
                 return;
             }

@@ -3,8 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+
+    <!-- iOS / macOS Safari Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Absen Djuragan" />
+
     <title>Halaman @yield('title') | User</title>
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
@@ -14,7 +21,7 @@
     @livewireScripts
 </head>
 
-<body class="min-h-screen bg-gray-100">
+<body class="min-h-screen bg-gray-100 overflow-x-hidden w-full min-w-0">
 
 
     <aside id="success-notif"
@@ -40,30 +47,36 @@
         {{ session('success') ?? '' }}
     </div>
 
+    @php
+        $flashError = $error ?? session('error');
+        if (!$flashError && isset($errors) && $errors->any()) {
+            $flashError = $errors->first();
+        }
+    @endphp
     <!-- Error Notification Box -->
-    <div class="floating-box hidden" id="error-box" data-show="{{ (isset($error) || session('error')) ? '1' : '0' }}">
+    <div class="floating-box hidden" id="error-box" data-show="{{ $flashError ? '1' : '0' }}">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        {{ $error ?? (session('error') ?? '') }}
+        {{ $flashError ?? '' }}
     </div>
 
-    <div class="relative min-h-screen flex flex-col pb-16">
+    <div class="relative min-h-screen flex flex-col pb-16 w-full min-w-0">
         <!-- Background Image -->
         <div class="relative h-[250px] w-full flex-shrink-0">
             @php
-                $currentUser = $user ?? auth()->user();
-                $birth_date = $currentUser?->profile?->date_of_birth;
-                $today = now()->format('m-d');
-                $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
-                $currentDay = $day_now ?? \App\Utils\DateNow::getCurrentDay();
-                $currentDate = $date_now ?? \App\Utils\DateNow::getCurrentDate();
+            $currentUser = $user ?? auth()->user();
+            $birth_date = $currentUser?->profile?->date_of_birth;
+            $today = now()->format('m-d');
+            $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
+            $currentDay = $day_now ?? \App\Utils\DateNow::getCurrentDay();
+            $currentDate = $date_now ?? \App\Utils\DateNow::getCurrentDate();
             @endphp
 
             @if ($today === $userBirth)
-                <img src="{{ asset('img/bg2.jpg') }}" alt="Background Image"
-                    class="w-full h-full object-cover md:rounded-br-[40px] no-select">
+            <img src="{{ asset('img/bg2.jpg') }}" alt="Background Image"
+                class="w-full h-full object-cover md:rounded-br-[40px] no-select">
             @else
-                <img src="{{ asset('img/bg.jpg') }}" alt="Background Image"
-                    class="w-full h-full object-cover md:rounded-br-[40px] no-select">
+            <img src="{{ asset('img/bg.jpg') }}" alt="Background Image"
+                class="w-full h-full object-cover md:rounded-br-[40px] no-select">
             @endif
 
             <!-- Welcome Message -->
@@ -74,11 +87,11 @@
 
                 <!-- Profile Info and Logout Button -->
                 <div
-                    class="absolute bottom-4 left-4 md:left-10 flex items-center space-x-2 md:space-x-4 text-white z-20 bg-black p-1 md:p-3 bg-opacity-50 rounded-3xl">
-                    <i class="fas fa-user-circle text-2xl md:text-3xl"></i>
-                    <div class="text-xs md:text-sm">
-                        <div class="font-bold text-xs md:text-sm">{{ $currentUser?->profile?->full_name ?? ($currentUser?->name ?? 'User') }}</div>
-                        <div class="text-xs md:text-sm">{{ $currentUser?->profile?->NIP ?? '-' }}</div>
+                    class="absolute bottom-4 left-4 md:left-10 flex items-center space-x-2 md:space-x-4 text-white z-20 bg-black/50 p-1.5 md:p-3 rounded-3xl max-w-[calc(100%-80px)] backdrop-blur-xs">
+                    <i class="fas fa-user-circle text-2xl md:text-3xl shrink-0"></i>
+                    <div class="text-xs md:text-sm min-w-0">
+                        <div class="font-bold text-xs md:text-sm truncate">{{ $currentUser?->profile?->full_name ?? ($currentUser?->name ?? 'User') }}</div>
+                        <div class="text-[11px] md:text-xs text-white/80 truncate">{{ $currentUser?->profile?->NIP ?? '-' }}</div>
                     </div>
                 </div>
 
@@ -103,25 +116,27 @@
         </div>
 
         <!-- Main Content -->
-        <main class="flex-1 w-full">
+        <main class="flex-1 w-full min-w-0">
             @yield('contents')
         </main>
         <!-- Modal Logout -->
         <div id="logout-modal"
-            class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div class="bg-white rounded-lg shadow-lg p-6 w-4/5 md:w-1/3">
-                <h2 class="text-xl font-bold mb-4">Konfirmasi Keluar</h2>
-                <p>Apakah Anda yakin ingin keluar halaman ini?</p>
-                <div class="flex justify-end mt-4">
+            class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm mx-auto">
+                <h2 class="text-xl font-bold mb-2 text-gray-800">Konfirmasi Keluar</h2>
+                <p class="text-sm text-gray-600 mb-6">Apakah Anda yakin ingin keluar dari halaman ini?</p>
+                <div class="flex justify-end gap-2">
                     <button type="button" id="closeLogout"
-                        class="px-4 py-2 bg-gray-600 text-white rounded-lg mr-2">Batal</button>
+                        class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition">Batal</button>
                     <a href="{{ url('/logout') }}" id="logoutConfirm"
-                        class="px-4 py-2 bg-red-600 text-white rounded-lg">Keluar</a>
+                        class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl text-sm transition shadow-sm">Keluar</a>
                 </div>
             </div>
         </div>
 
-        <script id="quotes-data" type="application/json">@json($quotes ?? [])</script>
+        <script id="quotes-data" type="application/json">
+            @json($quotes ?? [])
+        </script>
         <script>
             function updateClock() {
                 const now = new Date();
@@ -146,8 +161,27 @@
             document.addEventListener('DOMContentLoaded', () => {
 
                 const typewriterTextElement = document.getElementById('typewriter-text');
+                if (!typewriterTextElement) return;
+
                 const quotesDataEl = document.getElementById('quotes-data');
-                const texts = quotesDataEl ? JSON.parse(quotesDataEl.textContent || '[]') : [];
+                let parsedTexts = [];
+                try {
+                    const raw = quotesDataEl ? JSON.parse(quotesDataEl.textContent || '[]') : [];
+                    if (Array.isArray(raw)) {
+                        parsedTexts = raw;
+                    } else if (raw && Array.isArray(raw.data)) {
+                        parsedTexts = raw.data;
+                    }
+                } catch (e) {
+                    parsedTexts = [];
+                }
+
+                const texts = parsedTexts.map(item => {
+                    if (typeof item === 'string') return item;
+                    if (item && typeof item === 'object' && item.quote) return item.quote;
+                    return '';
+                }).filter(text => text.trim().length > 0);
+
                 const delayBeforeChange = 10000;
 
                 function getRandomIndex(max) {
@@ -155,6 +189,7 @@
                 }
 
                 function formatTextWithLineBreaks(text) {
+                    if (!text || typeof text !== 'string') return '';
                     const words = text.split(' ');
                     let formattedText = '';
                     for (let i = 0; i < words.length; i++) {
@@ -169,9 +204,11 @@
                 }
 
                 function changeText() {
-                    if (!texts || texts.length === 0) return;
+                    if (!typewriterTextElement || !texts || texts.length === 0) return;
                     const randomIndex = getRandomIndex(texts.length);
-                    const formattedText = formatTextWithLineBreaks(texts[randomIndex]);
+                    const selectedText = texts[randomIndex];
+                    if (!selectedText) return;
+                    const formattedText = formatTextWithLineBreaks(selectedText);
 
                     // Remove animation class, trigger reflow, and then add it back to reset the animation
                     typewriterTextElement.innerHTML = formattedText;
@@ -180,11 +217,13 @@
                     typewriterTextElement.classList.add('typing-animation'); // Add animation class back
                 }
 
-                changeText();
-
-                setInterval(() => {
+                if (texts.length > 0) {
                     changeText();
-                }, delayBeforeChange);
+
+                    setInterval(() => {
+                        changeText();
+                    }, delayBeforeChange);
+                }
             });
 
 
@@ -238,8 +277,30 @@
                     }, 3000);
                 }
             });
+
+            if (typeof $ !== 'undefined') {
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    },
+                    statusCode: {
+                        419: function () {
+                            alert('Sesi Anda telah berakhir karena tidak ada aktivitas. Halaman akan dimuat ulang.');
+                            window.location.reload();
+                        },
+                        403: function () {
+                            alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
+                        }
+                    }
+                });
+            }
+            window.addEventListener('unhandledrejection', function (event) {
+                if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
+                    window.location.reload();
+                }
+            });
         </script>
-    @stack('scripts')
+        @stack('scripts')
 </body>
 
 </html>

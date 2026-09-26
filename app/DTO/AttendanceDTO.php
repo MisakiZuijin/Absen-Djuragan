@@ -31,7 +31,7 @@ class AttendanceDTO {
         ?int $scheduleId = null,
         ?int $detailScheduleId = null,
         int $totalChangeTime = 0,
-        string $timeNow = null
+        ?string $timeNow = null
     ) {
         $this->userId = $userId;
         $this->stage = $stage;
@@ -92,6 +92,10 @@ class AttendanceDTO {
     }
 
     public function getDetailSchedule(): ?int {
+        return $this->detailScheduleId;
+    }
+
+    public function getDetailScheduleId(): ?int {
         return $this->detailScheduleId;
     }
 

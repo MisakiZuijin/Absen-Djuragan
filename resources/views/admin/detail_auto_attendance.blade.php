@@ -3,40 +3,36 @@
 @section('title', 'Presensi Otomatis')
 
 @section('contents')
-    @include('layouts.sidebar')
-
-    @include('layouts.navbar')
-
     <!-- Main Content -->
-    <main class="ml-64 mt-24 p-6 md:ml-48 lg:ml-64">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
         <!-- Header -->
-        <h1 class="text-2xl font-bold mb-2">Presensi Otomatis {{ $id }}</h1>
-        <p class=" text-gray-600">Daftar data presensi otomatis {{ $id }} selama magang tertandai tidak melakukan
+        <h1 class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Presensi Otomatis {{ $id }}</h1>
+        <p class="text-xs sm:text-sm text-gray-600">Daftar data presensi otomatis {{ $id }} selama magang tertandai tidak melakukan
             presensi pulang pada jam yang di tentukan</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 m-6">
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Total Tidak Presensi Pulang</h2>
-                <p id="total_auto_end_all" class="text-gray-700 text-3xl">{{ $count['total_all'] }}</p>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 my-4 sm:my-6">
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xs border border-gray-100">
+                <h2 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Total Tidak Presensi Pulang</h2>
+                <p id="total_auto_end_all" class="text-gray-800 text-2xl sm:text-3xl font-bold">{{ $count['total_all'] }}</p>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Tidak Presensi Pulang bulan ini</h2>
-                <p class="text-gray-700 text-3xl">{{ $count['total_in_month'] }}</p>
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xs border border-gray-100">
+                <h2 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Tidak Presensi Pulang bulan ini</h2>
+                <p class="text-gray-800 text-2xl sm:text-3xl font-bold">{{ $count['total_in_month'] }}</p>
             </div>
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <h2 class="text-xl font-semibold mb-2">Tidak Presensi Pulang Minggu ini</h2>
-                <p class="text-gray-700 text-3xl">{{ $count['total_in_week'] }}</p>
+            <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xs border border-gray-100">
+                <h2 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Tidak Presensi Pulang Minggu ini</h2>
+                <p class="text-gray-800 text-2xl sm:text-3xl font-bold">{{ $count['total_in_week'] }}</p>
             </div>
         </div>
 
-        <div class="mb-4 flex items-center justify-end space-x-4">
+        <div class="mb-4 flex items-center justify-end">
             <!-- Date Field -->
-            <div class="flex items-center border border-gray-800 rounded-md">
+            <div class="flex items-center border border-gray-800 rounded-md w-full sm:w-auto">
                 <div class="bg-white p-2 rounded-l-md">
                     <i class="fas fa-search text-gray-500"></i>
                 </div>
 
                 <input type="date" id="dateInput"
-                    class="p-2 pl-2 w-full text-left text-gray-800 rounded-r-md focus:outline-none focus:border-blue-500">
+                    class="p-2 pl-2 w-full text-left text-gray-800 rounded-r-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
             </div>
         </div>
 
@@ -45,15 +41,15 @@
         </div>
 
         <!-- Pagination Controls -->
-        <div class="mt-4 flex justify-center items-center space-x-2 border rounded-md p-2">
+        <div class="mt-4 flex flex-wrap justify-center items-center gap-2 border rounded-md p-2">
             <button id="prev-page"
-                class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100" disabled>
+                class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100 text-xs sm:text-sm" disabled>
                 Previous
             </button>
 
-            <div id="page-numbers" class="flex space-x-2"></div>
+            <div id="page-numbers" class="flex space-x-2 text-xs sm:text-sm"></div>
 
-            <button id="next-page" class="bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100">
+            <button id="next-page" class="bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100 text-xs sm:text-sm">
                 Next
             </button>
         </div>
@@ -72,9 +68,6 @@
                 payload.searchTerm = "{{ $id }}";
                 if (dateValue) payload.dateValue = dateValue;
                 payload.currentPage = currentPage;
-
-                console.log(payload);
-
 
                 Livewire.dispatch('searchAutoAttd', payload);
             }

@@ -15,7 +15,7 @@ class DetailSchedule extends Model {
         "schedule_id", "attendance_id", "adjustable_attd_id", "attd_status_id",
         "office_id", "log_activity_id", "shift_id", "date", "type",
         "start_time", "end_time", "work_type", "isChangeSchedule",
-        "isBackFirst", "is_change_schedule_approved"
+        "isBackFirst", "is_change_schedule_approved", "permit_reason_id"
     ];
 
     public function shift(): BelongsTo {
