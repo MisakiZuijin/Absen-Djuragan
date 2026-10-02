@@ -22,16 +22,31 @@ class AdjustableBreakStartState implements AttendanceState {
         $detailScheduleId = $data->getDetailSchedule();
         $adjustableId = $data->getAdjustableId();
 
-        // Validate adjustable ID
-        if (!$adjustableId || $adjustableId <= 0) {
-            return new ActionResult(false, "ID adjustable tidak valid", null);
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $internId = $user?->intern?->id;
+
+        $adjustableRecord = null;
+        if ($adjustableId && $adjustableId > 0) {
+            try {
+                $adjustableRecord = $this->adjustableAttdRepository->getById($adjustableId);
+            } catch (\Throwable $e) {
+                $adjustableRecord = null;
+            }
         }
 
-        // Verify adjustable record exists
-        try {
-            $adjustableRecord = $this->adjustableAttdRepository->getById($adjustableId);
-        } catch (\Exception $e) {
-            return new ActionResult(false, "Data ganti jam tidak ditemukan", null);
+        if (!$adjustableRecord && $internId) {
+            $adjustableRecord = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                ->whereNotNull('start_time')
+                ->whereNull('end_time')
+                ->latest('id')
+                ->first();
+            if ($adjustableRecord) {
+                $adjustableId = $adjustableRecord->id;
+            }
+        }
+
+        if (!$adjustableRecord) {
+            return new ActionResult(false, "Sesi ganti jam aktif tidak ditemukan atau sudah selesai.", null);
         }
 
         // Check if already has break time
@@ -42,6 +57,20 @@ class AdjustableBreakStartState implements AttendanceState {
         // Check if start_time exists (must clock in first)
         if (is_null($adjustableRecord->start_time)) {
             return new ActionResult(false, "Harus melakukan clock in terlebih dahulu", null);
+        }
+
+        // Validate that current time matches shift break configuration
+        $shift = $adjustableRecord->detailSchedule?->shift ?? null;
+        if ($shift) {
+            if (isset($shift->break_time_in_minute) && (int) $shift->break_time_in_minute <= 0) {
+                return new ActionResult(false, "Shift " . ($shift->name ?? '') . " tidak memiliki waktu istirahat.", null);
+            }
+            if ($shift->start_break_time && $timeNow < $shift->start_break_time) {
+                return new ActionResult(false, "Belum waktunya istirahat (Waktu istirahat shift " . ($shift->name ?? '') . " mulai pukul " . substr($shift->start_break_time, 0, 5) . ")", null);
+            }
+            if ($shift->end_break_time && $timeNow > $shift->end_break_time) {
+                return new ActionResult(false, "Waktu istirahat shift " . ($shift->name ?? '') . " sudah terlewat (" . substr($shift->start_break_time ?? '', 0, 5) . " - " . substr($shift->end_break_time, 0, 5) . ")", null);
+            }
         }
 
         $attData = [

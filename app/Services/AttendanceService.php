@@ -151,8 +151,11 @@ class AttendanceService
             } else {
                 $schedule =  $this->scheduleRepository->findByInternId($internId);
 
-                if (!$schedule && date(format: 'w') == 0) {
-                    return new ActionResult(true, "Today you still don't have any shift yet, please wait until our team sets your shift.", [
+                $isSunday = date('w') == 0;
+                $isHoliday = \App\Models\Holiday::whereDate('date', $now)->exists();
+
+                if (!$schedule && ($isSunday || $isHoliday)) {
+                    return new ActionResult(true, "Today is a holiday or day off.", [
                         "absenceHistory" => null,
                         "adjustableTimeHistory" => null,
                         "schedule_id" => null,
@@ -174,19 +177,110 @@ class AttendanceService
                 $detailSchedule = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $now);
             }
 
-            if (is_null($detailSchedule) && date(format: 'w') == 0) {
+            // [BARU GANTI JAM V2] Cek sesi ChangeTimeSession yang sedang aktif
+            $activeChangeTimeSession = \App\Models\ChangeTimeSession::where('intern_id', $internId)
+                ->where('status', 'active')
+                ->latest('id')
+                ->first();
+
+            if ($activeChangeTimeSession) {
+                $targetScheduleId = $activeChangeTimeSession->targets()->first()?->detail_schedule_id ?? $detailSchedule?->id;
+                $sessionShift = $activeChangeTimeSession->shift;
+                $nowTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
+                
+                $isBreakMissed = false;
+                if (empty($activeChangeTimeSession->break_time)) {
+                    if ($sessionShift && isset($sessionShift->break_time_in_minute) && (int) $sessionShift->break_time_in_minute <= 0) {
+                        $isBreakMissed = true;
+                    } elseif ($sessionShift && !empty($sessionShift->end_break_time) && $nowTime > $sessionShift->end_break_time) {
+                        $isBreakMissed = true;
+                    }
+                }
+
+                $stage = AttendanceStatus::BreakOrBack;
+                if (!empty($activeChangeTimeSession->break_time) && empty($activeChangeTimeSession->back_time)) {
+                    $stage = AttendanceStatus::EndBreakAdjustable;
+                } elseif (!empty($activeChangeTimeSession->back_time) || $isBreakMissed) {
+                    $stage = AttendanceStatus::AdjustableOut;
+                }
+
                 return new ActionResult(true, "", [
                     "absenceHistory" => null,
-                    "adjustableTimeHistory" => null,
+                    "all_adjustable" => collect([$activeChangeTimeSession]),
+                    "adjustableTimeHistory" => $activeChangeTimeSession,
+                    "changeTimeSession" => $activeChangeTimeSession,
                     "schedule_id" => $schedule?->id,
-                    "detail_schedule_id" => null,
-                    "stage" => AttendanceStatus::AdjustableIn
+                    "detail_schedule_id" => $targetScheduleId,
+                    "totalChangeTime" => 0,
+                    "shift" => $activeChangeTimeSession->shift,
+                    "stage" => $stage
                 ]);
             }
 
             if (is_null($detailSchedule)) {
+                $activeAdjustable = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                    ->whereNotNull('start_time')
+                    ->whereNull('end_time')
+                    ->latest('id')
+                    ->first();
+
+                if ($activeAdjustable) {
+                    $adjustableTimeData = collect([$activeAdjustable]);
+                    if (!is_null($activeAdjustable->start_time) && is_null($activeAdjustable->break_time)) {
+                        return new ActionResult(true, "", [
+                            "absenceHistory" => null,
+                            "all_adjustable" => $adjustableTimeData,
+                            "adjustableTimeHistory" => $activeAdjustable,
+                            "schedule_id" => $schedule?->id,
+                            "detail_schedule_id" => $activeAdjustable->detail_schedule_id,
+                            "totalChangeTime" => 0,
+                            "shift" => null,
+                            "stage" => AttendanceStatus::BreakOrBack
+                        ]);
+                    }
+                    if (!is_null($activeAdjustable->break_time) && is_null($activeAdjustable->back_time)) {
+                        return new ActionResult(true, "", [
+                            "absenceHistory" => null,
+                            "all_adjustable" => $adjustableTimeData,
+                            "adjustableTimeHistory" => $activeAdjustable,
+                            "schedule_id" => $schedule?->id,
+                            "detail_schedule_id" => $activeAdjustable->detail_schedule_id,
+                            "totalChangeTime" => 0,
+                            "shift" => null,
+                            "stage" => AttendanceStatus::EndBreakAdjustable
+                        ]);
+                    }
+                    if (!is_null($activeAdjustable->start_time) && is_null($activeAdjustable->end_time)) {
+                        return new ActionResult(true, "", [
+                            "absenceHistory" => null,
+                            "all_adjustable" => $adjustableTimeData,
+                            "adjustableTimeHistory" => $activeAdjustable,
+                            "schedule_id" => $schedule?->id,
+                            "detail_schedule_id" => $activeAdjustable->detail_schedule_id,
+                            "totalChangeTime" => 0,
+                            "shift" => null,
+                            "stage" => AttendanceStatus::AdjustableOut
+                        ]);
+                    }
+                }
+
+                $isSunday = date('w') == 0;
+                $isHoliday = \App\Models\Holiday::whereDate('date', $now)->exists();
+
+                if ($isSunday || $isHoliday) {
+                    return new ActionResult(true, "", [
+                        "absenceHistory" => null,
+                        "all_adjustable" => collect(),
+                        "adjustableTimeHistory" => null,
+                        "schedule_id" => $schedule?->id,
+                        "detail_schedule_id" => null,
+                        "stage" => AttendanceStatus::AdjustableIn
+                    ]);
+                }
+
                 return new ActionResult(true, "", [
                     "absenceHistory" => null,
+                    "all_adjustable" => collect(),
                     "adjustableTimeHistory" => null,
                     "schedule_id" => $schedule?->id,
                     "detail_schedule_id" => null,
@@ -195,7 +289,13 @@ class AttendanceService
             }
 
 
-            $adjustableTimeData = $this->adjustableAttdRepository->getByScheduleIdAndDate($detailSchedule->id, $now);
+            $adjustableTimeData = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                ->where(function ($q) use ($detailSchedule, $now) {
+                    $q->whereDate('date', $now)
+                      ->orWhere('detail_schedule_id', $detailSchedule->id)
+                      ->orWhereNull('end_time');
+                })
+                ->get();
 
             $attendanceTarget = $detailSchedule->attendance;
             $adjustableTarget = null;
@@ -231,6 +331,21 @@ class AttendanceService
                 }
             }
 
+            // Cari sesi ganti jam yang sedang aktif (start_time terisi dan end_time null) untuk pemagang ini
+            if (is_null($adjustableTarget)) {
+                $activeAdjustable = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                    ->whereNotNull('start_time')
+                    ->whereNull('end_time')
+                    ->latest('id')
+                    ->first();
+                if ($activeAdjustable) {
+                    $adjustableTarget = $activeAdjustable;
+                    if (!$adjustableTimeData->contains('id', $activeAdjustable->id)) {
+                        $adjustableTimeData->push($activeAdjustable);
+                    }
+                }
+            }
+
             // JIKA STATUS HARI INI ADALAH ALPHA (attd_status_id = 5)
             // Sesi presensi reguler hari ini ditutup dan dikunci sebagai AllDone (Selesai).
             if ((int) $detailSchedule->attd_status_id === 5) {
@@ -261,7 +376,8 @@ class AttendanceService
 
             $isAttendanceNull = is_null($attendanceTarget) || is_null($attendanceTarget->start_time);
 
-            if (!$isAttendanceNull && !is_null($attendanceTarget->end_time) && !$isLastChangeTaken) {
+            // 1. Jika presensi reguler hari ini sudah selesai (end_time terisi) dan tidak ada sesi ganti jam yang sedang berjalan
+            if (!$isAttendanceNull && !is_null($attendanceTarget->end_time) && is_null($adjustableTarget)) {
                 return new ActionResult(true, "", [
                     "absenceHistory" => $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -270,7 +386,22 @@ class AttendanceService
                     "shift" => $detailSchedule->shift,
                     "detail_schedule_id" => $detailSchedule->id,
                     "totalChangeTime" => $totalAdjustable,
-                    "stage" => AttendanceStatus::AdjustableIn
+                    "stage" => AttendanceStatus::AllDone
+                ]);
+            }
+
+            // 2. Jika sesi ganti jam hari ini sudah selesai (semua ada end_time) DAN presensi reguler juga sudah selesai
+            // PENTING: Jangan return AllDone jika intern belum absen masuk reguler — agar bisa lanjut ke AttendanceAndAdjustableTime
+            if ($totalAdjustable > 0 && is_null($adjustableTarget) && !is_null($attendanceTarget?->end_time)) {
+                return new ActionResult(true, "", [
+                    "absenceHistory" => $attendanceTarget,
+                    "all_adjustable" => $adjustableTimeData,
+                    "adjustableTimeHistory" => null,
+                    "schedule_id" => $schedule->id,
+                    "detail_schedule_id" => $detailSchedule->id,
+                    "totalChangeTime" => $totalAdjustable,
+                    "shift" => $detailSchedule->shift,
+                    "stage" => AttendanceStatus::AllDone,
                 ]);
             }
 
@@ -287,34 +418,11 @@ class AttendanceService
                 ]);
             }
 
-            if (is_null($attendanceTarget) && $totalAdjustable == 1) {
-                return new ActionResult(true, "", [
-                    "absenceHistory" => null,
-                    "all_adjustable" => $adjustableTimeData,
-                    "adjustableTimeHistory" => $adjustableTarget,
-                    "schedule_id" => $schedule->id,
-                    "detail_schedule_id" => $detailSchedule->id,
-                    "totalChangeTime" => $totalAdjustable,
-                    "shift" => $detailSchedule->shift,
-                    "stage" => AttendanceStatus::AttendanceIn,
-                ]);
-            }
-
-            if (!is_null($attendanceTarget) && is_null($attendanceTarget->start_time) && $totalAdjustable == 1) {
-                return new ActionResult(true, "", [
-                    "absenceHistory" => $attendanceTarget,
-                    "all_adjustable" => $adjustableTimeData,
-                    "adjustableTimeHistory" => $adjustableTarget,
-                    "schedule_id" => $schedule->id,
-                    "detail_schedule_id" => $detailSchedule->id,
-                    "totalChangeTime" => $totalAdjustable,
-                    "shift" => $detailSchedule->shift,
-                    "stage" => AttendanceStatus::AttendanceIn,
-                ]);
-            }
-
-
             if (!is_null($attendanceTarget) && is_null($attendanceTarget->start_time) && is_null($adjustableTarget)) {
+                $isSunday = date('w') == 0;
+                $isHoliday = \App\Models\Holiday::whereDate('date', $now)->exists();
+                $targetStage = ($isSunday || $isHoliday) ? AttendanceStatus::AdjustableIn : AttendanceStatus::AttendanceAndAdjustableTime;
+
                 return new ActionResult(true, "", [
                     "absenceHistory" => $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -323,12 +431,15 @@ class AttendanceService
                     "detail_schedule_id" => $detailSchedule->id,
                     "totalChangeTime" => $totalAdjustable,
                     "shift" => $detailSchedule->shift,
-                    "stage" => AttendanceStatus::AttendanceAndAdjustableTime,
+                    "stage" => $targetStage,
                 ]);
             }
-
 
             if ($isAttendanceNull && is_null($adjustableTarget)) {
+                $isSunday = date('w') == 0;
+                $isHoliday = \App\Models\Holiday::whereDate('date', $now)->exists();
+                $targetStage = ($isSunday || $isHoliday) ? AttendanceStatus::AdjustableIn : AttendanceStatus::AttendanceAndAdjustableTime;
+
                 return new ActionResult(true, "", [
                     "absenceHistory" => null,
                     "all_adjustable" => $adjustableTimeData,
@@ -337,12 +448,23 @@ class AttendanceService
                     "detail_schedule_id" => $detailSchedule->id,
                     "totalChangeTime" => $totalAdjustable,
                     "shift" => $detailSchedule->shift,
-                    "stage" => AttendanceStatus::AttendanceAndAdjustableTime,
+                    "stage" => $targetStage,
                 ]);
             }
 
 
             if (!is_null($adjustableTarget) && !is_null($adjustableTarget->start_time) && is_null($adjustableTarget->break_time)) {
+                $adjShift = $adjustableTarget instanceof \App\Models\ChangeTimeSession 
+                    ? $adjustableTarget->shift 
+                    : ($detailSchedule?->shift ?? null);
+                
+                $isAdjBreakMissed = false;
+                if ($adjShift && isset($adjShift->break_time_in_minute) && (int) $adjShift->break_time_in_minute <= 0) {
+                    $isAdjBreakMissed = true;
+                } elseif ($adjShift && !empty($adjShift->end_break_time) && $timeNow > $adjShift->end_break_time) {
+                    $isAdjBreakMissed = true;
+                }
+
                 return new ActionResult(true, "", [
                     "absenceHistory" => null,
                     "all_adjustable" => $adjustableTimeData,
@@ -351,7 +473,7 @@ class AttendanceService
                     "detail_schedule_id" => $detailSchedule->id,
                     "totalChangeTime" => $totalAdjustable,
                     "shift" => $detailSchedule->shift,
-                    "stage" => AttendanceStatus::BreakOrBack
+                    "stage" => $isAdjBreakMissed ? AttendanceStatus::AdjustableOut : AttendanceStatus::BreakOrBack
                 ]);
             }
 
@@ -382,7 +504,21 @@ class AttendanceService
 
 
 
-            $canTakeBreak = is_null($attendanceTarget?->break_time) && $detailSchedule->shift->break_time_in_minute > 0;
+            $currentUser = auth()->user() ?? $schedule?->intern?->user;
+            $scheduleDate = $schedule?->date ?? $now;
+            $effectiveEndBreak = $detailSchedule->shift ? $detailSchedule->shift->getEffectiveEndBreakTime($scheduleDate, $currentUser) : null;
+            $nowTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
+
+            $isRegularBreakMissed = false;
+            if (empty($detailSchedule->shift?->break_time_in_minute) || (int) ($detailSchedule->shift?->break_time_in_minute ?? 0) <= 0) {
+                $isRegularBreakMissed = true;
+            } elseif (!empty($effectiveEndBreak) && $nowTime > $effectiveEndBreak) {
+                $isRegularBreakMissed = true;
+            }
+
+            $canTakeBreak = is_null($attendanceTarget?->break_time) 
+                && ($detailSchedule->shift?->break_time_in_minute ?? 0) > 0 
+                && !$isRegularBreakMissed;
             $canTakePermit = is_null($attendanceTarget?->permit_start);
 
             if (!$canTakePermit && $canTakeBreak && $isTakeChangeTimeInBreak) {
@@ -636,7 +772,7 @@ class AttendanceService
                     $this->locationService,
                     $this->whatsappService
                 );
-            case AttendanceStatus::AllDone:
+            case AttendanceStatus::AllDone->value:
                 return new AllDoneState();
             default:
                 throw new \Exception("Unknown stage: " . $stage);
@@ -767,8 +903,8 @@ class AttendanceService
             foreach ($result->items() as $item) {
                 $modifiedData = [];
 
-                $modifiedData['name'] = $item->schedule->intern->user->profile->full_name;
-                $modifiedData['intern_id'] = $item->schedule->intern->id;
+                $modifiedData['name'] = $item->schedule?->intern?->user?->profile?->full_name ?? $item->schedule?->intern?->user?->name ?? 'Pemagang';
+                $modifiedData['intern_id'] = $item->schedule?->intern?->id ?? 0;
                 $modifiedData['detail_schedule_id'] = $item->id;
                 $modifiedData['is_notification_sent'] = $item->is_notification_sent;
                 $modifiedData['ischange_schedule'] = $item->isChangeSchedule;
@@ -776,50 +912,90 @@ class AttendanceService
                 $modifiedData['attd_status'] = $item->attdStatus;
                 $modifiedData['shift_id'] = $item->shift->id ?? 0;
 
+                $isPermitStatus = (int)$item->attd_status_id === 3;
                 $isExcusedLeave = \App\Helper\TimeHelper::isApprovedExcusedLeave($item);
-                if ($item->attendance || $isExcusedLeave) {
-                    $attendance = $item->attendance;
-                    $shift = $item->shift;
-                    $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($attendance);
-                    $workData = $shift ? \App\Helper\TimeHelper::calculateDailyWorkHours($attendance, $shift, $item, $extraDebt) : null;
-                    $attendanceData = [
-                        "id" => $attendance->id ?? null,
-                        "date" => $attendance ? date('d-m-Y', strtotime($attendance->date)) : ($item->date ? date('d-m-Y', strtotime($item->date)) : null),
-                        "start_time" => $attendance->start_time ?? null,
-                        "break_time" => $attendance->break_time ?? null,
-                        "back_time" => $attendance->back_time ?? null,
-                        "permit_start" => $attendance->permit_start ?? null,
-                        "permit_back" => $attendance->permit_back ?? null,
-                        "end_time" => $attendance->end_time ?? null,
-                        "total_min" => $workData ? $workData['actual_work_minutes'] : ($attendance->total_min ?? 0),
-                        "total_break_min" => $attendance->total_break_min ?? 0,
-                        "total_permit_min" => $attendance->total_permit_min ?? 0,
-                        "start_time_message" => $attendance->start_time_message ?? null,
-                        "break_time_message" => $attendance->break_time_message ?? null,
-                        "back_time_message" => $attendance->back_time_message ?? null,
-                        "permit_start_message" => $attendance->permit_start_message ?? null,
-                        "permit_back_message" => $attendance->permit_back_message ?? null,
-                        "end_time_message" => $attendance->end_time_message ?? null,
-                        "latitude_start" => $attendance->latitude_start ?? null,
-                        "longitude_start" => $attendance->longitude_start ?? null,
-                        "latitude_end" => $attendance->latitude_end ?? null,
-                        "longitude_end" => $attendance->longitude_end ?? null,
-                        "total_time" => $workData ? $workData['actual_work_formatted'] : '',
-                        "target_time" => $workData ? [
-                            "condition" => $workData['diff_minutes'] >= 0,
-                            "value" => $workData['diff_formatted'],
-                        ] : ["condition" => false, "value" => ''],
-                        "total_min_format" => $workData ? $workData['actual_work_formatted'] : '',
-                        "target_time_format" => $workData ? $workData['diff_formatted'] : '',
-                        "shift_target_formatted" => $workData ? $workData['shift_target_formatted'] : '',
-                        "mandatory_replace_minutes" => $workData ? $workData['mandatory_replace_minutes'] : 0,
-                    ];
-                    $modifiedData['attendance'] = $attendanceData;
-                }
+                $attendance = $item->attendance;
+                $shift = $item->shift;
+                $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($attendance);
+                $workData = $shift ? \App\Helper\TimeHelper::calculateDailyWorkHours($attendance, $shift, $item, $extraDebt) : null;
+
+                $startTime = ($isPermitStatus && $shift) ? $shift->start_time : ($attendance->start_time ?? null);
+                $endTime = ($isPermitStatus && $shift) ? $shift->end_time : ($attendance->end_time ?? null);
+                $breakTime = ($isPermitStatus && $shift) ? ($attendance->break_time ?? $shift->start_break_time) : ($attendance->break_time ?? null);
+                $backTime = ($isPermitStatus && $shift) ? ($attendance->back_time ?? $shift->end_break_time) : ($attendance->back_time ?? null);
+
+                $attendanceData = [
+                    "id" => $attendance->id ?? ($item->attendance_id ?? null),
+                    "date" => $attendance ? date('d-m-Y', strtotime($attendance->date)) : ($item->date ? date('d-m-Y', strtotime($item->date)) : null),
+                    "start_time" => $startTime,
+                    "break_time" => $breakTime,
+                    "back_time" => $backTime,
+                    "permit_start" => $attendance->permit_start ?? null,
+                    "permit_back" => $attendance->permit_back ?? null,
+                    "end_time" => $endTime,
+                    "total_min" => $workData ? $workData['actual_work_minutes'] : ($attendance->total_min ?? 0),
+                    "total_break_min" => $attendance->total_break_min ?? ($shift->break_time_in_minute ?? 0),
+                    "total_permit_min" => $attendance->total_permit_min ?? 0,
+                    "start_time_message" => $attendance->start_time_message ?? ($isPermitStatus ? 'Izin disetujui' : null),
+                    "break_time_message" => $attendance->break_time_message ?? null,
+                    "back_time_message" => $attendance->back_time_message ?? null,
+                    "permit_start_message" => $attendance->permit_start_message ?? null,
+                    "permit_back_message" => $attendance->permit_back_message ?? null,
+                    "end_time_message" => $attendance->end_time_message ?? ($isPermitStatus ? 'Izin disetujui' : null),
+                    "latitude_start" => $attendance->latitude_start ?? null,
+                    "longitude_start" => $attendance->longitude_start ?? null,
+                    "latitude_end" => $attendance->latitude_end ?? null,
+                    "longitude_end" => $attendance->longitude_end ?? null,
+                    "total_time" => $workData ? $workData['actual_work_formatted'] : '00:00',
+                    "target_time" => $workData ? [
+                        "condition" => $workData['diff_minutes'] >= 0,
+                        "value" => $workData['diff_formatted'],
+                    ] : ["condition" => false, "value" => '00:00'],
+                    "total_min_format" => $workData ? $workData['actual_work_formatted'] : '00:00',
+                    "target_time_format" => $workData ? $workData['diff_formatted'] : '00:00',
+                    "shift_target_formatted" => $workData ? $workData['shift_target_formatted'] : '',
+                    "mandatory_replace_minutes" => $workData ? $workData['mandatory_replace_minutes'] : 0,
+                ];
+                $modifiedData['attendance'] = $attendanceData;
 
                 if ($item->adjustableAttendance) {
                     $adjustableResponse = [];
+                    $shift = $item->shift;
+                    $shiftTargetMinutes = $shift ? (int)($shift->total_time_in_minute ?? 0) : 0;
+                    if ($shiftTargetMinutes <= 0 && $shift && $shift->start_time && $shift->end_time && $shift->start_time !== '00:00:00') {
+                        $shiftTargetMinutes = max(0, \App\Helper\TimeHelper::diffInMinutes($shift->start_time, $shift->end_time) - (int)($shift->break_time_in_minute ?? 0));
+                    }
+
                     foreach ($item->adjustableAttendance as $key => $value) {
+                        $isApprovedVal = is_array($value->is_approved) 
+                            ? ($value->is_approved['value'] ?? 0) 
+                            : ($value->is_approved->value ?? $value->is_approved ?? 0);
+                        $totalMin = (int) ($value->total_min ?? 0);
+                        $breakMin = (int) ($value->total_break_min ?? 0);
+                        $adjMinutes = max(0, $totalMin - $breakMin);
+                        if ($adjMinutes <= 0 && !empty($value->start_time) && !empty($value->end_time)) {
+                            $totalMins = \App\Helper\TimeHelper::diffInMinutes($value->start_time, $value->end_time);
+                            $breakMins = (!empty($value->break_time) && !empty($value->back_time))
+                                ? \App\Helper\TimeHelper::diffInMinutes($value->break_time, $value->back_time)
+                                : 0;
+                            $adjMinutes = max(0, $totalMins - $breakMins);
+                        }
+
+                        if ((int)$isApprovedVal === 2) {
+                            $diffMinutes = -$shiftTargetMinutes;
+                            $targetVal = \App\Helper\TimeHelper::formatDifference($diffMinutes);
+                            $condition = false;
+                        } else {
+                            if ($shiftTargetMinutes > 0) {
+                                $diffMinutes = $adjMinutes - $shiftTargetMinutes;
+                                $targetVal = \App\Helper\TimeHelper::formatDifference($diffMinutes);
+                                $condition = $diffMinutes >= 0;
+                            } else {
+                                $targetVal = \App\Helper\TimeHelper::formatDifference($adjMinutes);
+                                $condition = $adjMinutes > 0;
+                            }
+                        }
+
                         $adjustableData = [
                             "id"                    => $value->id,
                             "date"                  => date('d-m-Y', strtotime($value->date)),
@@ -829,8 +1005,8 @@ class AttendanceService
                             "permit_start"          => $value->permit_start,
                             "permit_back"           => $value->permit_back,
                             "end_time"              => $value->end_time,
-                            "total_min"             => $value->total_min,
-                            "total_break_min"       => $value->total_break_min,
+                            "total_min"             => $adjMinutes,
+                            "total_break_min"       => $breakMin,
                             "start_time_message"    => $value->start_time_message,
                             "break_time_message"    => $value->break_time_message,
                             "back_time_message"     => $value->back_time_message,
@@ -841,11 +1017,11 @@ class AttendanceService
                             "longitude_start"       => $value->longitude_start,
                             "latitude_end"          => $value->latitude_end,
                             "longitude_end"         => $value->longitude_end,
-                            "is_approved"           => $value->is_approved->value,
-                            "total_time"            => DateNow::setToHour($value->total_min - $value->total_break_min),
+                            "is_approved"           => $isApprovedVal,
+                            "total_time"            => \App\Helper\TimeHelper::formatMinutesToHours($adjMinutes),
                             "target_time"           => [
-                                "condition"             => true,
-                                "value"                 => DateNow::setToHour(0),
+                                "condition"             => $condition,
+                                "value"                 => $targetVal,
                             ],
                         ];
                         $adjustableResponse[] = $adjustableData;
@@ -1051,6 +1227,10 @@ class AttendanceService
             $pageSize = (int) $request->query('per_page', 10);
             $page = (int) $request->query('page', $requestPage ?? 1);
 
+            $holidayDates = \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => Carbon::parse($d)->toDateString())
+                ->toArray();
+
             $query = DetailSchedule::with([
                 'attendance.permitLogs',
                 'shift',
@@ -1061,6 +1241,23 @@ class AttendanceService
             ])
             ->whereHas('schedule', function ($q) use ($internId) {
                 $q->where('intern_id', $internId);
+            });
+
+            // Sembunyikan jadwal hari libur dan Minggu yang kosong (tanpa presensi masuk, tanpa ganti jam, tanpa izin)
+            if (!empty($holidayDates)) {
+                $query->where(function ($q) use ($holidayDates) {
+                    $q->whereNotIn(\Illuminate\Support\Facades\DB::raw('DATE(date)'), $holidayDates)
+                      ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
+                      ->orWhereHas('adjustableAttendance')
+                      ->orWhere('attd_status_id', 3);
+                });
+            }
+
+            $query->where(function ($q) {
+                $q->whereRaw('DAYOFWEEK(date) != 1')
+                  ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
+                  ->orWhereHas('adjustableAttendance')
+                  ->orWhere('attd_status_id', 3);
             });
 
             if ($statusId) {
@@ -1099,23 +1296,28 @@ class AttendanceService
                 $dataAttendance = $detailSchedule->attendance ? $detailSchedule->attendance->toArray() : [];
                 $shift = $detailSchedule->shift;
                 $isExcused = \App\Helper\TimeHelper::isApprovedExcusedLeave($detailSchedule);
+                $isPermitStatus = (int)$detailSchedule->attd_status_id === 3;
                 // Hutang waktu tambahan dari izin keluar wajib ganti jam
                 $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($detailSchedule->attendance);
 
-                if ($isExcused && $shift) {
+                if (($isExcused || $isPermitStatus) && $shift) {
                     $workData = \App\Helper\TimeHelper::calculateDailyWorkHours((object)$dataAttendance, $shift, $detailSchedule, $extraDebt);
-                    $dataAttendance['start_time'] = $dataAttendance['start_time'] ?? null;
-                    $dataAttendance['end_time'] = $dataAttendance['end_time'] ?? null;
-                    $dataAttendance['break_time'] = $dataAttendance['break_time'] ?? null;
-                    $dataAttendance['back_time'] = $dataAttendance['back_time'] ?? null;
+                    $dataAttendance['id'] = $dataAttendance['id'] ?? ($detailSchedule->attendance_id ?? 0);
+                    $dataAttendance['start_time'] = $shift->start_time;
+                    $dataAttendance['end_time'] = $shift->end_time;
+                    $dataAttendance['break_time'] = !empty($dataAttendance['break_time']) ? $dataAttendance['break_time'] : $shift->start_break_time;
+                    $dataAttendance['back_time'] = !empty($dataAttendance['back_time']) ? $dataAttendance['back_time'] : $shift->end_break_time;
                     $dataAttendance['total_min'] = $workData['actual_work_minutes'];
                     $dataAttendance['total_min_format'] = $workData['actual_work_formatted'];
                     $dataAttendance['target_time'] = $workData['diff_minutes'];
                     $dataAttendance['target_time_format'] = $workData['diff_formatted'];
                     $dataAttendance['shift_target_formatted'] = $workData['shift_target_formatted'];
+                    $dataAttendance['start_time_message'] = $dataAttendance['start_time_message'] ?? 'Izin Disetujui (Sesuai Jadwal)';
+                    $dataAttendance['end_time_message'] = $dataAttendance['end_time_message'] ?? 'Izin Disetujui (Sesuai Jadwal)';
                 } else if (!empty($dataAttendance) && $shift) {
                     // Gunakan TimeHelper untuk perhitungan jam kerja aktual dan selisih
                     $workData = \App\Helper\TimeHelper::calculateDailyWorkHours((object)$dataAttendance, $shift, $detailSchedule, $extraDebt);
+                    $dataAttendance['total_min'] = $workData['actual_work_minutes'];
                     $dataAttendance['total_min_format'] = $workData['actual_work_formatted'];
                     $dataAttendance['target_time'] = $workData['diff_minutes'];
                     $dataAttendance['target_time_format'] = $workData['diff_formatted'];
@@ -1124,23 +1326,23 @@ class AttendanceService
                     $totaltime = \App\Helper\TimeHelper::diffInMinutes($dataAttendance["start_time"], now());
                     $dataAttendance['total_min'] = $totaltime;
                     $dataAttendance['total_min_format'] = \App\Helper\TimeHelper::formatMinutesToHours($totaltime);
-                    $target = $shift->total_time_in_minute - $totaltime; // Define $target here
+                    $target = $totaltime - $shift->total_time_in_minute;
                     $dataAttendance['target_time'] = $target;
                     $dataAttendance['target_time_format'] = \App\Helper\TimeHelper::formatDifference($target);
                     $dataAttendance['shift_target_formatted'] = \App\Helper\TimeHelper::formatMinutesToHours($shift->total_time_in_minute);
                 } else if ($shift) {
                     $dataAttendance['total_min'] = 0;
                     $dataAttendance['total_min_format'] = \App\Helper\TimeHelper::formatMinutesToHours(0);
-                    $target = $shift->total_time_in_minute; // Define $target here too
+                    $target = -$shift->total_time_in_minute;
                     $dataAttendance['target_time'] = $target;
                     $dataAttendance['target_time_format'] = \App\Helper\TimeHelper::formatDifference($target);
                     $dataAttendance['shift_target_formatted'] = \App\Helper\TimeHelper::formatMinutesToHours($shift->total_time_in_minute);
                 } else {
                     // Handle case when no shift exists
                     $dataAttendance['total_min'] = 0;
-                    $dataAttendance['total_min_format'] = \App\Helper\TimeHelper::formatMinutesToHours(0);
+                    $dataAttendance['total_min_format'] = '00:00';
                     $dataAttendance['target_time'] = 0;
-                    $dataAttendance['target_time_format'] = \App\Helper\TimeHelper::formatDifference(0);
+                    $dataAttendance['target_time_format'] = '00:00';
                     $dataAttendance['shift_target_formatted'] = '00:00';
                 }
                 $dataAttendance['mandatory_replace_minutes'] = $extraDebt;
@@ -1150,12 +1352,44 @@ class AttendanceService
                     $filteredData = array_filter($adjustableAttendance, function ($key) {
                         return is_numeric($key);
                     }, ARRAY_FILTER_USE_KEY);
-                    $result = array_map(function ($item) use ($shift) {
-                        $workData = $shift ? \App\Helper\TimeHelper::calculateDailyWorkHours((object)$item, $shift) : null;
-                        $item['total_min_format'] = $workData ? $workData['actual_work_formatted'] : \App\Helper\TimeHelper::formatMinutesToHours($item['total_min'] ?? 0);
-                        $item['target_time'] = $workData ? $workData['diff_minutes'] : 0;
-                        $item['target_time_format'] = $workData ? $workData['diff_formatted'] : \App\Helper\TimeHelper::formatDifference(0);
-                        $item['shift_target_formatted'] = $workData ? $workData['shift_target_formatted'] : ($shift ? \App\Helper\TimeHelper::formatMinutesToHours($shift->total_time_in_minute) : '');
+
+                    $shiftTargetMinutes = $shift ? (int)($shift->total_time_in_minute ?? 0) : 0;
+                    if ($shiftTargetMinutes <= 0 && $shift && $shift->start_time && $shift->end_time && $shift->start_time !== '00:00:00') {
+                        $shiftTargetMinutes = max(0, \App\Helper\TimeHelper::diffInMinutes($shift->start_time, $shift->end_time) - (int)($shift->break_time_in_minute ?? 0));
+                    }
+
+                    $result = array_map(function ($item) use ($shift, $shiftTargetMinutes) {
+                        $gantiJamMinutes = (int) ($item['total_min'] ?? 0);
+                        if ($gantiJamMinutes <= 0 && !empty($item['start_time']) && !empty($item['end_time'])) {
+                            $totalMins = \App\Helper\TimeHelper::diffInMinutes($item['start_time'], $item['end_time']);
+                            $breakMins = (!empty($item['break_time']) && !empty($item['back_time']))
+                                ? \App\Helper\TimeHelper::diffInMinutes($item['break_time'], $item['back_time'])
+                                : 0;
+                            $gantiJamMinutes = max(0, $totalMins - $breakMins);
+                        }
+
+                        $isApprovedVal = is_array($item['is_approved'] ?? null) 
+                            ? ($item['is_approved']['value'] ?? 0) 
+                            : ($item['is_approved'] ?? 0);
+
+                        $item['total_min_format'] = \App\Helper\TimeHelper::formatMinutesToHours($gantiJamMinutes);
+
+                        if ((int)$isApprovedVal === 2) {
+                            $diff = -$shiftTargetMinutes;
+                            $item['target_time'] = $diff;
+                            $item['target_time_format'] = \App\Helper\TimeHelper::formatDifference($diff);
+                        } else {
+                            if ($shiftTargetMinutes > 0) {
+                                $diff = $gantiJamMinutes - $shiftTargetMinutes;
+                                $item['target_time'] = $diff;
+                                $item['target_time_format'] = \App\Helper\TimeHelper::formatDifference($diff);
+                            } else {
+                                $item['target_time'] = $gantiJamMinutes;
+                                $item['target_time_format'] = \App\Helper\TimeHelper::formatDifference($gantiJamMinutes);
+                            }
+                        }
+
+                        $item['shift_target_formatted'] = $shift ? \App\Helper\TimeHelper::formatMinutesToHours($shiftTargetMinutes) : '00:00';
                         return $item;
                     }, $filteredData);
                     $adjustableAttendance = array_values($result);
@@ -1308,13 +1542,13 @@ class AttendanceService
 
             $shifts = [];
 
-            // Hutang waktu dari izin keluar wajib ganti jam (approved), per attendance
+            // Hutang waktu dari izin (keluar, sholat, toilet) wajib ganti jam (approved), per attendance
             $mandatoryReplaceByAttendance = \App\Models\PermitLog::whereIn('attendance_id', $totalAttendance->pluck('attendance_id')->filter())
-                ->where('type', 'leave')
+                ->whereIn('type', ['leave', 'prayer', 'toilet'])
                 ->where('is_mandatory_replace', true)
                 ->where('approval_status', 'approved')
                 ->groupBy('attendance_id')
-                ->selectRaw('attendance_id, SUM(agreed_duration_minutes) AS total_minutes')
+                ->selectRaw('attendance_id, SUM(COALESCE(agreed_duration_minutes, duration_in_minutes, 0)) AS total_minutes')
                 ->pluck('total_minutes', 'attendance_id');
             $mandatoryReplaceTotal = 0;
 
@@ -1633,8 +1867,11 @@ class AttendanceService
 
             // Update status jadwal
             $detailSchedule->attd_status_id = 3;
-
             $detailSchedule->isChangeSchedule = $validated['jam-option'];
+            $detailSchedule->is_change_schedule_approved = ($validated['jam-option'] == 1) ? 1 : 0;
+            $detailSchedule->save();
+
+            \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
             $attendance = $detailSchedule->attendance;
 
@@ -1726,7 +1963,10 @@ class AttendanceService
             // Perbarui DetailSchedule
             $detailSchedule->update([
                 'isChangeSchedule' => $validated['jam-option'],
+                'is_change_schedule_approved' => ($validated['jam-option'] == 1) ? 1 : 0,
             ]);
+
+            \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
             $attendance = $detailSchedule->attendance;
 
@@ -1909,43 +2149,52 @@ class AttendanceService
 
     public function shortAutomaticAttendance($page = 1, $name = null, $date = null): ActionResult
     {
-
         try {
-            if ($name !== null && $date !== null) {
+            $page = max(1, (int) $page);
+            $nameStr = ($name !== null && trim((string)$name) !== '') ? trim((string)$name) : null;
+            $dateStr = ($date !== null && trim((string)$date) !== '') ? trim((string)$date) : null;
+
+            if ($nameStr !== null && $dateStr !== null) {
                 $result = $this->attendanceRepository->getAutoEndStatusByDateAndName(
-                    name: $name,
-                    date: $date,
+                    name: $nameStr,
+                    date: $dateStr,
                     currentPage: $page
                 );
-            } else if ($name !== null && $date === null) {
-                $result = $this->attendanceRepository->getAutoEndStatusByName(name: $name, currentPage: $page);
-            } else if ($name === null && $date !== null) {
-                $result = $this->attendanceRepository->getAutoEndStatusByDate(date: $date, currentPage: $page);
+            } else if ($nameStr !== null && $dateStr === null) {
+                $result = $this->attendanceRepository->getAutoEndStatusByName(name: $nameStr, currentPage: $page);
+            } else if ($nameStr === null && $dateStr !== null) {
+                $result = $this->attendanceRepository->getAutoEndStatusByDate(date: $dateStr, currentPage: $page);
             } else {
                 $result = $this->attendanceRepository->getAllAutoEnd(currentPage: $page);
             }
 
             $data = [];
 
-            if ($result && $result->isNotEmpty()) {
-                $result->loadMissing([
-                    'detailSchedules.office',
-                    'detailSchedules.shift',
-                    'detailSchedules.schedule.intern.user.profile'
-                ]);
-            }
-
             foreach ($result as $item) {
+                $intern = $item->detailSchedules?->schedule?->intern ?? $item->intern;
+                $user = $intern?->user;
+                $profile = $user?->profile;
+                $shift = $item->detailSchedules?->shift ?? $intern?->shift;
+                $office = $item->detailSchedules?->office;
+
                 $data[] = [
-                    'name' => $item->detailSchedules?->schedule?->intern?->user?->profile?->full_name ?? "",
-                    'date' =>  Carbon::parse($item->date)->format('d/m/y'),
-                    'office' => $item->detailSchedules?->office?->name ?? "",
-                    'shift' => $item->detailSchedules?->shift?->name ?? "",
-                    "start_time" => $item->start_time
+                    'id' => $item->id,
+                    'intern_id' => $intern?->id,
+                    'name' => $profile?->full_name ?? ($user?->name ?? "-"),
+                    'division' => $intern?->division?->name ?? 'Tanpa Divisi',
+                    'school' => $intern?->school?->name ?? null,
+                    'nip' => $profile?->NIP ?? ($intern?->nim ?? null),
+                    'date' => $item->date ? Carbon::parse($item->date)->format('d/m/Y') : '-',
+                    'office' => $office?->name ?? '-',
+                    'shift' => $shift?->name ?? 'Default',
+                    'start_time' => $item->start_time ? Carbon::parse($item->start_time)->format('H:i') : '-',
+                    'end_time' => $item->end_time ? Carbon::parse($item->end_time)->format('H:i') : '-',
+                    'auto_end_note' => $item->auto_end_note,
+                    'auto_end_notified' => (bool) $item->auto_end_notified,
                 ];
             }
 
-            $meta =  [
+            $meta = [
                 "current_page" => $result->currentPage(),
                 "total_data" => $result->total(),
                 "total_page" => $result->lastPage(),
@@ -1958,8 +2207,175 @@ class AttendanceService
 
             return new ActionResult(true, "success get the intern that presence end automaticaly", $lastResult);
         } catch (\Throwable $e) {
+            Log::error('shortAutomaticAttendance error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             captureException($e);
-            return new ActionResult(true, "success get the intern that presence end automaticaly");
+            return new ActionResult(false, "Failed to get auto attendance records: " . $e->getMessage(), [
+                'data' => [],
+                'meta' => ['current_page' => 1, 'total_page' => 1, 'total_data' => 0]
+            ]);
+        }
+    }
+
+    /**
+     * Mengambil daftar pemagang yang belum melakukan presensi pulang dan sudah melewati jam pulang shift.
+     */
+    public function getPendingAutoEndAttendances(?string $date = null, ?string $search = null)
+    {
+        $date = $date ?? Carbon::today('Asia/Jakarta')->toDateString();
+        $now = Carbon::now('Asia/Jakarta');
+
+        $query = Attendance::with([
+            'intern.user.profile',
+            'intern.division',
+            'intern.school',
+            'intern.shift',
+            'detailSchedules.shift',
+            'detailSchedules.office'
+        ])
+        ->whereDate('date', $date)
+        ->whereNotNull('start_time')
+        ->whereNull('end_time')
+        ->where('is_auto_end', false);
+
+        if (!empty($search)) {
+            $query->whereHas('intern.user.profile', function ($q) use ($search) {
+                $q->where('full_name', 'like', "%{$search}%");
+            });
+        }
+
+        $attendances = $query->orderBy('start_time', 'asc')->get();
+
+        // Filter: Hanya tampilkan pemagang yang waktu sekarang sudah MELEWATI jam pulang dari shiftnya
+        return $attendances->filter(function ($attd) use ($now, $date) {
+            $shift = $attd->detailSchedules?->shift ?? $attd->intern?->shift;
+            if (!$shift || !$shift->end_time) {
+                return Carbon::parse($date)->lessThan($now->copy()->startOfDay());
+            }
+
+            $attdDateStr = $attd->date ? Carbon::parse($attd->date)->format('Y-m-d') : $date;
+            $endTimeStr = is_string($shift->end_time) ? $shift->end_time : Carbon::parse($shift->end_time)->format('H:i:s');
+            $shiftEndDateTime = Carbon::parse($attdDateStr . ' ' . $endTimeStr, 'Asia/Jakarta');
+
+            // Shift malam melewati tengah malam (end_time < start_time)
+            if ($shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+                $shiftEndDateTime = $shiftEndDateTime->addDay();
+            }
+
+            // Hanya tampilkan jika sudah melewati batas jam pulang shift
+            return $now->greaterThanOrEqualTo($shiftEndDateTime);
+        })->values();
+    }
+
+    /**
+     * Menghitung total pemagang yang belum presensi pulang dan sudah melewati jam pulang shift hari ini.
+     */
+    public function countPendingAutoEndToday(): int
+    {
+        return $this->getPendingAutoEndAttendances(Carbon::today('Asia/Jakarta')->toDateString())->count();
+    }
+
+    /**
+     * Konfirmasi pulang otomatis untuk 1 pemagang dengan catatan opsional.
+     */
+    public function confirmAutoEndAttendance(int $attendanceId, ?string $note = null, ?string $customEndTime = null): ActionResult
+    {
+        try {
+            DB::beginTransaction();
+
+            $attendance = Attendance::with(['detailSchedules.shift', 'intern.user.profile'])->find($attendanceId);
+            if (!$attendance) {
+                return new ActionResult(false, 'Data presensi tidak ditemukan.');
+            }
+
+            if ($attendance->end_time && !$attendance->is_auto_end) {
+                return new ActionResult(false, 'Pemagang sudah melakukan presensi pulang.');
+            }
+
+            $shift = $attendance->detailSchedules?->shift ?? $attendance->intern?->shift;
+
+            $endTime = $customEndTime;
+            if (!$endTime) {
+                $endTime = $shift?->end_time ?? Carbon::now()->format('H:i:s');
+            }
+
+            $endTimeStr = is_string($endTime) ? $endTime : Carbon::parse($endTime)->format('H:i:s');
+
+            // Hitung total menit kerja
+            $startTime = Carbon::parse($attendance->start_time);
+            $attendanceDate = $attendance->date ? Carbon::parse($attendance->date)->format('Y-m-d') : Carbon::today()->format('Y-m-d');
+            $endDateTime = Carbon::parse($attendanceDate . ' ' . $endTimeStr);
+
+            // Jika shift malam melewati tengah malam (end_time < start_time)
+            if ($shift && $shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+                $endDateTime = $endDateTime->addDay();
+            }
+
+            $totalMin = max(0, $startTime->diffInMinutes($endDateTime));
+
+            $updateData = [
+                'end_time' => $endTimeStr,
+                'is_auto_end' => true,
+                'auto_end_note' => $note ?: null,
+                'auto_end_notified' => false,
+                'total_min' => $totalMin,
+            ];
+
+            // Jika sedang izin istirahat tapi belum kembali
+            if ($attendance->break_time && !$attendance->back_time) {
+                $breakStart = Carbon::parse($attendance->break_time);
+                $totalBreak = max(0, $breakStart->diffInMinutes($endDateTime));
+                $updateData['back_time'] = $endTimeStr;
+                $updateData['total_break_min'] = $totalBreak;
+                $updateData['total_min'] = max(0, $totalMin - $totalBreak);
+            }
+
+            $attendance->update($updateData);
+
+            $internName = $attendance->intern?->user?->profile?->full_name ?? 'Pemagang';
+            $adminName = auth()->user()?->name ?? 'Admin';
+            \App\Helper\ActivityLogger::log(
+                'UPDATE',
+                'Pulang Otomatis',
+                "Admin {$adminName} memulangkan otomatis pemagang {$internName}" . ($note ? " dengan catatan: '{$note}'" : ""),
+                [
+                    'attendance_id' => $attendance->id,
+                    'intern_id' => $attendance->intern_id,
+                    'note' => $note,
+                    'end_time' => $endTimeStr
+                ]
+            );
+
+            DB::commit();
+            return new ActionResult(true, "Berhasil memulangkan {$internName} secara otomatis.", $attendance);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('confirmAutoEndAttendance error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            return new ActionResult(false, 'Terjadi kesalahan saat memproses pulang otomatis: ' . $th->getMessage());
+        }
+    }
+
+    /**
+     * Konfirmasi pulang otomatis massal untuk banyak pemagang.
+     */
+    public function bulkConfirmAutoEndAttendance(array $attendanceIds, ?string $note = null): ActionResult
+    {
+        try {
+            DB::beginTransaction();
+
+            $successCount = 0;
+            foreach ($attendanceIds as $id) {
+                $res = $this->confirmAutoEndAttendance((int)$id, $note);
+                if ($res->isSuccess()) {
+                    $successCount++;
+                }
+            }
+
+            DB::commit();
+            return new ActionResult(true, "Berhasil memulangkan {$successCount} pemagang secara otomatis.");
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('bulkConfirmAutoEndAttendance error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            return new ActionResult(false, 'Gagal memproses pulang otomatis massal: ' . $th->getMessage());
         }
     }
 
@@ -1993,9 +2409,22 @@ class AttendanceService
                 return;
             }
 
+            // Ambil seluruh tanggal hari libur yang tercatat sampai hari ini
+            $holidayDates = \App\Models\Holiday::whereDate('date', '<=', $today)
+                ->pluck('date')
+                ->map(fn($d) => Carbon::parse($d)->toDateString())
+                ->toArray();
+
             $alphaIds = [];
             foreach ($missedSchedules as $schedule) {
                 $scheduleDate = Carbon::parse($schedule->date)->toDateString();
+
+                // Hari libur nasional / tanggal merah dan hari Minggu tidak boleh ditandai Alpha
+                $isSunday = Carbon::parse($scheduleDate)->isSunday();
+                $isHoliday = in_array($scheduleDate, $holidayDates, true);
+                if ($isSunday || $isHoliday) {
+                    continue;
+                }
 
                 // Jadwal sebelum hari ini (date < today) otomatis sudah terlewat (>24 jam / hari lewat) -> Alpha
                 if ($scheduleDate < $today) {

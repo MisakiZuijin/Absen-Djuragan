@@ -206,7 +206,7 @@
             </div>
 
             <!-- List Card Pemagang (Structured & Refined Layout) -->
-            <div class="p-4 sm:p-5 space-y-3.5">
+            <div id="internsContainer" class="p-4 sm:p-5 space-y-3.5">
                 @forelse($interns as $intern)
                 @php
                     $name = $intern->user?->profile?->full_name ?? $intern->user?->name ?? 'Pemagang';
@@ -226,7 +226,7 @@
                     $isRejected = $latestLeave && $latestLeave->approval_status === 'rejected';
                     $isPending = $latestLeave && $latestLeave->approval_status === 'pending';
                 @endphp
-                <div class="p-4 rounded-2xl border transition-all shadow-2xs hover:shadow-xs {{ $activeLeave ? 'bg-amber-50/20 border-amber-300 ring-1 ring-amber-300/40' : ($hasLeaveToday ? 'bg-white border-slate-200/90 hover:border-slate-300' : 'bg-slate-50/50 border-slate-200/70') }}">
+                <div class="intern-row p-4 rounded-2xl border transition-all shadow-2xs hover:shadow-xs {{ $activeLeave ? 'bg-amber-50/20 border-amber-300 ring-1 ring-amber-300/40' : ($hasLeaveToday ? 'bg-white border-slate-200/90 hover:border-slate-300' : 'bg-slate-50/50 border-slate-200/70') }}" data-name="{{ strtolower($name) }}">
                     
                     <!-- 1. Header Bar: Identitas Pemagang (Kiri) & Badges Status (Kanan) -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
@@ -326,11 +326,17 @@
                             <div class="min-w-0 flex-1">
                                 <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Sesi Terakhir</span>
                                 @if($activeLeave)
+                                    @php
+                                        $startEpoch = \Carbon\Carbon::parse($activeLeave->start_time)->timestamp;
+                                        $nowEpoch = now()->timestamp;
+                                        $diffSec = max(0, $nowEpoch - $startEpoch);
+                                        $initialTimerStr = sprintf('%02d:%02d:%02d', floor($diffSec / 3600), floor(($diffSec % 3600) / 60), $diffSec % 60);
+                                    @endphp
                                     <div class="text-sm font-bold text-amber-700 truncate">
                                         Mulai {{ \Carbon\Carbon::parse($activeLeave->start_time)->format('H:i') }} WIB
                                     </div>
                                     <span class="text-[10px] text-amber-600 font-semibold block mt-0.5">
-                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse mr-1"></span>Sedang Berjalan...
+                                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse mr-1"></span>Sedang Berjalan (<span class="timer-value font-mono font-bold text-amber-700" data-start-time="{{ $startEpoch }}">{{ $initialTimerStr }}</span>)
                                     </span>
                                 @elseif($latestLeave)
                                     <div class="text-sm font-bold text-slate-800 truncate">
@@ -520,10 +526,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.open-wajib-ganti-btn').forEach(function(btn) {
-            btn.addEventListener('click', function() {
-                openWajibGantiModal(this);
-            });
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.open-wajib-ganti-btn');
+            if (btn) {
+                openWajibGantiModal(btn);
+            }
         });
 
         const modal = document.getElementById('wajibGantiModal');
@@ -534,4 +541,6 @@
         }
     });
 </script>
+
+@include('admin.partials.universal-permit-timer-script')
 @endsection

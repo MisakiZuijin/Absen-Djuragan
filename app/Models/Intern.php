@@ -37,6 +37,16 @@ class Intern extends Model
         return $this->belongsTo(User::class, "user_id", 'id');
     }
 
+    public function getGenderAttribute(): ?string
+    {
+        return $this->user?->profile?->gender;
+    }
+
+    public function isMale(): bool
+    {
+        return $this->user ? $this->user->isMale() : false;
+    }
+
     public function division(): BelongsTo
     {
         return $this->belongsTo(Division::class, "division_id", "id");
@@ -108,6 +118,16 @@ class Intern extends Model
     public function attendance(): HasOne
     {
         return $this->hasOne(Attendance::class, 'intern_id');
+    }
+
+    public function changeTimeSessions(): HasMany
+    {
+        return $this->hasMany(ChangeTimeSession::class, 'intern_id');
+    }
+
+    public function changeTimeRegistrations(): HasMany
+    {
+        return $this->hasMany(ChangeTimeRegistration::class, 'intern_id');
     }
 
     public function toiletPermits(): HasManyThrough

@@ -10,7 +10,7 @@ use App\Services\ToiletPermitService;
 
 class AdminIzinToiletController extends Controller
 {
-    protected $toiletPermitService;
+    protected ToiletPermitService $toiletPermitService;
 
     public function __construct(ToiletPermitService $toiletPermitService)
     {

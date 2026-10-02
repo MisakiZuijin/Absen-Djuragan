@@ -76,13 +76,13 @@
             <!-- Right: Filters -->
             <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
                 <div class="space-y-1">
-                    <label class="text-sm font-medium text-gray-700">Tanggal</label>
+                    <label for="date-target" class="text-sm font-medium text-gray-700">Tanggal</label>
                     <input type="date" id="date-target" value="{{ $dateNowYMD ?? '' }}"
                         class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-sm font-medium text-gray-700">Status</label>
+                    <label for="filter-status" class="text-sm font-medium text-gray-700">Status</label>
                     <select id="filter-status"
                         class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                         <option value="" selected>Semua Status</option>
@@ -93,7 +93,7 @@
                 </div>
 
                 <div class="space-y-1">
-                    <label class="text-sm font-medium text-gray-700">Shift</label>
+                    <label for="filter-shift" class="text-sm font-medium text-gray-700">Shift</label>
                     <select id="filter-shift"
                         class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                         <option value="" selected>Semua Shift</option>
@@ -108,7 +108,7 @@
 
         <!-- Bagian Dropdown Kantor -->
         <div class="flex-grow space-y-1">
-            <label class="text-sm font-medium text-gray-700">Kantor</label>
+            <label for="filter-office" class="text-sm font-medium text-gray-700">Kantor</label>
             <select id="filter-office"
                 class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
                 <option value="" selected>Semua Kantor</option>
@@ -212,10 +212,7 @@
                                     </a>
                                 </td>
                                 <td class="p-4">
-                                    <span class="px-3 py-1.5 rounded-full text-white text-xs font-semibold
-                                                    @if($presensi->attd_status_id == 2) bg-green-500
-                                                    @elseif($presensi->attd_status_id == 3) bg-yellow-500
-                                                    @else bg-red-500 @endif">
+                                    <span class="px-3 py-1.5 rounded-full text-white text-xs font-semibold {{ $presensi->attd_status_id == 2 ? 'bg-green-500' : ($presensi->attd_status_id == 3 ? 'bg-yellow-500' : 'bg-red-500') }}">
                                         {{ optional($presensi->attdStatus)->name ?? 'N/A' }}
                                     </span>
                                 </td>

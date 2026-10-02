@@ -13,15 +13,18 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 
-class AuthController extends Controller {
-    protected $userService;
-    protected $schoolService;
+class AuthController extends Controller
+{
+    protected UserService $userService;
+    protected SchoolService $schoolService;
 
-    public function __construct(UserService $userService, SchoolService $schoolService) {
+    public function __construct(UserService $userService, SchoolService $schoolService)
+    {
         $this->userService = $userService;
         $this->schoolService = $schoolService;
     }
-    public function registerView(): View {
+    public function registerView(): View
+    {
         $listSchool = $this->schoolService->getAllSchool();
 
         $data = [];
@@ -34,7 +37,8 @@ class AuthController extends Controller {
 
 
 
-    public function insertUser(UserRequest $request) {
+    public function insertUser(UserRequest $request)
+    {
         $userData = $request->validated();
 
         $result =  $this->userService->createUser($userData);
@@ -57,7 +61,8 @@ class AuthController extends Controller {
         return view("register")->with($data);
     }
 
-    public function loginView(): View|\Illuminate\Http\RedirectResponse {
+    public function loginView(): View|\Illuminate\Http\RedirectResponse
+    {
         if (Auth::check()) {
             $roleId = (int) Auth::user()->role_id;
             return match ($roleId) {
@@ -72,7 +77,8 @@ class AuthController extends Controller {
         return view("login");
     }
 
-    public function loginAction(LoginRequest $request) {
+    public function loginAction(LoginRequest $request)
+    {
         $reqData = $request->validated();
 
         $deviceToken = $request->cookie('device_token');
@@ -144,7 +150,8 @@ class AuthController extends Controller {
         }
     }
 
-    public function logoutAction(Request $request) {
+    public function logoutAction(Request $request)
+    {
         $currentUser = Auth::user();
         if ($currentUser) {
             \App\Helper\ActivityLogger::log(
@@ -164,12 +171,14 @@ class AuthController extends Controller {
         return redirect()->route("login.view")->with('success', 'Anda berhasil keluar halaman.');
     }
 
-    public function forgetPasswordView() {
+    public function forgetPasswordView()
+    {
 
         return view("forgot_password");
     }
 
-    public function forgetPasswordAction(Request $request) {
+    public function forgetPasswordAction(Request $request)
+    {
         $result = $this->userService->forgetPassRequest($request);
         if ($result->isSuccess()) {
             return redirect()->route("notif.success.view");
@@ -177,15 +186,18 @@ class AuthController extends Controller {
         return redirect()->back();
     }
 
-    public function validationOptView() {
+    public function validationOptView()
+    {
         return view('verif');
     }
 
-    public function changePasswordView($jwt) {
+    public function changePasswordView(string $jwt)
+    {
         return view("reset-pass-page")->with(["key" => $jwt]);
     }
 
-    public function changePasswordAction(Request $request,  $jwt) {
+    public function changePasswordAction(Request $request, string $jwt)
+    {
 
         $result = $this->userService->changePassword($request, $jwt);
         if ($result->isSuccess()) {
@@ -194,7 +206,8 @@ class AuthController extends Controller {
         return redirect()->back();
     }
 
-    public function successView() {
+    public function successView()
+    {
         return view("success-page");
     }
     protected function redirectTo()

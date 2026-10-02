@@ -19,6 +19,7 @@ class StoreOfficeRequest extends FormRequest {
             'namaKantor' => 'required|string|max:255',
             'alamatKantor' => 'required|string|max:1000',
             'kapasitasKantor' => 'required|integer|min:1',
+            'radius' => 'nullable|numeric|min:5|max:1000',
             'latitudeoffice' => 'required|string|max:255',
             'longitudeoffice' => 'required|string|max:255',
             'latitulefttop' => 'required|string|max:255',

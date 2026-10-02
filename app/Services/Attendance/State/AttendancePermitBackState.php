@@ -60,7 +60,7 @@ class AttendancePermitBackState implements AttendanceState {
         $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
 
 
-        $adjustableTimeData = $this->adjustableAttdRepository->getByScheduleIdAndDate($detailSchedule->schedule_id, $now);
+        $adjustableTimeData = $this->adjustableAttdRepository->getByScheduleIdAndDate($detailSchedule->id, $now);
         $isTakeChangeTimeInBreak = false;
 
 

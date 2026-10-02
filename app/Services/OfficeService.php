@@ -38,6 +38,9 @@ class OfficeService
             $data['name'] = $data['namaKantor'];
             $data['address'] = $data['alamatKantor'];
             $data['capacity'] = $data['kapasitasKantor'];
+            if (isset($data['radius'])) {
+                $data['radius'] = (int) $data['radius'];
+            }
 
             $result = $this->officeRepository->create($data);
 
@@ -79,6 +82,9 @@ class OfficeService
             $data['name'] = $data['namaKantor'];
             $data['address'] = $data['alamatKantor'];
             $data['capacity'] = $data['kapasitasKantor'];
+            if (isset($data['radius'])) {
+                $data['radius'] = (int) $data['radius'];
+            }
 
             // Update office data
             $result = $this->officeRepository->update($id, $data);

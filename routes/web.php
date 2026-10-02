@@ -39,10 +39,13 @@ use App\Http\Controllers\LateAbsenceController;
 use App\Http\Controllers\ProjectCompletedController;
 use App\Http\Controllers\AdminPermitSakitController;
 use App\Http\Controllers\AdminPermitKeperluanController;
+use App\Http\Controllers\AdminChangeTimeController;
+use App\Http\Controllers\ChangeTimeRegistrationController;
 use App\Http\Controllers\OfflineAttendanceController;
 use App\Http\Controllers\SettingMeetController;
 use App\Http\Controllers\SuperAdmin\AdminManagementController;
 use App\Http\Controllers\SuperAdmin\SystemActivityLogController;
+use App\Http\Controllers\SuperAdmin\AppSettingsController;
 use App\Services\UserService;
 
 /*
@@ -54,11 +57,17 @@ use App\Services\UserService;
 
 
 
-// Platform Check
+// Platform Check & CSRF Refresh Endpoint
 Route::get('/platform-check', function () {
     $agent = new Agent();
     return ['platform' => $agent->platform(), 'browser' => $agent->browser()];
 })->name('platform-check');
+
+Route::get('/csrf-token', function () {
+    return response()->json([
+        'csrf_token' => csrf_token(),
+    ]);
+})->name('csrf.token');
 
 // Route::post('/login') dihapus — method 'login' tidak ada di AuthController.
 // Login form submission menggunakan route 'login.action' (POST /loginAction).
@@ -97,6 +106,8 @@ Route::prefix('user')->middleware('role:3')->group(function () {
         Route::post('/projects/{id}/repository', 'updateProjectRepository')->name('user.projects.repository.update');
         Route::post('/projects/{id}/revision-note', 'updateProjectRevisionNote')->name('user.projects.revision.update');
         Route::post('/broadcast/{broadcast}/report', 'submitBroadcastReport')->name('user.broadcast.report');
+        Route::post('/scheduled-broadcasts/reports/{report}/reply', [\App\Http\Controllers\ScheduledBroadcastController::class, 'replyFollowUp'])->name('user.scheduled-broadcasts.reply-follow-up');
+        Route::post('/auto-end-notify/dismiss/{id}', 'dismissAutoEndPopup')->name('user.autoEnd.dismiss');
     });
 
     Route::controller(AttendanceController::class)->group(function () {
@@ -132,9 +143,10 @@ Route::prefix('user')->middleware('role:3')->group(function () {
         Route::get('/prayer/history/{intern}', 'prayerHistoryDetail')->name('hr.prayer.history.detail');
     });
 
-    Route::controller(ScheduleController::class)->group(function () {
-        Route::get('/ganti-jam', 'showChangeTimePage')->name('user.change-time.index');
-    });
+    Route::get('/ganti-jam', [UserController::class, 'attendanceChangeView'])->name('user.change-time.index');
+    Route::post('/change-time/register', [ChangeTimeRegistrationController::class, 'store'])->name('user.change-time.register');
+    Route::post('/change-time/cancel/{id}', [ChangeTimeRegistrationController::class, 'cancel'])->name('user.change-time.cancel');
+    Route::post('/change-time/notes/{id}/reply', [ChangeTimeRegistrationController::class, 'replyNote'])->name('user.change-time.reply-note');
 });
 
 // Admin Routes
@@ -143,7 +155,10 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
     Route::controller(AdminController::class)->group(function () {
         Route::get('/home', 'homeView')->name('admin.home');
         Route::get('/report', 'reportView')->name('admin.report');
-        Route::get('/presensi-otomatis', 'tabelView')->name('admin.tabel-view');
+        Route::get('/pulang-otomatis', 'pulangOtomatisView')->name('admin.pulang-otomatis.index');
+        Route::get('/presensi-otomatis', 'pulangOtomatisView')->name('admin.tabel-view');
+        Route::post('/pulang-otomatis/confirm/{id}', 'confirmPulangOtomatis')->name('admin.pulang-otomatis.confirm');
+        Route::post('/pulang-otomatis/bulk-confirm', 'bulkConfirmPulangOtomatis')->name('admin.pulang-otomatis.bulk-confirm');
         Route::get('/report/download', 'reportDownload')->name('admin.download-report');
         Route::get('/presence', 'presenceView')->name('admin.presence');
         Route::get('/presence/detail/{intern_id}', 'prensenceDetailView')->name('admin.presence.detail');
@@ -161,13 +176,13 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('/attendance/updateStatus/{id}', 'updateStatus')->name('attendance.updateStatus');
         Route::post('/attendance/delete/{id}', 'delete')->name('attendance.delete');
 
-        // Ubah route untuk mendukung metode DELETE
-        Route::delete('/adjustable-attendance/delete/{id}', 'deleteAdjustableAttendance')->name('adjustable-attendance.delete');
-        Route::post('/adjustable-attendance/restore/{id}', 'restoreAdjustableAttendance')->name('adjustable-attendance.restore');
+        // Route untuk delete, restore, dan update-status adjustable attendance (dukung POST & DELETE/PUT)
+        Route::match(['post', 'delete'], '/adjustable-attendance/delete/{id}', 'deleteAdjustableAttendance')->name('adjustable-attendance.delete');
+        Route::match(['post', 'put'], '/adjustable-attendance/restore/{id}', 'restoreAdjustableAttendance')->name('adjustable-attendance.restore');
 
         Route::post('/attendance/reset/{id}', 'reset')->name('attendance.reset');
         Route::post('/attendance/updatestatusattd/{id}', 'updatestatusattd')->name('attendance.updatestatusattd');
-        Route::post('/adjustable-attendance/update-status/{id}', 'updateStatusAdjustable')->name('attendance.updateStatusAdjustable');
+        Route::match(['post', 'put'], '/adjustable-attendance/update-status/{id}', 'updateStatusAdjustable')->name('attendance.updateStatusAdjustable');
         Route::post('/add-permit-reason', 'addPermitPresenceadmin')->name('attendance.addPermitPresenceadmin');
         Route::post('/update-permit-reason', 'updatePermitPresence')->name('attendance.updatePermitPresence');
         Route::get('/presence/location/user', 'locationUser')->name('location.user.view');
@@ -181,6 +196,7 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('/attendance/notify-permit/bulk', 'sendBulkPermitNotifications')->name('admin.attendance.notify.permit.bulk');
         Route::post('/attendance/notify-permit/{id}', 'sendPermitNotification')->name('admin.attendance.notify.permit');
         Route::post('/attendance/toilet/return', 'returnFromToilet')->name('attendance.toilet.return')->middleware('auth');
+        Route::post('/presence/remote-permit', 'remoteActivatePermit')->name('admin.presence.remote-permit');
         Route::get('/detail-auto-attendance/{id}', 'detailAutoAttendance')->name('admin.detail.autoAttd');
         Route::get('/api/attendance/detail', 'getDetail');
         Route::get('/attendance/detail', [AttendanceController::class, 'attendanceDetailAdmin']);
@@ -193,6 +209,7 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::delete('/absen-offline/{id}', 'destroy')->name('admin.absen-offline.destroy');
         Route::get('/absen-offline/status/{internId}', 'getInternStatus')->name('admin.absen-offline.status');
         Route::post('/absen-offline/{id}/penalty', 'storePenalty')->name('admin.absen-offline.penalty');
+        Route::post('/absen-offline/{id}/confirm-permit', 'confirmPermit')->name('admin.absen-offline.confirm-permit');
     });
 
     Route::controller(ShiftController::class)->group(function () {
@@ -245,6 +262,27 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/izin-toilet/history/{intern}', 'toiletHistoryDetail')->name('admin.toilet.history.detail');
     });
 
+    // Persetujuan Sesi Ganti Jam
+    Route::controller(AdminChangeTimeController::class)->group(function () {
+        Route::get('/persetujuan-ganti-jam', 'index')->name('admin.ganti-jam.index');
+        Route::post('/persetujuan-ganti-jam/{id}/approve', 'approve')->name('admin.ganti-jam.approve');
+        Route::post('/persetujuan-ganti-jam/{id}/reject', 'reject')->name('admin.ganti-jam.reject');
+        Route::post('/persetujuan-ganti-jam/{id}/update-time', 'updateTime')->name('admin.ganti-jam.updateTime');
+        Route::post('/persetujuan-ganti-jam/{id}/send-note', 'sendSessionNote')->name('admin.ganti-jam.sessions.send-note');
+        Route::post('/persetujuan-ganti-jam/{id}/mark-read', 'markSessionNotesRead')->name('admin.ganti-jam.sessions.mark-read');
+        Route::get('/persetujuan-ganti-jam/unread-chats', 'getUnreadChats')->name('admin.ganti-jam.unread-chats');
+        Route::delete('/persetujuan-ganti-jam/{id}', 'destroy')->name('admin.ganti-jam.destroy');
+    });
+
+    // Approval & Manajemen Pra-Pendaftaran Ganti Jam
+    Route::controller(ChangeTimeRegistrationController::class)->group(function () {
+        Route::post('/ganti-jam/registrations/{id}/approve', 'adminApprove')->name('admin.ganti-jam.registrations.approve');
+        Route::post('/ganti-jam/registrations/{id}/reject', 'adminReject')->name('admin.ganti-jam.registrations.reject');
+        Route::post('/ganti-jam/registrations/{id}/send-note', 'sendNote')->name('admin.ganti-jam.registrations.send-note');
+        Route::post('/ganti-jam/registrations/{id}/mark-read', 'markAsRead')->name('admin.ganti-jam.registrations.mark-read');
+        Route::delete('/ganti-jam/registrations/{id}', 'adminDestroy')->name('admin.ganti-jam.registrations.destroy');
+    });
+
     Route::name('admin.')->group(function () {
         Route::resource('outsiders', OutsiderController::class)->parameters(['outsiders' => 'user']);
         Route::patch('/outsiders/{user}/toggle-status', [OutsiderController::class, 'toggleStatus'])->name('outsiders.toggle-status');
@@ -262,6 +300,7 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/raise-hand/count-enhanced', 'getEnhancedCount')->name('admin.raiseHand.count-enhanced');
         Route::post('/raise-hand/{id}/quick-resolve', 'quickResolve')->name('admin.raiseHand.quick-resolve');
         Route::get('/raise-hand/poll-notifications', 'pollNotifications')->name('admin.raiseHand.poll-notifications');
+        Route::get('/raise-hand/{id}/messages', 'getMessages')->name('admin.raiseHand.messages');
         Route::get('/api/raise-hand/latest', [HandRaiseController::class, 'latest']);
     });
 
@@ -336,6 +375,8 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::delete('/quotes/{id}', 'deleteQuote')->name('quotes.delete');
             Route::get('/izin', 'managePermitSettingsView')->name('admin.pengaturan.izin.view');
             Route::post('/izin', 'updatePermitSettings')->name('admin.pengaturan.izin.update');
+            Route::get('/ganti-jam', 'changeTimeSettingsView')->name('admin.pengaturan.ganti-jam.view');
+            Route::post('/ganti-jam', 'updateChangeTimeSettings')->name('admin.pengaturan.ganti-jam.update');
         });
 
         Route::controller(SettingProjectController::class)->group(function () {
@@ -406,6 +447,15 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
 
         Route::post('/checkin-message', [SettingController::class, 'updateCheckinMessages'])
             ->name('admin.pengaturan.checkin-message.update');
+
+        Route::get('/manage-popup', [SettingController::class, 'managePopupSettingsView'])
+            ->name('admin.pengaturan.popup');
+
+        Route::post('/manage-popup', [SettingController::class, 'updatePopupSettings'])
+            ->name('admin.pengaturan.popup.update');
+
+        Route::post('/manage-popup/reset', [SettingController::class, 'resetPopupSettings'])
+            ->name('admin.pengaturan.popup.reset');
     });
 
     // Pengumuman Dashboard (Announcement)
@@ -422,6 +472,8 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('/', 'store')->name('admin.scheduled-broadcasts.store');
         Route::delete('/{broadcast}', 'destroy')->name('admin.scheduled-broadcasts.destroy');
         Route::get('/{broadcast}/reports', 'showReports')->name('admin.scheduled-broadcasts.reports');
+        Route::get('/reports/{report}/chats', 'getReportChats')->name('admin.scheduled-broadcasts.report-chats');
+        Route::post('/reports/{report}/follow-up', 'sendFollowUp')->name('admin.scheduled-broadcasts.send-follow-up');
     });
 
     // Super Admin Exclusives (Role 7)
@@ -440,6 +492,14 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::get('/', 'index')->name('index');
             Route::get('/export-csv', 'exportCsv')->name('export');
             Route::delete('/clear', 'clearOldLogs')->name('clear');
+        });
+
+        // Manage Aplikasi & Tampilan (Logo, Favicon, Banner, Login Bg)
+        Route::controller(AppSettingsController::class)->prefix('app-settings')->name('app-settings.')->group(function () {
+            Route::get('/', 'index')->name('index');
+            Route::post('/', 'update')->name('update');
+            Route::delete('/reset/{type}', 'resetImage')->name('reset');
+            Route::delete('/banner-slides/{index}', 'deleteBannerSlide')->name('delete-banner-slide');
         });
     });
 });
@@ -487,7 +547,6 @@ Route::middleware(['auth', 'role:6'])->prefix('assistant-admin')->name('assistan
         Route::post('/absen-offline', 'store')->name('absen-offline.store');
         Route::delete('/absen-offline/{id}', 'destroy')->name('absen-offline.destroy');
         Route::get('/absen-offline/status/{internId}', 'getInternStatus')->name('absen-offline.status');
-        Route::post('/absen-offline/{id}/penalty', 'storePenalty')->name('absen-offline.penalty');
     });
 });
 

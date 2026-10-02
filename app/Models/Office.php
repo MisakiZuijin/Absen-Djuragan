@@ -16,6 +16,7 @@ class Office extends Model {
         "name",
         "address",
         "capacity",
+        "radius",
         "sop_url",
         "rules_url",
         "rules_description",
@@ -31,5 +32,23 @@ class Office extends Model {
     public function coordinate()
     {
         return $this->hasOne(Coordinate::class);
+    }
+
+    public function getRadiusAttribute(): int
+    {
+        if (isset($this->attributes['radius']) && (int) $this->attributes['radius'] > 0) {
+            return (int) $this->attributes['radius'];
+        }
+
+        $main = $this->coordinates?->firstWhere('is_main', 1) ?? $this->coordinates?->first();
+        $bound = $this->coordinates?->firstWhere('is_main', 0) ?? $this->coordinates?->skip(1)->first();
+
+        if ($main && $bound) {
+            $latDiff = abs((float) $bound->latitude - (float) $main->latitude);
+            $calcRadius = (int) round(($latDiff * (M_PI / 180)) * 6371000);
+            return max(5, $calcRadius);
+        }
+
+        return 25;
     }
 }

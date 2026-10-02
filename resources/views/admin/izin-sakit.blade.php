@@ -51,11 +51,11 @@
     @endif
 
     <!-- Summary Metric Cards -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <!-- Card 1: Total Sakit -->
+    <div class="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+        <!-- Card 1: Total Sakit (period-scoped) -->
         <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Total Izin Sakit</span>
+                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Izin Sakit</span>
                 <span class="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
                     <i class="fa-solid fa-hospital-user text-sm"></i>
                 </span>
@@ -64,23 +64,12 @@
                 <span class="text-2xl md:text-3xl font-bold text-slate-800">{{ $totalSakit }}</span>
                 <span class="text-xs text-slate-400">pengajuan</span>
             </div>
-        </div>
-
-        <!-- Card 2: Sakit Hari Ini -->
-        <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
-            <div class="flex items-center justify-between">
-                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Sakit Hari Ini</span>
-                <span class="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                    <i class="fa-solid fa-calendar-day text-sm"></i>
-                </span>
-            </div>
-            <div class="mt-3 flex items-baseline gap-2">
-                <span class="text-2xl md:text-3xl font-bold text-blue-600">{{ $todaySakit }}</span>
-                <span class="text-xs text-slate-400">pemagang</span>
+            <div class="mt-1.5 text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                <i class="fa-solid fa-filter mr-0.5"></i> {{ $periodLabel }}
             </div>
         </div>
 
-        <!-- Card 3: Lunas / Bebas Jam -->
+        <!-- Card 2: Lunas / Bebas Jam (period-scoped) -->
         <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Bebas Ganti Jam</span>
@@ -92,9 +81,12 @@
                 <span class="text-2xl md:text-3xl font-bold text-teal-600">{{ $lunasCount }}</span>
                 <span class="text-xs text-slate-400">lunas</span>
             </div>
+            <div class="mt-1.5 text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                <i class="fa-solid fa-filter mr-0.5"></i> {{ $periodLabel }}
+            </div>
         </div>
 
-        <!-- Card 4: Menunggu Verifikasi -->
+        <!-- Card 3: Menunggu Verifikasi (period-scoped) -->
         <div class="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/80 shadow-sm hover:shadow transition-shadow">
             <div class="flex items-center justify-between">
                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Menunggu ACC</span>
@@ -105,6 +97,9 @@
             <div class="mt-3 flex items-baseline gap-2">
                 <span class="text-2xl md:text-3xl font-bold text-amber-600">{{ $pendingCount }}</span>
                 <span class="text-xs text-slate-400">perlu dicek</span>
+            </div>
+            <div class="mt-1.5 text-[10px] text-slate-400 font-medium uppercase tracking-wide">
+                <i class="fa-solid fa-filter mr-0.5"></i> {{ $periodLabel }}
             </div>
         </div>
     </div>

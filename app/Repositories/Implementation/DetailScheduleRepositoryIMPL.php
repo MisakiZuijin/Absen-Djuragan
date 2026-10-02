@@ -73,13 +73,13 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
     public function findByInternIdAndMonth(int $internId, int $month)
     {
         return $this->model
-            ->select('detail_schedules.*')
             ->with(['shift', 'attdStatus', 'attendance.permitLogs'])
-            ->join("schedules", "schedules.id", '=', 'detail_schedules.schedule_id')
-            ->join("attendances", "attendances.id", '=', 'detail_schedules.attendance_id')
-            ->whereMonth('detail_schedules.date', $month)
-            ->where('schedules.intern_id', $internId)
-            ->whereDate('detail_schedules.date', '<', now())
+            ->whereHas('schedule', function ($query) use ($internId) {
+                $query->where('intern_id', $internId);
+            })
+            ->whereMonth('date', $month)
+            ->whereDate('date', '<', now())
+            ->orderBy('date', 'asc')
             ->get();
     }
 
@@ -88,21 +88,20 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
         $carbonDate = \Carbon\Carbon::parse($date);
 
         if ($carbonDate->isSunday()) {
-            $startDate = $carbonDate->copy()->addWeek()->startOfWeek();
-            $endDate = $carbonDate->copy()->addWeek()->endOfWeek();
+            $startDate = $carbonDate->copy()->addWeek()->startOfWeek()->toDateString();
+            $endDate = $carbonDate->copy()->addWeek()->endOfWeek()->toDateString();
         } else {
-            $startDate = $carbonDate->copy()->startOfWeek();
-            $endDate = $carbonDate->copy()->endOfWeek();
+            $startDate = $carbonDate->copy()->startOfWeek()->toDateString();
+            $endDate = $carbonDate->copy()->endOfWeek()->toDateString();
         }
 
         return $this->model
-            ->select('detail_schedules.*')
             ->with(['shift', 'attdStatus', 'attendance.permitLogs', 'schedule'])
-            ->join("schedules", "schedules.id", '=', 'detail_schedules.schedule_id')
-            ->join("attendances", "attendances.id", '=', 'detail_schedules.attendance_id')
-            ->whereBetween("detail_schedules.date", [$startDate, $endDate])
-            ->where('schedules.intern_id', $internId)
-            ->orderBy('detail_schedules.date', 'asc')
+            ->whereHas('schedule', function ($query) use ($internId) {
+                $query->where('intern_id', $internId);
+            })
+            ->whereBetween("date", [$startDate, $endDate])
+            ->orderBy('date', 'asc')
             ->get();
     }
 

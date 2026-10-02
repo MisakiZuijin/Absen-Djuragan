@@ -20,47 +20,47 @@ class DateNow
 
     public static function getCurrentDate($format = "d-m-Y")
     {
-        return date($format);
+        return Carbon::now('Asia/Jakarta')->format($format);
     }
 
     public static function getCurrentDateYMD($format = "Y-m-d")
     {
-        return date($format);
+        return Carbon::now('Asia/Jakarta')->format($format);
     }
 
     public static function getCurrentDay($inIndonesian = true)
     {
-        $day = date('w');
+        $day = (int) Carbon::now('Asia/Jakarta')->format('w');
         return $inIndonesian ? self::$daysIndonesian[$day] : $day;
     }
 
 
     public static function getDayIndex()
     {
-        return date('w');
+        return (int) Carbon::now('Asia/Jakarta')->format('w');
     }
 
 
     public static function getCurrentMonth($format = "F")
     {
-        return date($format);
+        return Carbon::now('Asia/Jakarta')->format($format);
     }
 
 
     public static function getCurrentYear($format = "Y")
     {
-        return date($format);
+        return Carbon::now('Asia/Jakarta')->format($format);
     }
 
     public static function getCurrentTime($format = "H:i:s")
     {
-        return date($format);
+        return Carbon::now('Asia/Jakarta')->format($format);
     }
 
 
     public static function getCurrentTimestamp()
     {
-        return time();
+        return Carbon::now('Asia/Jakarta')->timestamp;
     }
 
     public static function getDifferentInMinute(string $startTime, string $endTime)
@@ -91,9 +91,9 @@ class DateNow
         return $backTime >= $shouldBack;
     }
 
-    public static function getLastHour(string $time, int $timeDistance = 60)
+    public static function getLastHour(string $time, int $timeDistance = 30)
     {
-        $lastTime = strtotime($time) - (60 * 60);
+        $lastTime = strtotime($time) - ($timeDistance * 60);
         $result =  date("H:i:s", $lastTime);
 
         return $result;

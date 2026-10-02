@@ -29,19 +29,36 @@ class AdjustableOutState implements AttendanceState {
     public function handle(AttendanceDTO $data): ActionResult {
         try {
              $adjustableId = $data->getAdjustableId();
+            $user = \Illuminate\Support\Facades\Auth::user();
+            $internId = $user?->intern?->id;
 
-            if (!$adjustableId || $adjustableId <= 0) {
-                return new ActionResult(false, "ID adjustable tidak valid", null);
+            $adjustableOld = null;
+            if ($adjustableId && $adjustableId > 0) {
+                try {
+                    $adjustableOld = $this->adjustableAttdRepository->getById($adjustableId);
+                } catch (\Throwable $e) {
+                    $adjustableOld = null;
+                }
             }
 
-            $timeNow = $data->getTimeNow();
-            $scheduleId = $data->getScheduleId();
-            $detailScheduleId = $data->getDetailSchedule();
+            if (!$adjustableOld && $internId) {
+                $adjustableOld = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                    ->whereNotNull('start_time')
+                    ->whereNull('end_time')
+                    ->latest('id')
+                    ->first();
+                if ($adjustableOld) {
+                    $adjustableId = $adjustableOld->id;
+                }
+            }
 
-            $adjustableOld = $this->adjustableAttdRepository->getByid($data->getAdjustableId());
             if (!$adjustableOld) {
-                return new ActionResult(false, "Data adjustable attendance tidak ditemukan");
+                return new ActionResult(false, "Sesi ganti jam aktif tidak ditemukan atau sudah selesai.", null);
             }
+
+            $timeNow = $data->getTimeNow() ?: DateNow::getCurrentTime();
+            $scheduleId = $data->getScheduleId() ?: ($adjustableOld->detailSchedule?->schedule_id ?? null);
+            $detailScheduleId = $data->getDetailSchedule() ?: $adjustableOld->detail_schedule_id;
 
             $user = \Illuminate\Support\Facades\Auth::user();
             $shift = $adjustableOld->detailSchedule?->shift ?? null;
@@ -62,6 +79,16 @@ class AdjustableOutState implements AttendanceState {
                 }
             }
 
+            // Target Detail Schedule (Jadwal target hutang yang diganti)
+            $targetDetailSchedule = null;
+            $targetDebtMinutes = 0;
+            if ($adjustableOld->detail_schedule_id) {
+                $targetDetailSchedule = \App\Models\DetailSchedule::with(['shift', 'attendance.permitLogs', 'permitReason.category', 'schedule'])->find($adjustableOld->detail_schedule_id);
+                if ($targetDetailSchedule) {
+                    $targetDebtMinutes = \App\Helper\TimeHelper::getScheduleTargetDebtMinutes($targetDetailSchedule, $adjustableOld->id);
+                }
+            }
+
             // Calculate total minutes, accounting for break time
             $totalMinutes = DateNow::getDifferentInMinute($adjustableOld->start_time, $timeNow);
             $breakMinutes = 0;
@@ -71,16 +98,25 @@ class AdjustableOutState implements AttendanceState {
                 $breakMinutes = DateNow::getDifferentInMinute($adjustableOld->break_time, $adjustableOld->back_time);
                 $totalMinutes -= $breakMinutes;
             }
+            $totalMinutes = max(0, $totalMinutes);
+
 
             $attData = [
                 "end_time" => $timeNow,
-                "total_min" => max(0, $totalMinutes), // Ensure non-negative
+                "total_min" => $totalMinutes,
+                "total_break_min" => $breakMinutes,
                 "end_time_message" => $data->getDescription(),
                 "latitude_end" => $data->getLatitude(),
                 "longitude_end" => $data->getLongitude(),
             ];
 
-            $adjustableData = $this->adjustableAttdRepository->update($data->getAdjustableId(), $attData);
+            $adjustableData = $this->adjustableAttdRepository->update($adjustableId, $attData);
+
+            // Jika hutang di target shift telah terselesaikan (lunas):
+            // Set waktu masuk dan pulang pada shift tersebut sesuai jam shift
+            if ($targetDetailSchedule && ($targetDebtMinutes <= 0 || $totalMinutes >= $targetDebtMinutes)) {
+                \App\Helper\TimeHelper::fulfillDebtScheduleAttendance($targetDetailSchedule, $adjustableOld->intern_id);
+            }
 
             // Handle attendance data - it might be null or have ID 0
             $attendanceData = null;
@@ -95,10 +131,17 @@ class AdjustableOutState implements AttendanceState {
 
             // Check if this is the last change time only if attendance data exists
             if ($attendanceData && $attendanceData->end_time) {
-                foreach ($allAdjustable as $item) {
-                    if ($item->start_time > $attendanceData->end_time) {
-                        $isLastChangeTime = true;
-                        break;
+                // Query all adjustable records for this detail schedule and date
+                $allAdjustable = $this->adjustableAttdRepository->getByScheduleIdAndDate(
+                    $adjustableOld->detail_schedule_id,
+                    $adjustableOld->date ?? date('Y-m-d')
+                );
+                if ($allAdjustable) {
+                    foreach ($allAdjustable as $item) {
+                        if ($item->start_time > $attendanceData->end_time) {
+                            $isLastChangeTime = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -118,11 +161,8 @@ class AdjustableOutState implements AttendanceState {
                 $nextStage = AttendanceStatus::AttendanceIn;
             }
 
-            // Send WhatsApp notification - Get user from adjustable data or detail schedule
-            $user = null;
-            if ($adjustableData && isset($adjustableData->detailSchedule)) {
-                $user = $adjustableData->detailSchedule->schedule->intern->user ?? null;
-            }
+            // Send WhatsApp notification - Get user from Auth or adjustable data
+            $user = \Illuminate\Support\Facades\Auth::user() ?: ($adjustableData?->detailSchedule?->schedule?->intern?->user ?? null);
 
             if ($user && $user->intern) {
                 $internName = $user->profile->full_name ?? 'Unknown';

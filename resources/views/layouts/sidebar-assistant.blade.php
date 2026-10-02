@@ -8,7 +8,7 @@
     <!-- Logo Header -->
     <div class="flex items-center justify-between md:justify-center px-6 py-5 md:py-6 border-b border-gray-800">
         <a href="{{ route('assistant.dashboard') }}" class="transition-transform duration-300 hover:scale-105">
-            <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="h-10">
+            <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="h-10 max-w-[180px] object-contain">
         </a>
         <button type="button" onclick="toggleAdminSidebar()" class="md:hidden text-gray-400 hover:text-white p-2 rounded-lg hover:bg-gray-800 focus:outline-none transition-colors" aria-label="Tutup Menu">
             <i class="fa-solid fa-times text-xl"></i>

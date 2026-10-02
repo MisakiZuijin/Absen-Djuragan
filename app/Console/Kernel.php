@@ -28,6 +28,7 @@ class Kernel extends ConsoleKernel {
                 updateMonitorConfig: false,
             );
         $schedule->command('attendance:update-status')->everyMinute();
+        $schedule->command('cleanup:completed-chats')->dailyAt('02:00');
     }
 
     /**

@@ -9,7 +9,8 @@ use Illuminate\Console\Command;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
-class AttendanceScheduler extends Command {
+class AttendanceScheduler extends Command
+{
     /**
      * The name and signature of the console command.
      *
@@ -24,11 +25,12 @@ class AttendanceScheduler extends Command {
      */
     protected $description = 'Schedule attendance based on shifts';
 
-    protected $shiftRepository;
-    protected $detailScheduleRepository;
-    protected $attendanceService;
+    protected ShiftRepository $shiftRepository;
+    protected DetailScheduleRepository $detailScheduleRepository;
+    protected AttendanceService $attendanceService;
 
-    public function __construct(DetailScheduleRepository $detailsScheduleRepository, ShiftRepository $shiftRepository, AttendanceService $attendanceService) {
+    public function __construct(DetailScheduleRepository $detailsScheduleRepository, ShiftRepository $shiftRepository, AttendanceService $attendanceService)
+    {
         parent::__construct();
         $this->shiftRepository = $shiftRepository;
         $this->attendanceService = $attendanceService;
@@ -38,7 +40,8 @@ class AttendanceScheduler extends Command {
     /**
      * Execute the console command.
      */
-    public function handle() {
+    public function handle()
+    {
 
         try {
             $now = Carbon::now();

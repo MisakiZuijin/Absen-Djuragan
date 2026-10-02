@@ -122,9 +122,18 @@ class ScheduleService
             $attendancesToInsert = [];
             $scheduleDatesMap = []; // date => shift_id
 
+            // Ambil seluruh tanggal hari libur yang terdaftar
+            $holidayDates = \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
+                ->toArray();
+
             while ($current_date <= $end_date) {
-                if ($current_date->format('N') != 7) {
-                    $dateStr = $current_date->format('Y-m-d');
+                $dateStr = $current_date->format('Y-m-d');
+                $isSunday = $current_date->format('N') == 7;
+                $isHoliday = in_array($dateStr, $holidayDates, true);
+
+                // Hari Minggu dan Hari Libur nasional tidak dibuatkan jadwal (libur)
+                if (!$isSunday && !$isHoliday) {
                     $attendancesToInsert[] = [
                         "date" => $dateStr,
                         "intern_id" => $internId

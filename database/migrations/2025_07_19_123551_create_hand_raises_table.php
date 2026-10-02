@@ -23,6 +23,7 @@ return new class extends Migration {
             $table->text('admin_response')->nullable();
             $table->timestamp('resolved_at')->nullable();
             $table->foreignId('resolved_by')->nullable()->constrained('users')->onDelete('set null');
+            $table->timestamp('notification_seen_at')->nullable();
             $table->boolean('is_raised')->default(false)->index();
             $table->timestamps();
         });

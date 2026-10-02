@@ -129,9 +129,9 @@
 
                     <!-- AREA KELOLA GAMBAR TEPAT WAKTU -->
                     <div class="border-t border-gray-100 pt-5">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
                             Kelola Gambar Popup <span class="text-gray-400 font-normal normal-case">(Opsional)</span>
-                        </label>
+                        </span>
 
                         @php
                             $onTimeImage = $messages['on_time']->image ?? null;
@@ -279,9 +279,9 @@
 
                     <!-- AREA KELOLA GAMBAR TERLAMBAT -->
                     <div class="border-t border-gray-100 pt-5">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
+                        <span class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">
                             Kelola Gambar Popup <span class="text-gray-400 font-normal normal-case">(Opsional)</span>
-                        </label>
+                        </span>
 
                         @php
                             $lateImage = $messages['late']->image ?? null;

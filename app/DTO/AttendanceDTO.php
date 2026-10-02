@@ -16,8 +16,9 @@ class AttendanceDTO {
     private ?int $scheduleId;
     private ?int $detailScheduleId;
     private int $totalChangeTime;
-
     private ?string $timeNow;
+    private ?int $shiftId;
+    private ?int $officeId;
 
     public function __construct(
         int $userId,
@@ -31,7 +32,9 @@ class AttendanceDTO {
         ?int $scheduleId = null,
         ?int $detailScheduleId = null,
         int $totalChangeTime = 0,
-        ?string $timeNow = null
+        ?string $timeNow = null,
+        ?int $shiftId = null,
+        ?int $officeId = null
     ) {
         $this->userId = $userId;
         $this->stage = $stage;
@@ -45,6 +48,8 @@ class AttendanceDTO {
         $this->detailScheduleId = $detailScheduleId;
         $this->totalChangeTime = $totalChangeTime;
         $this->timeNow = $timeNow;
+        $this->shiftId = $shiftId;
+        $this->officeId = $officeId;
     }
 
     // Getter for userId
@@ -108,7 +113,7 @@ class AttendanceDTO {
     }
 
     public function getTimeNow(): string {
-        return $this->timeNow;
+        return $this->timeNow ?: \App\Utils\DateNow::getCurrentTime();
     }
 
     // Di AttendanceDTO
@@ -125,8 +130,24 @@ class AttendanceDTO {
     }
 
     public function setAttendanceId(?int $attendanceId): void {
-    $this->attendanceId = $attendanceId;
-}
+        $this->attendanceId = $attendanceId;
+    }
+
+    public function getShiftId(): ?int {
+        return $this->shiftId;
+    }
+
+    public function setShiftId(?int $shiftId): void {
+        $this->shiftId = $shiftId;
+    }
+
+    public function getOfficeId(): ?int {
+        return $this->officeId;
+    }
+
+    public function setOfficeId(?int $officeId): void {
+        $this->officeId = $officeId;
+    }
 
     public function toArray(): array {
         return [

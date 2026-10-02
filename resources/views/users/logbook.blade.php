@@ -16,14 +16,14 @@
         </a>
 
         <div class="flex items-center gap-1.5 sm:gap-2 flex-nowrap overflow-x-auto pb-0.5 max-w-full">
-            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-2xs whitespace-nowrap shrink-0">
+            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-bold bg-indigo-100 text-indigo-800 border border-indigo-200 shadow-2xs whitespace-nowrap shrink-0">
                 <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
                 <span>Divisi: {{ $user->intern->division->name ?? 'Umum' }}</span>
             </span>
             @if($user->intern?->school)
-            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-[11px] sm:text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap shrink-0">
+            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap shrink-0">
                 <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5" />
                 </svg>
@@ -56,7 +56,7 @@
                     <i class="fa-regular fa-file-lines text-xl sm:text-2xl"></i>
                 </div>
                 <div>
-                    <div class="text-[11px] text-slate-300 font-medium">Hari Ini</div>
+                    <div class="text-xs text-slate-300 font-medium">Hari Ini</div>
                     <div class="text-xs sm:text-sm font-bold text-white">{{ \Carbon\Carbon::now()->locale('id')->isoFormat('dddd, D MMMM Y') }}</div>
                 </div>
             </div>
@@ -99,28 +99,18 @@
         <!-- Tab Navigation -->
         <div class="flex border-b border-gray-200 bg-gray-50 text-xs sm:text-sm font-medium">
             <button type="button" onclick="switchLogbookTab('tab-today')" id="btn-tab-today"
-                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-blue-600 text-blue-600 font-semibold focus:outline-none flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-colors cursor-pointer">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    <span>Isi Laporan Hari Ini</span>
-                </div>
-                @if($hasFilledLogToday)
-                <span class="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">Sudah Diisi</span>
-                @else
-                <span class="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold">Belum Diisi</span>
-                @endif
+                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-blue-600 text-blue-600 font-semibold focus:outline-none flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <span>Isi Laporan Hari Ini</span>
             </button>
             <button type="button" onclick="switchLogbookTab('tab-history')" id="btn-tab-history"
-                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-colors cursor-pointer">
-                <div class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span>Riwayat Logbook</span>
-                </div>
-                <span class="text-[10px] bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full font-bold">{{ count($logActivityHistory ?? []) }} hari</span>
+                class="logbook-tab-btn flex-1 py-3 sm:py-3.5 px-3 sm:px-5 text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 focus:outline-none flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer">
+                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Riwayat Logbook</span>
             </button>
         </div>
 
@@ -168,11 +158,16 @@
                 @if($hasFilledLogToday)
                 <!-- TAMPILAN JIKA SUDAH MENGISI LOGBOOK HARI INI -->
                 <div class="space-y-4">
+                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
+                        <span>Logbook hari ini sudah disimpan.</span>
+                    </div>
+
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <label class="block font-bold text-gray-700 text-xs sm:text-sm flex items-center gap-1.5">
+                        <span class="block font-bold text-gray-700 text-xs sm:text-sm flex items-center gap-1.5">
                             <i class="fa-solid fa-list-check text-blue-600"></i>
                             <span>Aktivitas yang Telah Dilaporkan:</span>
-                        </label>
+                        </span>
                         @if(($todaysLogActivity->status_id ?? 1) != 2)
                         <button type="button" onclick="toggleTodayEditMode()" id="btn-toggle-today-edit" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-blue-50/50 w-full sm:w-auto">
                             <i class="fa-solid fa-pen-to-square"></i>
@@ -192,9 +187,9 @@
                         @csrf
                         <input type="hidden" name="id" value="{{ $todaysLogActivity->id }}">
                         <div>
-                            <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-40 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
+                            <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
                                 id="today_edit_activity" name="activity" required>{{ $todaysLogActivity->activity ?? '' }}</textarea>
-                            <p class="text-[11px] text-gray-500 mt-1">Anda dapat memperbarui poin kegiatan sebelum admin/mentor menyetujui logbook ini.</p>
+                            <p class="text-xs text-gray-500 mt-1">Dapat diedit sebelum disetujui pembimbing.</p>
                         </div>
                         <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
                             <button type="button" onclick="toggleTodayEditMode()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition text-center">Batal</button>
@@ -204,16 +199,16 @@
                         </div>
                     </form>
                     @else
-                    <div class="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-base flex-shrink-0"></i>
-                        <span>Logbook hari ini sudah diverifikasi & disetujui oleh admin/mentor. Laporan sudah terkunci.</span>
+                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
+                        <span>Logbook hari ini sudah disetujui dan terkunci.</span>
                     </div>
                     @endif
 
                     <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-600 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-2">
                             <i class="fa-solid fa-circle-info text-blue-500 text-base flex-shrink-0"></i>
-                            <span>Ingin melihat seluruh riwayat logbook hari-hari sebelumnya?</span>
+                            <span>Ingin melihat riwayat logbook sebelumnya?</span>
                         </div>
                         <button type="button" onclick="switchLogbookTab('tab-history')" class="w-full sm:w-auto text-xs text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center gap-1.5 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-white shrink-0 shadow-sm cursor-pointer">
                             <i class="fa-solid fa-clock-rotate-left"></i> <span>Buka Riwayat Logbook &rarr;</span>
@@ -223,11 +218,9 @@
 
                 @else
                 <!-- FORM INPUT JIKA BELUM MENGISI HARI INI -->
-                <div class="p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-start gap-2.5">
-                    <i class="fa-solid fa-triangle-exclamation text-amber-600 text-base mt-0.5 flex-shrink-0"></i>
-                    <div>
-                        <span class="font-bold">Perhatian:</span> Pastikan mengisi dan menyimpan logbook aktivitas sebelum Anda menekan tombol <strong>Pulang</strong> presensi.
-                    </div>
+                <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 shrink-0"></i>
+                    <span><strong>Perhatian:</strong> Isi logbook sebelum presensi pulang.</span>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs text-gray-500 pt-1 pb-1">
@@ -243,9 +236,9 @@
                     <div>
                         <label class="block font-bold text-gray-700 text-xs sm:text-sm mb-1.5 flex items-center justify-between" for="activity">
                             <span>Rincian Aktivitas Hari Ini <span class="text-red-500">*</span></span>
-                            <span class="text-[11px] font-normal text-gray-400" id="char-count">0 karakter</span>
+                            <span class="text-xs font-normal text-gray-400" id="char-count">0 karakter</span>
                         </label>
-                        <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-44 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed"
+                        <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-44 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed"
                             id="activity" name="activity"
                             placeholder="Contoh:&#10;1. Mengerjakan implementasi integrasi API&#10;2. Melakukan code review dan perbaikan logic tugas&#10;3. Menyelesaikan testing dan dokumentasi progress harian" required></textarea>
                         <div id="activity-error" class="text-red-500 text-xs mt-1.5 hidden"></div>
@@ -274,7 +267,7 @@
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
                         <input type="text" id="search-logbook" placeholder="Cari tanggal atau rincian aktivitas..."
-                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
                     </div>
                     <div class="text-xs text-gray-500 flex items-center justify-between sm:justify-start gap-1">
                         <span>Total Catatan:</span>
@@ -309,7 +302,7 @@
                                 <td class="py-3.5 px-4 text-center text-xs text-gray-400 font-medium row-number">{{ $index + 1 }}</td>
                                 <td class="py-3.5 px-4 whitespace-nowrap text-xs">
                                     <div class="font-semibold text-gray-800">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('D MMMM Y') }}</div>
-                                    <div class="text-[11px] text-gray-500">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('dddd') }}</div>
+                                    <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('dddd') }}</div>
                                 </td>
                                 <td class="py-3.5 px-4 max-w-xs md:max-w-md">
                                     <p class="text-xs text-gray-700 whitespace-pre-line line-clamp-3 hover:line-clamp-none transition leading-relaxed">
@@ -317,7 +310,7 @@
                                     </p>
                                 </td>
                                 <td class="py-3.5 px-4 text-center whitespace-nowrap">
-                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border {{ $sBadge }}">
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border {{ $sBadge }}">
                                         {{ $history->status->name ?? 'Menunggu' }}
                                     </span>
                                 </td>
@@ -377,41 +370,41 @@
 
     </div>
 
-    <!-- SUB-MODAL: EDIT HISTORICAL LOGBOOK -->
-    <div id="modal-edit-historical-log" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[10000] p-4">
-        <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fadeIn">
-            <div class="flex justify-between items-center px-5 py-4 border-b bg-slate-800 text-white">
-                <div class="flex items-center gap-2">
-                    <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    <h3 class="font-bold text-base">Edit Rincian Logbook</h3>
-                </div>
-                <button type="button" onclick="closeInlineEditLog()" class="text-gray-300 hover:text-white text-xl font-bold leading-none">&times;</button>
-            </div>
-            <form id="historical-edit-form" action="{{ route('home.logActivity.update.action') }}" method="POST" class="p-5 space-y-4">
-                @csrf
-                <input type="hidden" id="historical_edit_id" name="id">
-                <div>
-                    <label class="block font-bold text-gray-700 text-xs mb-1.5" for="historical_edit_activity">
-                        Rincian Aktivitas <span class="text-red-500">*</span>
-                    </label>
-                    <textarea class="border border-gray-300 rounded-xl p-3 w-full h-36 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
-                        id="historical_edit_activity" name="activity" required></textarea>
-                    <p class="text-[11px] text-gray-500 mt-1">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan.</p>
-                </div>
-                <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-gray-100">
-                    <button type="button" onclick="closeInlineEditLog()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-xs font-medium transition text-center">
-                        Batal
-                    </button>
-                    <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-check"></i> Simpan Perubahan
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+</div>
 
+<!-- SUB-MODAL: EDIT HISTORICAL LOGBOOK -->
+<div id="modal-edit-historical-log" class="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[99999] p-4 m-0" style="margin: 0 !important;" onclick="if(event.target === this) closeInlineEditLog();">
+    <div class="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-fadeIn" onclick="event.stopPropagation();">
+        <div class="flex justify-between items-center px-5 py-4 border-b bg-slate-800 text-white">
+            <div class="flex items-center gap-2">
+                <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <h3 class="font-bold text-base">Edit Rincian Logbook</h3>
+            </div>
+            <button type="button" onclick="closeInlineEditLog()" class="text-gray-300 hover:text-white text-xl font-bold leading-none cursor-pointer">&times;</button>
+        </div>
+        <form id="historical-edit-form" action="{{ route('home.logActivity.update.action') }}" method="POST" class="p-5 space-y-4">
+            @csrf
+            <input type="hidden" id="historical_edit_id" name="id">
+            <div>
+                <label class="block font-bold text-gray-700 text-xs mb-1.5" for="historical_edit_activity">
+                    Rincian Aktivitas <span class="text-red-500">*</span>
+                </label>
+                <textarea class="border border-gray-300 rounded-xl p-3 w-full h-36 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
+                    id="historical_edit_activity" name="activity" required></textarea>
+                <p class="text-xs text-gray-500 mt-1">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan.</p>
+            </div>
+            <div class="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2 border-t border-gray-100">
+                <button type="button" onclick="closeInlineEditLog()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 text-xs font-medium transition text-center cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-blue-700 transition flex items-center justify-center gap-1 cursor-pointer shadow-sm">
+                    <i class="fa-solid fa-check"></i> Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -447,6 +440,13 @@
             editForm.removeClass('hidden');
             readonlyView.addClass('hidden');
             btnText.text('Tutup Edit');
+            setTimeout(() => {
+                const el = document.getElementById('today_edit_activity');
+                if (el) {
+                    el.focus();
+                    el.setSelectionRange(el.value.length, el.value.length);
+                }
+            }, 50);
         } else {
             editForm.addClass('hidden');
             readonlyView.removeClass('hidden');
@@ -465,6 +465,13 @@
         $('#historical_edit_id').val(id);
         $('#historical_edit_activity').val(act);
         $('#modal-edit-historical-log').removeClass('hidden').addClass('flex');
+        setTimeout(() => {
+            const el = document.getElementById('historical_edit_activity');
+            if (el) {
+                el.focus();
+                el.setSelectionRange(el.value.length, el.value.length);
+            }
+        }, 100);
     }
 
     function closeInlineEditLog() {

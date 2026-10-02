@@ -4,93 +4,105 @@
 
 @section('contents')
     <!-- Main Content -->
-    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
-        <div class="bg-gray-700 text-white p-4 sm:p-6 rounded-t-lg">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+    <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 pb-16 min-w-0">
+        <div class="bg-gray-700 text-white p-4 sm:p-6 rounded-t-2xl">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center">
                 <!-- Left Column -->
-                <div class="flex flex-col space-y-1 sm:space-y-4">
-                    <div class="text-2xl sm:text-4xl font-bold">Data Presensi</div>
-                    <div class="text-sm sm:text-lg" id="date-display">Data per tanggal {{ $dateNow ?? '' }}</div>
+                <div class="flex flex-col space-y-1">
+                    <div class="text-2xl sm:text-3xl font-bold">Data Presensi</div>
+                    <div class="text-xs sm:text-sm text-gray-300" id="date-display">Data per tanggal {{ $dateNow ?? '' }}</div>
                 </div>
 
                 <!-- Right Column -->
-                <div class="flex flex-col space-y-2">
-                    <label for="search-name" class="text-sm sm:text-lg font-medium">Cari Mahasiswa</label>
-                    <div class="flex items-center border border-gray-300 rounded">
-                        <div class="bg-white p-2 rounded-l">
-                            <i class="ml-2 fa-solid fa-search text-gray-500"></i>
+                <div class="flex flex-col space-y-1.5">
+                    <label for="search-name" class="text-xs sm:text-sm font-medium text-gray-200">Cari Mahasiswa</label>
+                    <div class="relative w-full">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-search text-xs"></i>
                         </div>
-
                         <input type="text" id="search-name"
-                            class="p-2 pl-3 pr-3 rounded-r text-gray-800 focus:outline-none focus:border-blue-500 w-full text-sm sm:text-base"
-                            placeholder="Masukkan nama mahasiswa">
+                            class="w-full pl-8 pr-3 py-2 bg-white rounded-xl text-gray-800 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-2xs"
+                            placeholder="Masukkan nama mahasiswa...">
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-2 bg-white rounded-b-lg shadow-sm border border-t-0 border-gray-200">
-            <!-- Left Side: Total Kehadiran -->
-            <div class="bg-white p-3.5 sm:p-6 rounded-lg">
-                <div class="text-base sm:text-xl font-bold mb-2">Total Kehadiran</div>
-                <hr class="mb-2 border-gray-300">
-                <div class="grid grid-cols-3 gap-1.5 sm:gap-4 mb-2 text-center sm:text-left">
-                    <div class="p-2 sm:p-0 bg-green-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
-                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Masuk</span>
-                        <span id="total_presence"
-                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-green-700 rounded-md sm:rounded-lg">0</span>
-                    </div>
-                    <div class="p-2 sm:p-0 bg-yellow-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
-                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Izin</span>
-                        <span id="total_permit"
-                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-yellow-600 rounded-md sm:rounded-lg">{{ $permitTotal ?? 0 }}</span>
-                    </div>
-                    <div class="p-2 sm:p-0 bg-red-50 sm:bg-transparent rounded-lg flex flex-col sm:flex-row items-center sm:justify-start gap-1">
-                        <span class="text-[11px] sm:text-sm font-medium text-gray-700">Alpha</span>
-                        <span id="total_absence"
-                            class="px-2 py-0.5 sm:px-3 sm:py-2 text-xs font-semibold text-center text-white bg-red-700 rounded-md sm:rounded-lg">{{ $absenceTotal ?? 0 }}</span>
+        <div class="bg-white rounded-b-2xl shadow-xs border border-t-0 border-gray-200 p-4 sm:p-5 space-y-4">
+            <!-- Baris 1: Total Kehadiran (Kiri) & Pemilihan Tanggal (Kanan) -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                <!-- Left: Total Kehadiran (Clean Minimalist White Card) -->
+                <div class="flex flex-col xs:flex-row sm:flex-row items-start sm:items-center gap-2 sm:gap-3">
+                    <span class="text-xs font-bold uppercase tracking-wider text-gray-500 shrink-0">
+                        Total Kehadiran:
+                    </span>
+                    <div class="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                        <!-- Masuk -->
+                        <div class="px-3 py-1.5 bg-white border border-gray-200 hover:border-emerald-300 rounded-xl flex items-center justify-center sm:justify-start gap-2 shadow-2xs transition">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="text-xs font-medium text-gray-600">Masuk</span>
+                            <span id="total_presence" class="text-xs font-black text-gray-900">0</span>
+                        </div>
+                        <!-- Izin -->
+                        <div class="px-3 py-1.5 bg-white border border-gray-200 hover:border-amber-300 rounded-xl flex items-center justify-center sm:justify-start gap-2 shadow-2xs transition">
+                            <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                            <span class="text-xs font-medium text-gray-600">Izin</span>
+                            <span id="total_permit" class="text-xs font-black text-gray-900">{{ $permitTotal ?? 0 }}</span>
+                        </div>
+                        <!-- Alpha -->
+                        <div class="px-3 py-1.5 bg-white border border-gray-200 hover:border-rose-300 rounded-xl flex items-center justify-center sm:justify-start gap-2 shadow-2xs transition">
+                            <span class="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
+                            <span class="text-xs font-medium text-gray-600">Alpha</span>
+                            <span id="total_absence" class="text-xs font-black text-gray-900">{{ $absenceTotal ?? 0 }}</span>
+                        </div>
                     </div>
                 </div>
-                <hr class="mb-2 border-gray-300">
+
+                <!-- Right: Date Input Target -->
+                <div class="relative w-full sm:w-52 shrink-0">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                        <i class="fas fa-calendar-alt text-xs"></i>
+                    </div>
+                    <input type="date" id="date-target" value="{{ $dateNowYMD ?? '' }}"
+                        class="w-full pl-8 pr-2.5 py-1.5 bg-gray-50 hover:bg-white border border-gray-300 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm font-semibold text-gray-800 focus:outline-none transition shadow-2xs">
+                </div>
             </div>
 
-            <!-- Right Side: Date Input and Filter -->
-            <div class="bg-white p-3.5 sm:pt-7 sm:pr-5 rounded-lg flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <div class="flex flex-col space-y-1 w-full sm:w-64">
-                    <div class="flex items-center border border-gray-800 rounded-md">
-                        <div class="bg-white p-2 rounded-l-md">
-                            <i class="fas fa-search text-gray-500"></i>
-                        </div>
-
-                        <input type="date" id="date-target" value="{{ $dateNowYMD ?? '' }}"
-                            class="p-2 pl-2 w-full text-left text-gray-800 rounded-r-md focus:outline-none focus:border-blue-500 text-sm">
+            <!-- Baris 2: Filter Status, Filter Shift, Filter Kantor (3 Kolom Sejajar Rapi) -->
+            <div class="pt-3 border-t border-gray-100">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    <!-- Filter Status -->
+                    <div class="relative w-full">
+                        <select id="filter-status"
+                            class="w-full px-3 py-2 bg-gray-50 hover:bg-white border border-gray-300 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm font-medium text-gray-800 focus:outline-none transition shadow-2xs cursor-pointer">
+                            <option value="" disabled selected>Filter Status</option>
+                            @foreach ($attd_statuses as $status)
+                                <option value="{{ $status->id }}">{{ $status->name }}</option>
+                            @endforeach
+                        </select>
                     </div>
-                </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                    <select id="filter-status"
-                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
-                        <option value="" disabled selected>Filter Status</option>
-                        @foreach ($attd_statuses as $status)
-                            <option value="{{ $status->id }}">{{ $status->name }}</option>
-                        @endforeach
-                    </select>
+                    <!-- Filter Shift -->
+                    <div class="relative w-full">
+                        <select id="filter-shift"
+                            class="w-full px-3 py-2 bg-gray-50 hover:bg-white border border-gray-300 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm font-medium text-gray-800 focus:outline-none transition shadow-2xs cursor-pointer">
+                            <option value="" disabled selected>Filter Shift</option>
+                            @foreach ($shifts as $shift)
+                                <option value="{{ $shift->id }}">{{ $shift->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
 
-                    <select id="filter-shift"
-                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
-                        <option value="" disabled selected>Filter Shift</option>
-                        @foreach ($shifts as $shift)
-                            <option value="{{ $shift->id }}">{{ $shift->name }}</option>
-                        @endforeach
-                    </select>
-
-                    <select id="filter-office"
-                        class="p-2 w-full sm:w-32 border border-gray-800 rounded-md focus:outline-none focus:border-blue-500 text-xs sm:text-sm">
-                        <option value="" disabled selected>Filter Kantor</option>
-                        @foreach ($office as $officeItem)
-                            <option value="{{ $officeItem->id }}">{{ $officeItem->name }}</option>
-                        @endforeach
-                    </select>
+                    <!-- Filter Kantor -->
+                    <div class="relative w-full">
+                        <select id="filter-office"
+                            class="w-full px-3 py-2 bg-gray-50 hover:bg-white border border-gray-300 focus:border-blue-500 focus:bg-white rounded-xl text-xs sm:text-sm font-medium text-gray-800 focus:outline-none transition shadow-2xs cursor-pointer">
+                            <option value="" disabled selected>Filter Kantor</option>
+                            @foreach ($office as $officeItem)
+                                <option value="{{ $officeItem->id }}">{{ $officeItem->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
                 </div>
             </div>
         </div>
@@ -268,6 +280,98 @@
                     Tutup
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal Aktivasi Izin Remote -->
+    <div id="remotePermitModal" class="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-xs p-4 hidden">
+        <div class="bg-white rounded-2xl overflow-hidden shadow-2xl max-w-md w-full mx-auto border border-slate-100 animate-in fade-in zoom-in duration-200">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4 text-white flex items-center justify-between">
+                <div class="flex items-center space-x-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base leading-tight">Aktivasi Izin Remote</h3>
+                        <p class="text-xs text-amber-100">Beri izin langsung untuk pemagang</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeRemotePermitModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <form id="remotePermitForm" action="{{ route('admin.presence.remote-permit') }}" method="POST" class="p-6 space-y-4">
+                @csrf
+                <input type="hidden" name="intern_id" id="remotePermitInternId">
+
+                <!-- Info Pemagang -->
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-3">
+                    <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                        <svg class="w-4 h-4 text-amber-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="text-[10px] font-bold text-amber-800 uppercase tracking-wider">Pemagang Target</div>
+                        <div class="text-sm font-bold text-slate-800 truncate" id="remotePermitInternName">---</div>
+                    </div>
+                </div>
+
+                <!-- Tipe Izin -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Pilih Tipe Izin</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <label id="remoteTypeLabel-leave" class="relative flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition border-amber-500 bg-amber-50/50">
+                            <input type="radio" name="type" value="leave" checked class="sr-only" onchange="updateRemotePermitType('leave')">
+                            <svg class="w-6 h-6 text-amber-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                            </svg>
+                            <span class="text-xs font-bold text-slate-800 text-center leading-tight">Keluar</span>
+                        </label>
+                        <label id="remoteTypeLabel-prayer" class="relative flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-white">
+                            <input type="radio" name="type" value="prayer" class="sr-only" onchange="updateRemotePermitType('prayer')">
+                            <svg class="w-6 h-6 text-emerald-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                            </svg>
+                            <span class="text-xs font-bold text-slate-800 text-center leading-tight">Shalat</span>
+                        </label>
+                        <label id="remoteTypeLabel-toilet" class="relative flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-white">
+                            <input type="radio" name="type" value="toilet" class="sr-only" onchange="updateRemotePermitType('toilet')">
+                            <svg class="w-6 h-6 text-blue-600 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                            </svg>
+                            <span class="text-xs font-bold text-slate-800 text-center leading-tight">Toilet</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Keterangan -->
+                <div>
+                    <label for="remotePermitDescription" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Keterangan / Alasan (Opsional)</label>
+                    <textarea name="description" id="remotePermitDescription" rows="2"
+                        placeholder="Contoh: Izin keluar mengurus keperluan..."
+                        class="w-full px-3.5 py-2 border border-slate-300 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                    <button type="button" onclick="closeRemotePermitModal()"
+                        class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
+                        Batal
+                    </button>
+                    <button type="submit" id="remotePermitSubmitBtn"
+                        class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                        </svg>
+                        <span>Aktifkan Izin Remote</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -461,20 +565,32 @@
                              <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="inline group ajax-form">
                                  @csrf
                                  <input type="hidden" name="status" value="2">
-                                 <button type="submit" class="bg-transparent border-none p-0">
+                                 <button type="submit" class="bg-transparent border-none p-0" title="Setujui Log Activity">
                                      <i class="fa-solid fa-check-circle ${status_id == 2 ? 'text-green-600' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
                                  </button>
                              </form>
                              <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="inline group ajax-form">
                                  @csrf
                                  <input type="hidden" name="status" value="3">
-                                 <button type="submit" class="bg-transparent border-none p-0">
+                                 <button type="submit" class="bg-transparent border-none p-0" title="Tolak Log Activity">
                                      <i class="fa-solid fa-xmark-circle ${status_id == 3 ? 'text-red-600' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
                                  </button>
                              </form>
                          `;
                 }
-                return logActivityIcons;
+
+                const escapedName = item.name ? escapeHtml(item.name).replace(/'/g, "\\'") : '';
+                const remotePermitBtn = `
+                    <button type="button" onclick="openRemotePermitModal('${item.intern_id}', '${escapedName}')" 
+                        class="p-1 rounded-md text-amber-600 hover:text-amber-800 hover:bg-amber-100 transition ml-1.5 cursor-pointer inline-flex items-center justify-center shrink-0"
+                        title="Aktivasi Izin Remote untuk ${escapedName}">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                `;
+
+                return `<div class="inline-flex items-center justify-center">${logActivityIcons}${remotePermitBtn}</div>`;
             }
 
             // Fungsi untuk mendapatkan status icons adjustable - DIPERBAIKI
@@ -554,8 +670,10 @@
                 let statusBadge = '';
                 const statusId = parseInt(attdStatus.id);
 
-                if (statusId === 1 || statusId === 2) {
+                if (statusId === 2) {
                     statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">Hadir</span>`;
+                } else if (statusId === 1) {
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">Dijadwalkan</span>`;
                 } else if (statusId === 3) {
                     const isSakit = (permitCategoryId == 1 || permitCategoryId == 2 || description.includes('sakit'));
                     if (isSakit) {
@@ -566,7 +684,7 @@
                 } else if (statusId === 5) {
                     statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">Alpha</span>`;
                 } else {
-                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">${attdStatus.name || '-'}</span>`;
+                    statusBadge = `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-600">${attdStatus.name || 'Dijadwalkan'}</span>`;
                 }
 
                 let notificationIcon = '';
@@ -685,9 +803,9 @@
                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name)}</td>
                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name)}</td>
                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance, item.name)}</td>
-                                                <td class="border-t text-center align-middle">${attendance.total_time || '0:00:00'}</td>
-                                                <td class="border-t text-center align-middle ${(attendance.target_time?.value || '').startsWith('-') ? 'text-red-600' : 'text-green-600'}">
-                                                    ${attendance.target_time?.value || '0:00:00'}
+                                                <td class="border-t text-center align-middle">${attendance.total_time || '00:00'}</td>
+                                                <td class="border-t text-center align-middle ${(attendance.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((attendance.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">
+                                                    ${attendance.target_time?.value || '00:00'}
                                                 </td>
                                                 ${attendanceType}
                                                 <td rowspan="${rowspan}" class="border-t text-center align-middle"><button onclick="openModalActivity(this)" data-activity="${activityLog}" class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">Cek Disini</button></td>
@@ -711,8 +829,8 @@
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name)}</td>
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name)}</td>
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable, item.name)}</td>
-                                                    <td class="border-t text-center align-middle">${adjustable.total_time || '0:00:00'}</td>
-                                                    <td class="border-t text-center align-middle ${adjustable.target_time?.condition ? 'text-green-600' : 'text-red-600'}">${adjustable.target_time?.condition ? '+' : '-'} ${adjustable.target_time?.value || '0:00:00'}</td>
+                                                    <td class="border-t text-center align-middle">${adjustable.total_time || '00:00'}</td>
+                                                    <td class="border-t text-center align-middle ${(adjustable.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((adjustable.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">${adjustable.target_time?.value || '00:00'}</td>
                                                     ${isFirstRow ? attendanceType : ''}
                                                     ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle"><button onclick="openModalActivity(this)" data-activity="${activityLog}" class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">Cek Disini</button></td>` : ''}
                                                     <td class="border-t text-center align-middle">${getStatusIconsAdjustable(adjustable)}</td>
@@ -795,6 +913,39 @@
 
 
 
+            // Remote Permit Form Handler
+            $('#remotePermitForm').on('submit', function (e) {
+                e.preventDefault();
+                const form = $(this);
+                const submitBtn = $('#remotePermitSubmitBtn');
+                const origHtml = submitBtn.html();
+
+                submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Memproses...');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    method: 'POST',
+                    data: form.serialize(),
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken
+                    },
+                    success: function (res) {
+                        closeRemotePermitModal();
+                        showNotification('success', res.message || 'Izin remote berhasil diaktifkan!');
+                        if (typeof loadData === 'function') {
+                            loadData({ page: currentPage });
+                        }
+                    },
+                    error: function (xhr) {
+                        const msg = xhr.responseJSON?.message || 'Gagal mengaktifkan izin remote.';
+                        showNotification('error', msg);
+                    },
+                    complete: function () {
+                        submitBtn.prop('disabled', false).html(origHtml);
+                    }
+                });
+            });
+
             // Make loadData and currentPage available globally
             window.loadData = loadData;
             window.currentPage = currentPage;
@@ -802,6 +953,45 @@
             window.closeModalActivity = closeModalActivity;
 
             loadData(); // Initial load
+        });
+
+        // FUNGSI MODAL UNTUK AKTIVASI IZIN REMOTE
+        function openRemotePermitModal(internId, internName) {
+            document.getElementById('remotePermitInternId').value = internId;
+            document.getElementById('remotePermitInternName').textContent = internName || 'Pemagang';
+            
+            // Default select leave
+            const leaveRadio = document.querySelector('input[name="type"][value="leave"]');
+            if (leaveRadio) {
+                leaveRadio.checked = true;
+                updateRemotePermitType('leave');
+            }
+            document.getElementById('remotePermitDescription').value = '';
+            document.getElementById('remotePermitModal').classList.remove('hidden');
+        }
+
+        function closeRemotePermitModal() {
+            document.getElementById('remotePermitModal').classList.add('hidden');
+        }
+
+        function updateRemotePermitType(type) {
+            const types = ['leave', 'prayer', 'toilet'];
+            types.forEach(t => {
+                const label = document.getElementById('remoteTypeLabel-' + t);
+                if (label) {
+                    if (t === type) {
+                        label.className = 'relative flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition border-amber-500 bg-amber-50/50';
+                    } else {
+                        label.className = 'relative flex flex-col items-center justify-center p-3 border-2 rounded-xl cursor-pointer transition border-slate-200 bg-white';
+                    }
+                }
+            });
+        }
+
+        document.getElementById('remotePermitModal')?.addEventListener('click', function (event) {
+            if (event.target === this) {
+                closeRemotePermitModal();
+            }
         });
 
         // FUNGSI MODAL UNTUK EDIT PRESENSI

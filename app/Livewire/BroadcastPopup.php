@@ -19,6 +19,12 @@ class BroadcastPopup extends Component
     public ?int $officeId = null;
     public bool $scheduleChecked = false;
 
+    // Follow-up personal chat properties
+    public ?BroadcastReport $activeFollowUpReport = null;
+    public array $followUpChatHistory = [];
+    public string $followUpReplyText = '';
+    public bool $isFollowUpOpen = false;
+
     protected $rules = [
         'reportText' => 'required|string|min:5|max:2000',
     ];
@@ -44,15 +50,32 @@ class BroadcastPopup extends Component
     public function checkForBroadcasts()
     {
         // Jika popup saat ini sedang terbuka dan aktif di layar, jangan interupsi pemagang
-        if ($this->isOpen) {
+        if ($this->isOpen || $this->isFollowUpOpen) {
             return;
         }
 
         $user = Auth::user();
         if (!$user) {
             $this->isOpen = false;
+            $this->isFollowUpOpen = false;
             $this->currentBroadcast = null;
             $this->currentBroadcastId = null;
+            return;
+        }
+
+        // 1. Cek apakah ada Follow-up Chat Baru dari Admin untuk laporan pemagang ini
+        $unreadFollowUpChat = \App\Models\BroadcastReportChat::where('is_from_admin', true)
+            ->where('is_read', false)
+            ->whereHas('report', fn($q) => $q->where('user_id', $user->id))
+            ->with(['report.broadcast', 'report.chats.user.profile'])
+            ->latest('id')
+            ->first();
+
+        if ($unreadFollowUpChat && $unreadFollowUpChat->report) {
+            $this->activeFollowUpReport = $unreadFollowUpChat->report;
+            $this->loadFollowUpChats();
+            $this->isFollowUpOpen = true;
+            $this->isOpen = false;
             return;
         }
 
@@ -157,7 +180,7 @@ class BroadcastPopup extends Component
 
         BroadcastReport::firstOrCreate(
             ['broadcast_id' => $broadcastId, 'user_id' => Auth::id()],
-            ['report' => $this->reportText]
+            ['report' => trim($this->reportText)]
         );
 
         // Tandai juga di session dismissed_broadcast_ids agar popup ini tidak muncul lagi
@@ -210,8 +233,69 @@ class BroadcastPopup extends Component
         $this->checkForBroadcasts();
     }
 
+    public function loadFollowUpChats()
+    {
+        if (!$this->activeFollowUpReport) return;
+        $this->activeFollowUpReport->loadMissing(['broadcast', 'chats.user.profile']);
+        $this->followUpChatHistory = $this->activeFollowUpReport->chats->map(function ($c) {
+            return [
+                'id' => $c->id,
+                'message' => $c->message,
+                'is_from_admin' => (bool) $c->is_from_admin,
+                'sender_name' => $c->is_from_admin 
+                    ? ($c->user?->profile?->full_name ?? $c->user?->username ?? 'Admin')
+                    : 'Saya',
+                'time' => $c->created_at ? $c->created_at->format('d/m H:i') : '-',
+            ];
+        })->toArray();
+    }
+
+    public function replyFollowUpMessage()
+    {
+        $trimmed = trim($this->followUpReplyText);
+        if (empty($trimmed) || !$this->activeFollowUpReport) {
+            return;
+        }
+
+        $user = Auth::user();
+        \App\Models\BroadcastReportChat::create([
+            'broadcast_report_id' => $this->activeFollowUpReport->id,
+            'user_id' => $user->id,
+            'message' => $trimmed,
+            'is_from_admin' => false,
+            'is_read' => false,
+        ]);
+
+        // Tandai pesan admin sebagai sudah dibaca
+        \App\Models\BroadcastReportChat::where('broadcast_report_id', $this->activeFollowUpReport->id)
+            ->where('is_from_admin', true)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $this->followUpReplyText = '';
+        $this->isFollowUpOpen = false;
+        $this->activeFollowUpReport = null;
+
+        session()->flash('broadcast_success_msg', 'Tanggapan lanjutan Anda telah terkirim ke Admin.');
+    }
+
+    public function dismissFollowUp()
+    {
+        if ($this->activeFollowUpReport) {
+            \App\Models\BroadcastReportChat::where('broadcast_report_id', $this->activeFollowUpReport->id)
+                ->where('is_from_admin', true)
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+        }
+        $this->isFollowUpOpen = false;
+        $this->activeFollowUpReport = null;
+        $this->followUpReplyText = '';
+    }
+
     public function render()
     {
-        return view('livewire.broadcast-popup');
+        return view('livewire.broadcast-popup', [
+            'pollInterval' => \App\Models\PopupSetting::getInterval('broadcast_popup', 5),
+        ]);
     }
 }

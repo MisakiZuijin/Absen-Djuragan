@@ -5,6 +5,7 @@ namespace App\Http\Controllers\SuperAdmin;
 use App\Http\Controllers\Controller;
 use App\Models\SystemActivityLog;
 use App\Helper\ActivityLogger;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -172,7 +173,7 @@ class SystemActivityLogController extends Controller
     /**
      * Terapkan seluruh filter pencarian pada query SystemActivityLog.
      */
-    private function applyFilters($query, Request $request)
+    private function applyFilters(Builder $query, Request $request): Builder
     {
         // 1. Filter: Pencarian umum multi-kata (deskripsi, nama, role, modul, aksi, IP, perangkat, tanggal)
         if ($request->filled('search')) {

@@ -8,6 +8,8 @@ class ToiletMonitor extends Component
 {
     public function render()
     {
-        return view('livewire.admin.permit.toilet-monitor');
+        return view('livewire.admin.permit.toilet-monitor', [
+            'pollInterval' => \App\Models\PopupSetting::getInterval('toilet_monitor', 15),
+        ]);
     }
 }

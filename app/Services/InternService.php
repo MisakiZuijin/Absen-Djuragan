@@ -10,6 +10,7 @@ use App\Repositories\Interface\ProfileRepository;
 use App\Repositories\Interface\UserRepository;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Models\Intern;
 use App\Models\DiscountTime;
 use App\Models\AdjustableAttd;
@@ -101,11 +102,11 @@ class InternService
 
 
             if (!empty($data["password"])) {
-                if (strlen($data["password"] <= 8)) {
-                    return new ActionResult(false, "password harus lebih dari 8 digit", null);
+                if (strlen($data["password"]) < 8) {
+                    return new ActionResult(false, "Password harus minimal 8 karakter.", null);
                 }
-                if ($data["password"] != $data["confirm_password"]) {
-                    return new ActionResult(false, "password tidak sama dengan validasi", null);
+                if ($data["password"] !== $data["confirm_password"]) {
+                    return new ActionResult(false, "Konfirmasi password tidak sesuai.", null);
                 }
                 $userData["password"] = $data["password"];
             }
@@ -154,31 +155,50 @@ class InternService
                 }
 
                 // Update / create intern_accounts credentials
+                $enabledPlatforms = isset($data['enabled_platforms']) && is_array($data['enabled_platforms'])
+                    ? array_values($data['enabled_platforms'])
+                    : [];
+
+                // Filter valid social media links
+                $filteredLinks = null;
+                if (isset($data['social_media_links']) && is_array($data['social_media_links'])) {
+                    $cleaned = array_values(array_filter($data['social_media_links'], function ($item) {
+                        return !empty($item['username']) || !empty($item['url']);
+                    }));
+                    $filteredLinks = !empty($cleaned) ? $cleaned : null;
+                }
+
                 $accountData = [
-                    'gdrive_url' => $data['gdrive_url'] ?? null,
-                    'github_url' => $data['github_url'] ?? null,
-                    'gmail_account' => $data['gmail_account'] ?? null,
-                    'figma_url' => $data['figma_url'] ?? null,
+                    'gdrive_url' => in_array('gdrive', $enabledPlatforms, true) ? ($data['gdrive_url'] ?? null) : null,
+                    'spreadsheet_url' => in_array('spreadsheet', $enabledPlatforms, true) ? ($data['spreadsheet_url'] ?? null) : null,
+                    'github_url' => in_array('github', $enabledPlatforms, true) ? ($data['github_url'] ?? null) : null,
+                    'gmail_account' => in_array('github', $enabledPlatforms, true) ? ($data['gmail_account'] ?? null) : null,
+                    'figma_url' => in_array('figma', $enabledPlatforms, true) ? ($data['figma_url'] ?? null) : null,
+                    'social_media_links' => in_array('sosmed', $enabledPlatforms, true) ? $filteredLinks : null,
                     'notes' => $data['notes'] ?? null,
                 ];
 
-                if (!empty($data['gmail_password'])) {
-                    $accountData['gmail_password'] = $data['gmail_password'];
+                if (Schema::hasColumn('intern_accounts', 'enabled_platforms')) {
+                    $accountData['enabled_platforms'] = $enabledPlatforms;
                 }
 
-                if (isset($data['social_media_links']) && is_array($data['social_media_links'])) {
-                    $filteredLinks = array_values(array_filter($data['social_media_links'], function ($item) {
-                        return !empty($item['platform']) || !empty($item['username']) || !empty($item['url']);
-                    }));
-                    $accountData['social_media_links'] = !empty($filteredLinks) ? $filteredLinks : null;
+                if (in_array('github', $enabledPlatforms, true)) {
+                    if (!empty($data['gmail_password'])) {
+                        $accountData['gmail_password'] = $data['gmail_password'];
+                    } elseif ($intern->account && !empty($intern->account->gmail_password)) {
+                        $accountData['gmail_password'] = $intern->account->gmail_password;
+                    } else {
+                        $accountData['gmail_password'] = null;
+                    }
                 } else {
-                    $accountData['social_media_links'] = null;
+                    $accountData['gmail_password'] = null;
                 }
 
-                $hasAccountData = !empty($accountData['gdrive_url'])
+                $hasAccountData = !empty($enabledPlatforms)
+                    || !empty($accountData['gdrive_url'])
+                    || !empty($accountData['spreadsheet_url'])
                     || !empty($accountData['github_url'])
                     || !empty($accountData['gmail_account'])
-                    || !empty($accountData['gmail_password'])
                     || !empty($accountData['figma_url'])
                     || !empty($accountData['social_media_links'])
                     || !empty($accountData['notes'])

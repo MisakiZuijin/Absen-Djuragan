@@ -155,7 +155,7 @@
                         </label>
                         <span id="radiusValueLabel" class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">25 Meter</span>
                     </div>
-                    <input type="number" id="radius" name="radius" required min="5" max="500" value="{{ old('radius', 25) }}"
+                    <input type="number" id="radius" name="radius" required min="5" max="1000" value="{{ old('radius', 25) }}"
                         oninput="handleRadiusChange(this.value)"
                         class="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs transition">
                     

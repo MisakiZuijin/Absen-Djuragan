@@ -1,14 +1,24 @@
 @extends('layouts.main')
 
-@section('title', 'Presensi Otomatis')
+@section('title', 'Detail Pulang Otomatis')
 
 @section('contents')
     <!-- Main Content -->
     <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
         <!-- Header -->
-        <h1 class="text-xl sm:text-2xl font-bold mb-1 sm:mb-2">Presensi Otomatis {{ $id }}</h1>
-        <p class="text-xs sm:text-sm text-gray-600">Daftar data presensi otomatis {{ $id }} selama magang tertandai tidak melakukan
-            presensi pulang pada jam yang di tentukan</p>
+        <div class="mb-4">
+            <a href="{{ route('admin.pulang-otomatis.index', ['tab' => 'history']) }}" class="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800 mb-2 transition">
+                <i class="fa-solid fa-arrow-left text-xs"></i>
+                <span>Kembali ke Pulang Otomatis</span>
+            </a>
+            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <i class="fa-solid fa-arrow-right-from-bracket text-blue-600"></i>
+                <span>Riwayat Pulang Otomatis: {{ $id }}</span>
+            </h1>
+            <p class="text-xs sm:text-sm text-gray-600 mt-1">
+                Daftar riwayat pulang otomatis untuk pemagang <strong>{{ $id }}</strong> yang dipulangkan oleh sistem atau admin karena lupa melakukan presensi pulang.
+            </p>
+        </div>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6 my-4 sm:my-6">
             <div class="bg-white p-4 sm:p-6 rounded-xl shadow-xs border border-gray-100">
                 <h2 class="text-xs sm:text-sm font-semibold text-gray-600 mb-1">Total Tidak Presensi Pulang</h2>

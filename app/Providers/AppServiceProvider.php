@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\AppSetting;
 use App\Models\Outsider;
 use App\Observers\OutsiderObserver;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Interface\UserRepository;
 use App\Repositories\Interface\ShiftRepository;
@@ -81,5 +83,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Outsider::observe(OutsiderObserver::class);
+
+        View::composer('*', function ($view) {
+            try {
+                $view->with('appSetting', AppSetting::getSettings());
+            } catch (\Throwable) {
+                // Fallback for migrations or initial setup
+            }
+        });
     }
 }

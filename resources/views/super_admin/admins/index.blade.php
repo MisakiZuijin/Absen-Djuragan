@@ -25,7 +25,7 @@
                     </p>
                 </div>
 
-                <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2.5 flex-wrap">
                     <a href="{{ route('super-admin.activity-logs.index') }}" class="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-2xl text-xs font-medium transition shadow-sm flex items-center gap-2">
                         <i class="fa-solid fa-list-check text-indigo-400"></i>
                         <span>Audit Log Sistem</span>
@@ -299,23 +299,23 @@
             @csrf
             <!-- Nama Lengkap -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
-                <input type="text" name="full_name" required placeholder="Contoh: Budi Santoso"
+                <label for="create_full_name" class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+                <input type="text" name="full_name" id="create_full_name" required placeholder="Contoh: Budi Santoso"
                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <!-- Username -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
-                    <input type="text" name="username" required placeholder="budi_admin"
+                    <label for="create_username" class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
+                    <input type="text" name="username" id="create_username" required placeholder="budi_admin"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
 
                 <!-- Email -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
-                    <input type="email" name="email" required placeholder="budi@example.com"
+                    <label for="create_email" class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
+                    <input type="email" name="email" id="create_email" required placeholder="budi@example.com"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
             </div>
@@ -323,15 +323,15 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <!-- Password -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Password <span class="text-rose-500">*</span></label>
-                    <input type="password" name="password" required placeholder="Minimal 6 karakter"
+                    <label for="create_password" class="block text-xs font-semibold text-slate-700 mb-1">Password <span class="text-rose-500">*</span></label>
+                    <input type="password" name="password" id="create_password" required placeholder="Minimal 6 karakter"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
 
                 <!-- No WhatsApp -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
-                    <input type="text" name="phone" placeholder="08123456789"
+                    <label for="create_phone" class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
+                    <input type="text" name="phone" id="create_phone" placeholder="08123456789"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
             </div>
@@ -339,8 +339,8 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5">
                 <!-- Gender -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
-                    <select name="gender" class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
+                    <label for="create_gender" class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
+                    <select name="gender" id="create_gender" class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                         <option value="L">Laki-laki</option>
                         <option value="P">Perempuan</option>
                     </select>
@@ -391,7 +391,7 @@
             @method('PUT')
             <!-- Nama Lengkap -->
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
+                <label for="edit_full_name" class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
                 <input type="text" name="full_name" id="edit_full_name" required
                     class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
             </div>
@@ -399,14 +399,14 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <!-- Username -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
+                    <label for="edit_username" class="block text-xs font-semibold text-slate-700 mb-1">Username <span class="text-rose-500">*</span></label>
                     <input type="text" name="username" id="edit_username" required
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
 
                 <!-- Email -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
+                    <label for="edit_email" class="block text-xs font-semibold text-slate-700 mb-1">Email <span class="text-rose-500">*</span></label>
                     <input type="email" name="email" id="edit_email" required
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
@@ -415,16 +415,16 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 <!-- Password (Opsional saat edit) -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">
+                    <label for="edit_password" class="block text-xs font-semibold text-slate-700 mb-1">
                         Password Baru <span class="text-[10px] text-slate-400 font-normal">(Kosongkan jika tetap)</span>
                     </label>
-                    <input type="password" name="password" placeholder="Kosongkan jika tidak diubah"
+                    <input type="password" name="password" id="edit_password" placeholder="Kosongkan jika tidak diubah"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
 
                 <!-- No WhatsApp -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
+                    <label for="edit_phone" class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / HP</label>
                     <input type="text" name="phone" id="edit_phone" placeholder="08123456789"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
@@ -433,7 +433,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5">
                 <!-- Gender -->
                 <div>
-                    <label class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
+                    <label for="edit_gender" class="block text-xs font-semibold text-slate-700 mb-1">Jenis Kelamin</label>
                     <select name="gender" id="edit_gender" class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                         <option value="L">Laki-laki</option>
                         <option value="P">Perempuan</option>

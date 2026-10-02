@@ -117,7 +117,7 @@ class OfflineAttendanceController extends Controller
             ->keyBy('intern_id');
 
         // Gabungkan data online & offline untuk setiap pemagang
-        $mappedInterns = $allInterns->map(function ($intern) use ($offlineAttendances, $onlineAttendances, $detailSchedules, $latestSchedules, $firstOffice, $firstShift) {
+        $mappedInterns = $allInterns->map(function ($intern) use ($offlineAttendances, $onlineAttendances, $detailSchedules, $latestSchedules, $firstOffice, $firstShift, $isAssistant) {
             $offline = $offlineAttendances->get($intern->id);
             $online = $onlineAttendances->get($intern->id);
             $ds = $detailSchedules->get($intern->id);
@@ -216,46 +216,83 @@ class OfflineAttendanceController extends Controller
                     $offlineStatusLabel = $offlineLateMin > 0 ? "Terlambat ({$offlineLateMin}m)" : 'Terlambat';
                 } elseif ($offline->status === 'izin') {
                     $isValid = $offline->permit_is_valid !== false && $offline->permit_is_valid !== 0;
-                    $offlineStatusLabel = $isValid ? 'Izin Keperluan (Valid)' : 'Izin Keperluan (Ditolak)';
+                    if ($offline->approval_status === 'pending') {
+                        $offlineStatusLabel = 'Izin Keperluan (Menunggu Konfirmasi)';
+                    } elseif ($offline->approval_status === 'rejected') {
+                        $offlineStatusLabel = 'Izin Keperluan (Ditolak Admin)';
+                    } else {
+                        $offlineStatusLabel = $isValid ? 'Izin Keperluan (Valid)' : 'Izin Keperluan (Ditolak)';
+                    }
                 } elseif ($offline->status === 'sakit') {
                     $sType = $offline->sickness_verification_type ?? 'doctor_letter';
-                    $offlineStatusLabel = match ($sType) {
-                        'fake_sickness' => 'Sakit Berbohong (Alpha)',
-                        'verified_by_hr' => 'Izin Sakit (Dicek HR)',
-                        default => 'Izin Sakit (Surat Dokter)',
-                    };
+                    if ($offline->approval_status === 'pending') {
+                        $offlineStatusLabel = 'Izin Sakit (Menunggu Konfirmasi)';
+                    } elseif ($offline->approval_status === 'rejected') {
+                        $offlineStatusLabel = 'Izin Sakit (Ditolak Admin)';
+                    } else {
+                        $offlineStatusLabel = match ($sType) {
+                            'fake_sickness' => 'Sakit Berbohong (Alpha)',
+                            'verified_by_hr' => 'Izin Sakit (Dicek HR)',
+                            default => 'Izin Sakit (Surat Dokter)',
+                        };
+                    }
                 } elseif ($offline->status === 'alpha') {
                     $offlineStatusLabel = 'Alpha / Tidak Hadir';
                 }
             }
 
-            // 3. Logika Cross-check / Deteksi Kejujuran & Penanganan Sanksi
+            // 3. Logika Cross-check / Deteksi Kejujuran & Penanganan Sanksi / Konfirmasi
             $verificationStatus = 'unverified';
             $verificationLabel = 'Belum Diperiksa';
             $verificationBadgeClass = 'bg-gray-100 text-gray-600 border-gray-200';
             $verificationNote = null;
 
             if ($offline) {
-                // Cek apakah sudah pernah dijatuhi sanksi / keputusan penanganan
-                if (!empty($offline->penalty_type)) {
+                // Cek apakah status menunggu konfirmasi admin
+                if ($offline->approval_status === 'pending') {
+                    $statusName = $offline->status === 'sakit' ? 'Izin Sakit' : 'Izin Keperluan';
+                    $verificationStatus = 'pending_approval';
+                    $verificationLabel = 'Menunggu Konfirmasi Admin';
+                    $verificationBadgeClass = 'bg-amber-100 text-amber-900 border-amber-300 font-bold';
+                    $verificationNote = "Pengajuan {$statusName} oleh {$offline->recorded_by} memerlukan konfirmasi & persetujuan Admin.";
+                } elseif ($offline->approval_status === 'rejected') {
+                    $statusName = $offline->status === 'sakit' ? 'Izin Sakit' : 'Izin Keperluan';
+                    $verificationStatus = 'rejected';
+                    $verificationLabel = 'Ditolak Admin';
+                    $verificationBadgeClass = 'bg-rose-100 text-rose-800 border-rose-300 font-bold';
+                    $verificationNote = "Pengajuan {$statusName} ditolak oleh " . ($offline->approved_by ?? 'Admin') . ($offline->rejection_note ? ': "' . $offline->rejection_note . '"' : '');
+                } elseif (!empty($offline->penalty_type)) {
+                    // Cek apakah sudah pernah dijatuhi sanksi / keputusan penanganan
                     if ($offline->penalty_type === 'ganti_jam') {
                         $hours = floor(($offline->penalty_minutes ?? 435) / 60);
                         $mins = ($offline->penalty_minutes ?? 435) % 60;
                         $timeStr = sprintf('%02d:%02d Jam', $hours, $mins);
                         $verificationStatus = 'penalty_ganti_jam';
                         $verificationLabel = "Alpha (Ganti {$timeStr})";
-                        $verificationBadgeClass = 'bg-purple-100 text-purple-800 border-purple-300 font-bold hover:bg-purple-200 cursor-pointer shadow-sm';
-                        $verificationNote = "Sudah ditindak: Absen online dimasukkan ke kondisi Alpha & wajib ganti jam {$timeStr}. Klik untuk tinjau/ubah.";
+                        $verificationBadgeClass = $isAssistant
+                            ? 'bg-purple-100 text-purple-800 border-purple-300 font-bold'
+                            : 'bg-purple-100 text-purple-800 border-purple-300 font-bold hover:bg-purple-200 cursor-pointer shadow-sm';
+                        $verificationNote = $isAssistant
+                            ? "Sanksi telah ditetapkan oleh Admin: Absen online dimasukkan ke kondisi Alpha & wajib ganti jam {$timeStr}."
+                            : "Sudah ditindak: Absen online dimasukkan ke kondisi Alpha & wajib ganti jam {$timeStr}. Klik untuk tinjau/ubah.";
                     } elseif ($offline->penalty_type === 'tanpa_ganti_jam') {
                         $verificationStatus = 'penalty_alpha';
                         $verificationLabel = 'Sanksi: Tetap Alpha';
-                        $verificationBadgeClass = 'bg-red-800 text-white font-bold hover:bg-red-900 cursor-pointer shadow-sm';
-                        $verificationNote = 'Sudah ditindak: Absen online dianulir (Alpha fiktif tanpa kompensasi). Klik untuk tinjau/ubah.';
+                        $verificationBadgeClass = $isAssistant
+                            ? 'bg-red-800 text-white font-bold'
+                            : 'bg-red-800 text-white font-bold hover:bg-red-900 cursor-pointer shadow-sm';
+                        $verificationNote = $isAssistant
+                            ? 'Sanksi telah ditetapkan oleh Admin: Absen online dianulir (Alpha fiktif tanpa kompensasi).'
+                            : 'Sudah ditindak: Absen online dianulir (Alpha fiktif tanpa kompensasi). Klik untuk tinjau/ubah.';
                     } elseif ($offline->penalty_type === 'dimaafkan') {
                         $verificationStatus = 'penalty_dimaafkan';
                         $verificationLabel = 'Klarifikasi Sah (Dimaafkan)';
-                        $verificationBadgeClass = 'bg-blue-100 text-blue-800 border-blue-300 font-semibold hover:bg-blue-200 cursor-pointer shadow-sm';
-                        $verificationNote = 'Klarifikasi diterima oleh admin (izin sah / dinas luar). Klik untuk tinjau/ubah.';
+                        $verificationBadgeClass = $isAssistant
+                            ? 'bg-blue-100 text-blue-800 border-blue-300 font-semibold'
+                            : 'bg-blue-100 text-blue-800 border-blue-300 font-semibold hover:bg-blue-200 cursor-pointer shadow-sm';
+                        $verificationNote = $isAssistant
+                            ? 'Klarifikasi diterima oleh admin (izin sah / dinas luar).'
+                            : 'Klarifikasi diterima oleh admin (izin sah / dinas luar). Klik untuk tinjau/ubah.';
                     }
                 } elseif ($offline->status === 'alpha') {
                     if (in_array($onlineStatusKey, ['hadir', 'terlambat'])) {
@@ -263,7 +300,9 @@ class OfflineAttendanceController extends Controller
                         $verificationStatus = 'fraud';
                         $verificationLabel = 'Indikasi Berbohong';
                         $verificationBadgeClass = 'bg-red-600 text-white font-bold';
-                        $verificationNote = 'Absen online tercatat hadir, namun secara fisik TIDAK HADIR di kantor! Klik untuk beri sanksi.';
+                        $verificationNote = $isAssistant
+                            ? 'Absen online tercatat hadir, namun secara fisik TIDAK HADIR di kantor. Penetapan sanksi merupakan hak akses Admin.'
+                            : 'Absen online tercatat hadir, namun secara fisik TIDAK HADIR di kantor! Klik untuk beri sanksi.';
                     } else {
                         $verificationStatus = 'alpha';
                         $verificationLabel = 'Alpha';
@@ -289,7 +328,9 @@ class OfflineAttendanceController extends Controller
                         $verificationStatus = 'fake_sickness';
                         $verificationLabel = 'Sakit Berbohong';
                         $verificationBadgeClass = 'bg-red-600 text-white font-bold';
-                        $verificationNote = 'Sakit terindikasi palsu / tanpa bukti sah. Klik untuk beri sanksi.';
+                        $verificationNote = $isAssistant
+                            ? 'Sakit terindikasi palsu / tanpa bukti sah. Penetapan sanksi merupakan hak akses Admin.'
+                            : 'Sakit terindikasi palsu / tanpa bukti sah. Klik untuk beri sanksi.';
                     } elseif ($sType === 'verified_by_hr') {
                         $verificationStatus = 'sickness_hr';
                         $verificationLabel = 'Izin Sakit (Dicek HR)';
@@ -370,6 +411,10 @@ class OfflineAttendanceController extends Controller
                 $filteredInterns = $mappedInterns->whereNotNull('offline_record')->values();
             } elseif ($statusFilter === 'belum_diabsen') {
                 $filteredInterns = $mappedInterns->whereNull('offline_record')->values();
+            } elseif ($statusFilter === 'pending') {
+                $filteredInterns = $mappedInterns->filter(function ($item) {
+                    return $item->offline_record && $item->offline_record->approval_status === 'pending';
+                })->values();
             } elseif ($statusFilter === 'hadir') {
                 $filteredInterns = $mappedInterns->whereIn('offline_status_key', ['hadir', 'early'])->values();
             } elseif ($statusFilter === 'early') {
@@ -392,6 +437,9 @@ class OfflineAttendanceController extends Controller
         // Summary counts
         $totalInterns = $mappedInterns->count();
         $totalSudahDiabsen = $mappedInterns->whereNotNull('offline_record')->count();
+        $totalPendingApproval = $mappedInterns->filter(function ($item) {
+            return $item->offline_record && $item->offline_record->approval_status === 'pending';
+        })->count();
         $totalOfflineHadir = $mappedInterns->whereIn('offline_status_key', ['hadir', 'early'])->count();
         $totalOfflineEarly = $mappedInterns->where('offline_status_key', 'early')->count();
         $totalOfflineTerlambat = $mappedInterns->where('offline_status_key', 'terlambat')->count();
@@ -433,6 +481,7 @@ class OfflineAttendanceController extends Controller
             'paginatedInterns',
             'totalInterns',
             'totalSudahDiabsen',
+            'totalPendingApproval',
             'totalOfflineHadir',
             'totalOfflineEarly',
             'totalOfflineTerlambat',
@@ -531,6 +580,14 @@ class OfflineAttendanceController extends Controller
             $permitIsValid = isset($validated['permit_is_valid']) ? (bool) $validated['permit_is_valid'] : true;
         }
 
+        $isAssistantUser = (int) $user->role_id === 6;
+        $isPermitStatus = in_array($dbStatus, ['sakit', 'izin']);
+        $needsAdminApproval = $isAssistantUser && $isPermitStatus;
+
+        $approvalStatus = $needsAdminApproval ? 'pending' : 'approved';
+        $approvedBy = $needsAdminApproval ? null : $authorName;
+        $approvedAt = $needsAdminApproval ? null : now();
+
         try {
             // Simpan atau Update ke tabel dedicated offline_attendances
             OfflineAttendance::updateOrCreate(
@@ -542,6 +599,10 @@ class OfflineAttendanceController extends Controller
                     'shift_id' => $shift->id,
                     'office_id' => $office->id,
                     'status' => $dbStatus,
+                    'approval_status' => $approvalStatus,
+                    'approved_by' => $approvedBy,
+                    'approved_at' => $approvedAt,
+                    'rejection_note' => null,
                     'check_time' => $checkTime,
                     'physical_checkin_time' => $physicalCheckinTime,
                     'sickness_verification_type' => $sicknessType,
@@ -553,7 +614,31 @@ class OfflineAttendanceController extends Controller
                 ]
             );
 
-            // Sinkronisasi status kehadiran ke DetailSchedule & PermitReason
+            $statusText = match ($dbStatus) {
+                'hadir' => 'HADIR TEPAT WAKTU',
+                'early' => 'HADIR LEBIH AWAL (EARLY CHECK-IN)',
+                'terlambat' => "TERLAMBAT ({$lateMinutes} menit)",
+                'izin' => 'IZIN KEPERLUAN (' . ($permitIsValid ? 'VALID' : 'TIDAK VALID') . ')',
+                'sakit' => 'IZIN SAKIT (' . strtoupper(str_replace('_', ' ', $sicknessType ?? '')) . ')',
+                'alpha' => 'ALPHA / TIDAK HADIR',
+            };
+
+            // Jika diajukan oleh Asisten Admin untuk status Sakit / Izin, JANGAN langsung ubah DetailSchedule / PermitReason
+            if ($needsAdminApproval) {
+                $actionMessage = "Pengajuan presensi offline ({$statusText}) untuk {$intern->user?->name} berhasil dikirim dan menunggu konfirmasi Admin.";
+
+                \App\Helper\ActivityLogger::log(
+                    'CREATE',
+                    'Offline Presensi',
+                    "Asisten {$authorName} mengajukan presensi offline {$statusText} untuk pemagang {$intern->user?->name} (Menunggu Konfirmasi Admin)",
+                    ['intern_id' => $intern->id, 'status' => $dbStatus, 'date' => $validated['date'], 'approval_status' => 'pending']
+                );
+
+                return redirect()->route('assistant.absen-offline.index', ['date' => $validated['date']])
+                    ->with('success', $actionMessage);
+            }
+
+            // Sinkronisasi status kehadiran ke DetailSchedule & PermitReason (hanya jika langsung disetujui / Admin)
             $detailSchedule = DetailSchedule::whereDate('date', $validated['date'])
                 ->whereHas('schedule', function ($q) use ($intern) {
                     $q->where('intern_id', $intern->id);
@@ -623,6 +708,8 @@ class OfflineAttendanceController extends Controller
                     LateAbsence::where('intern_id', $intern->id)
                         ->whereDate('date', $validated['date'])
                         ->delete();
+
+                    \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
                 } elseif ($sicknessType === 'doctor_letter') {
                     // Sakit dengan Surat Dokter -> Jika belum ada permit reason, buatkan agar tercatat di log izin sakit
                     $desc = !empty($validated['notes'])
@@ -657,6 +744,12 @@ class OfflineAttendanceController extends Controller
                     $detailSchedule->isChangeSchedule = 1; // Bebas ganti jam (Lunas)
                     $detailSchedule->is_change_schedule_approved = 1;
                     $detailSchedule->save();
+
+                    LateAbsence::where('intern_id', $intern->id)
+                        ->whereDate('date', $validated['date'])
+                        ->delete();
+
+                    \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
                 } elseif ($sicknessType === 'fake_sickness') {
                     // Sakit Berbohong / Fraud -> Status Alpha (Wajib Ganti Jam)
                     $detailSchedule->attd_status_id = 5; // 5 = Alpha
@@ -698,6 +791,12 @@ class OfflineAttendanceController extends Controller
                     $detailSchedule->isChangeSchedule = 2; // Wajib ganti jam
                     $detailSchedule->is_change_schedule_approved = 0;
                     $detailSchedule->save();
+
+                    LateAbsence::where('intern_id', $intern->id)
+                        ->whereDate('date', $validated['date'])
+                        ->delete();
+
+                    \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
                 } else {
                     $detailSchedule->attd_status_id = 5; // Ditolak -> Alpha
                     $detailSchedule->isChangeSchedule = 2;
@@ -719,15 +818,6 @@ class OfflineAttendanceController extends Controller
                 $detailSchedule->is_change_schedule_approved = 0;
                 $detailSchedule->save();
             }
-
-            $statusText = match ($dbStatus) {
-                'hadir' => 'HADIR TEPAT WAKTU',
-                'early' => 'HADIR LEBIH AWAL (EARLY CHECK-IN)',
-                'terlambat' => "TERLAMBAT ({$lateMinutes} menit)",
-                'izin' => 'IZIN KEPERLUAN (' . ($permitIsValid ? 'VALID' : 'TIDAK VALID') . ')',
-                'sakit' => 'IZIN SAKIT (' . strtoupper(str_replace('_', ' ', $sicknessType ?? '')) . ')',
-                'alpha' => 'ALPHA / TIDAK HADIR',
-            };
 
             $actionMessage = "Presensi offline untuk {$intern->user?->name} berhasil dicatat sebagai {$statusText}.";
 
@@ -901,28 +991,51 @@ class OfflineAttendanceController extends Controller
 
         // Tentukan pesan status
         if ($offlineAttendance) {
-            $statusLabel = match ($offlineAttendance->status) {
-                'hadir' => 'Hadir Tepat Waktu',
-                'early' => 'Hadir Lebih Awal (Early Check-in)',
-                'terlambat' => "Terlambat ({$offlineAttendance->late_minutes} menit)",
-                'izin' => 'Izin Keperluan (' . ($offlineAttendance->permit_is_valid !== false ? 'Valid' : 'Ditolak') . ')',
-                'sakit' => match ($offlineAttendance->sickness_verification_type ?? 'doctor_letter') {
-                    'fake_sickness' => 'Sakit Berbohong (Fraud)',
-                    'verified_by_hr' => 'Izin Sakit (Dicek HR - Tanpa Ganti Jam)',
-                    default => 'Izin Sakit (Surat Dokter)',
-                },
-                'alpha' => 'Alpha / Tidak Hadir',
-                default => 'Hadir',
-            };
-            $isFraud = $offlineAttendance->status === 'alpha' || ($offlineAttendance->status === 'sakit' && $offlineAttendance->sickness_verification_type === 'fake_sickness');
-            $alertType = $isFraud ? 'danger' : 'success';
-            $alertTitle = "Presensi Offline: {$statusLabel}";
-            
-            $onlineInfo = $onlineTimeStr 
-                ? "Absen Online: Masuk pukul {$onlineTimeStr} WIB ({$onlineStatusLabel})."
-                : "Absen Online: " . ($onlineStatusKey === 'belum_absen' ? "Belum melakukan check-in online." : "Status {$onlineStatusLabel}.");
+            if ($offlineAttendance->approval_status === 'pending') {
+                $statusLabel = match ($offlineAttendance->status) {
+                    'sakit' => 'Izin Sakit (Menunggu Konfirmasi Admin)',
+                    'izin' => 'Izin Keperluan (Menunggu Konfirmasi Admin)',
+                    default => strtoupper($offlineAttendance->status),
+                };
+                $alertType = 'warning';
+                $alertTitle = "Pengajuan Presensi Offline: Menunggu Konfirmasi Admin";
+                $onlineInfo = $onlineTimeStr 
+                    ? "Absen Online: Masuk pukul {$onlineTimeStr} WIB ({$onlineStatusLabel})."
+                    : "Absen Online: " . ($onlineStatusKey === 'belum_absen' ? "Belum melakukan check-in online." : "Status {$onlineStatusLabel}.");
+                $alertMessage = "{$onlineInfo} Diajukan oleh {$offlineAttendance->recorded_by}" . ($offlineAttendance->notes ? " (Catatan: '{$offlineAttendance->notes}')" : '') . ". Menunggu konfirmasi & persetujuan Admin.";
+            } elseif ($offlineAttendance->approval_status === 'rejected') {
+                $statusLabel = match ($offlineAttendance->status) {
+                    'sakit' => 'Izin Sakit (Ditolak Admin)',
+                    'izin' => 'Izin Keperluan (Ditolak Admin)',
+                    default => strtoupper($offlineAttendance->status),
+                };
+                $alertType = 'danger';
+                $alertTitle = "Pengajuan Presensi Offline: Ditolak oleh Admin";
+                $alertMessage = "Pengajuan ditolak oleh " . ($offlineAttendance->approved_by ?? 'Admin') . ($offlineAttendance->rejection_note ? " Alasan: '{$offlineAttendance->rejection_note}'" : '') . ". Anda dapat mengajukan ulang.";
+            } else {
+                $statusLabel = match ($offlineAttendance->status) {
+                    'hadir' => 'Hadir Tepat Waktu',
+                    'early' => 'Hadir Lebih Awal (Early Check-in)',
+                    'terlambat' => "Terlambat ({$offlineAttendance->late_minutes} menit)",
+                    'izin' => 'Izin Keperluan (' . ($offlineAttendance->permit_is_valid !== false ? 'Valid' : 'Ditolak') . ')',
+                    'sakit' => match ($offlineAttendance->sickness_verification_type ?? 'doctor_letter') {
+                        'fake_sickness' => 'Sakit Berbohong (Fraud)',
+                        'verified_by_hr' => 'Izin Sakit (Dicek HR - Tanpa Ganti Jam)',
+                        default => 'Izin Sakit (Surat Dokter)',
+                    },
+                    'alpha' => 'Alpha / Tidak Hadir',
+                    default => 'Hadir',
+                };
+                $isFraud = $offlineAttendance->status === 'alpha' || ($offlineAttendance->status === 'sakit' && $offlineAttendance->sickness_verification_type === 'fake_sickness');
+                $alertType = $isFraud ? 'danger' : 'success';
+                $alertTitle = "Presensi Offline: {$statusLabel}";
                 
-            $alertMessage = "{$onlineInfo} Dicatat offline oleh {$offlineAttendance->recorded_by}" . ($offlineAttendance->notes ? " (Catatan: '{$offlineAttendance->notes}')" : '') . ". Anda dapat memperbaruinya melalui form ini.";
+                $onlineInfo = $onlineTimeStr 
+                    ? "Absen Online: Masuk pukul {$onlineTimeStr} WIB ({$onlineStatusLabel})."
+                    : "Absen Online: " . ($onlineStatusKey === 'belum_absen' ? "Belum melakukan check-in online." : "Status {$onlineStatusLabel}.");
+                    
+                $alertMessage = "{$onlineInfo} Dicatat offline oleh {$offlineAttendance->recorded_by}" . ($offlineAttendance->notes ? " (Catatan: '{$offlineAttendance->notes}')" : '') . ". Anda dapat memperbaruinya melalui form ini.";
+            }
         } elseif ($onlineTimeStr) {
             if ($onlineStatusKey === 'terlambat') {
                 $alertType = 'warning';
@@ -971,6 +1084,10 @@ class OfflineAttendanceController extends Controller
             'offline_attendance' => $offlineAttendance ? [
                 'id' => $offlineAttendance->id,
                 'status' => $offlineAttendance->status,
+                'approval_status' => $offlineAttendance->approval_status ?? 'approved',
+                'approved_by' => $offlineAttendance->approved_by,
+                'approved_at' => $offlineAttendance->approved_at ? $offlineAttendance->approved_at->format('Y-m-d H:i') : null,
+                'rejection_note' => $offlineAttendance->rejection_note,
                 'check_time' => $offlineAttendance->check_time ? Carbon::parse($offlineAttendance->check_time)->format('H:i') : null,
                 'physical_checkin_time' => $offlineAttendance->physical_checkin_time ? Carbon::parse($offlineAttendance->physical_checkin_time)->format('H:i') : null,
                 'sickness_verification_type' => $offlineAttendance->sickness_verification_type,
@@ -988,11 +1105,205 @@ class OfflineAttendanceController extends Controller
     }
 
     /**
+     * Konfirmasi (Approve / Reject) Pengajuan Presensi Offline Sakit & Izin oleh Admin
+     */
+    public function confirmPermit(Request $request, int|string $id)
+    {
+        $user = $this->userService->getUserLoggedData() ?? Auth::user();
+        if ((int) $user->role_id === 6) {
+            return redirect()->back()->with('error', 'Hanya Admin yang dapat mengonfirmasi pengajuan presensi offline.');
+        }
+
+        $validated = $request->validate([
+            'action' => 'required|in:approve,reject',
+            'sickness_verification_type' => 'nullable|in:doctor_letter,verified_by_hr,fake_sickness',
+            'permit_is_valid' => 'nullable|in:0,1,true,false',
+            'rejection_note' => 'nullable|string|max:500',
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            $offline = OfflineAttendance::with(['intern.user', 'shift', 'office'])->findOrFail($id);
+            $intern = $offline->intern;
+            $internName = $intern?->user?->name ?? 'Pemagang';
+            $date = $offline->date ? $offline->date->format('Y-m-d') : today()->format('Y-m-d');
+            $action = $validated['action'];
+            $authorName = "{$user->name} (Admin)";
+
+            if ($action === 'approve') {
+                if (!empty($validated['sickness_verification_type'])) {
+                    $offline->sickness_verification_type = $validated['sickness_verification_type'];
+                }
+                if (isset($validated['permit_is_valid'])) {
+                    $offline->permit_is_valid = (bool) $validated['permit_is_valid'];
+                }
+                if (!empty($validated['notes'])) {
+                    $offline->notes = $validated['notes'];
+                }
+
+                $offline->approval_status = 'approved';
+                $offline->approved_by = $authorName;
+                $offline->approved_at = now();
+                $offline->rejection_note = null;
+                $offline->save();
+
+                // Sinkronisasi status kehadiran ke DetailSchedule & PermitReason
+                $shift = $offline->shift ?? Shift::first();
+                $office = $offline->office ?? Office::first();
+
+                $detailSchedule = DetailSchedule::whereDate('date', $date)
+                    ->whereHas('schedule', function ($q) use ($intern) {
+                        $q->where('intern_id', $intern->id);
+                    })
+                    ->first();
+
+                if (!$detailSchedule) {
+                    $masterSchedule = Schedule::where('intern_id', $intern->id)->latest('id')->first();
+                    if (!$masterSchedule) {
+                        $masterSchedule = Schedule::create([
+                            'intern_id' => $intern->id,
+                            'office_id' => $office?->id,
+                            'start_period' => $date,
+                            'end_period' => $date,
+                            'type' => 'daily',
+                        ]);
+                    }
+                    $detailSchedule = DetailSchedule::create([
+                        'schedule_id' => $masterSchedule->id,
+                        'shift_id' => $shift?->id,
+                        'office_id' => $office?->id,
+                        'date' => $date,
+                        'attd_status_id' => 1,
+                        'work_type' => 'wfo',
+                    ]);
+                }
+
+                $dbStatus = $offline->status;
+                $sicknessType = $offline->sickness_verification_type ?? 'doctor_letter';
+                $permitIsValid = $offline->permit_is_valid !== false && $offline->permit_is_valid !== 0;
+
+                if ($dbStatus === 'sakit') {
+                    if ($sicknessType === 'verified_by_hr') {
+                        $desc = !empty($offline->notes)
+                            ? "Sakit (Dikonfirmasi & dicek oleh HR): " . $offline->notes
+                            : "Sakit (Dikonfirmasi dan dicek langsung oleh HR)";
+
+                        $permitReason = $detailSchedule->permit_reason_id ? PermitReason::find($detailSchedule->permit_reason_id) : null;
+                        if ($permitReason) {
+                            $permitReason->update(['description' => $desc, 'permit_category_id' => 2]);
+                        } else {
+                            $permitReason = PermitReason::create(['description' => $desc, 'permit_category_id' => 2, 'proof_url' => null]);
+                            $detailSchedule->permit_reason_id = $permitReason->id;
+                        }
+
+                        $detailSchedule->attd_status_id = 3; // Izin
+                        $detailSchedule->isChangeSchedule = 1; // Bebas ganti jam (Lunas)
+                        $detailSchedule->is_change_schedule_approved = 1;
+                        $detailSchedule->save();
+
+                        LateAbsence::where('intern_id', $intern->id)->whereDate('date', $date)->delete();
+                        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
+                    } elseif ($sicknessType === 'doctor_letter') {
+                        $desc = !empty($offline->notes)
+                            ? "Izin Sakit (Surat Dokter): " . $offline->notes
+                            : "Izin Sakit dengan surat keterangan dokter";
+
+                        $permitReason = $detailSchedule->permit_reason_id ? PermitReason::find($detailSchedule->permit_reason_id) : null;
+                        if ($permitReason) {
+                            $permitReason->update(['description' => $desc, 'permit_category_id' => 1]);
+                        } else {
+                            $permitReason = PermitReason::create(['description' => $desc, 'permit_category_id' => 1, 'proof_url' => null]);
+                            $detailSchedule->permit_reason_id = $permitReason->id;
+                        }
+
+                        $detailSchedule->attd_status_id = 3;
+                        $detailSchedule->isChangeSchedule = 1;
+                        $detailSchedule->is_change_schedule_approved = 1;
+                        $detailSchedule->save();
+
+                        LateAbsence::where('intern_id', $intern->id)->whereDate('date', $date)->delete();
+                        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
+                    } elseif ($sicknessType === 'fake_sickness') {
+                        $detailSchedule->attd_status_id = 5;
+                        $detailSchedule->isChangeSchedule = 2;
+                        $detailSchedule->is_change_schedule_approved = 0;
+                        $detailSchedule->save();
+                    }
+                } elseif ($dbStatus === 'izin') {
+                    $desc = !empty($offline->notes)
+                        ? "Izin Keperluan: " . $offline->notes
+                        : "Izin Keperluan disahkan via Presensi Offline";
+
+                    if ($permitIsValid) {
+                        $permitReason = $detailSchedule->permit_reason_id ? PermitReason::find($detailSchedule->permit_reason_id) : null;
+                        if ($permitReason) {
+                            $permitReason->update(['description' => $desc, 'permit_category_id' => 4]);
+                        } else {
+                            $permitReason = PermitReason::create(['description' => $desc, 'permit_category_id' => 4, 'proof_url' => null]);
+                            $detailSchedule->permit_reason_id = $permitReason->id;
+                        }
+
+                        $detailSchedule->attd_status_id = 3;
+                        $detailSchedule->isChangeSchedule = 1;
+                        $detailSchedule->is_change_schedule_approved = 1;
+                        $detailSchedule->save();
+
+                        LateAbsence::where('intern_id', $intern->id)->whereDate('date', $date)->delete();
+                        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $shift);
+                    } else {
+                        $detailSchedule->attd_status_id = 5;
+                        $detailSchedule->isChangeSchedule = 2;
+                        $detailSchedule->is_change_schedule_approved = 0;
+                        $detailSchedule->save();
+                    }
+                }
+
+                \App\Helper\ActivityLogger::log(
+                    'UPDATE',
+                    'Offline Presensi',
+                    "Admin {$authorName} MENYETUJUI pengajuan presensi offline ({$dbStatus}) pemagang {$internName}",
+                    ['intern_id' => $intern->id, 'status' => $dbStatus, 'date' => $date, 'approval_status' => 'approved']
+                );
+
+                return redirect()->route('admin.absen-offline.index', ['date' => $date])
+                    ->with('success', "Pengajuan presensi offline ({$dbStatus}) untuk {$internName} berhasil DISETUJUI.");
+            } else {
+                // Reject
+                $offline->approval_status = 'rejected';
+                $offline->rejection_note = $validated['rejection_note'] ?? 'Ditolak oleh Admin';
+                $offline->approved_by = $authorName;
+                $offline->approved_at = now();
+                $offline->save();
+
+                \App\Helper\ActivityLogger::log(
+                    'UPDATE',
+                    'Offline Presensi',
+                    "Admin {$authorName} MENOLAK pengajuan presensi offline ({$offline->status}) pemagang {$internName}. Alasan: " . ($offline->rejection_note),
+                    ['intern_id' => $intern->id, 'status' => $offline->status, 'date' => $date, 'approval_status' => 'rejected']
+                );
+
+                return redirect()->route('admin.absen-offline.index', ['date' => $date])
+                    ->with('success', "Pengajuan presensi offline untuk {$internName} telah DITOLAK.");
+            }
+        } catch (\Exception $e) {
+            Log::error('Gagal memproses konfirmasi presensi offline: ' . $e->getMessage(), [
+                'id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return redirect()->back()->with('error', 'Gagal memproses konfirmasi: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Simpan Keputusan Sanksi Pemagang Terindikasi Berbohong / Fiktif
      */
     public function storePenalty(Request $request, int|string $id)
     {
         $user = $this->userService->getUserLoggedData() ?? Auth::user();
+        if ((int) $user->role_id === 6) {
+            return redirect()->back()->with('error', 'Aksi Ditolak: Penetapan sanksi dan tindak lanjut indikasi berbohong hanya dapat diakses oleh Admin.');
+        }
 
         $validated = $request->validate([
             'penalty_type' => 'required|in:ganti_jam,tanpa_ganti_jam,dimaafkan',
@@ -1005,8 +1316,7 @@ class OfflineAttendanceController extends Controller
             $intern = $offline->intern;
             $internName = $intern?->user?->name ?? 'Pemagang';
             $date = $offline->date ? $offline->date->format('Y-m-d') : today()->format('Y-m-d');
-            $authorRole = (int) $user->role_id === 6 ? 'Assistant' : 'Admin';
-            $authorName = "{$user->name} ({$authorRole})";
+            $authorName = "{$user->name} (Admin)";
 
             $penaltyType = $validated['penalty_type'];
             $penaltyMinutes = (int) ($validated['penalty_minutes'] ?? 0);
@@ -1067,11 +1377,19 @@ class OfflineAttendanceController extends Controller
                 }
 
                 if ($attendance) {
-                    // Tutup sesi absensi online seketika jika masih terbuka agar pemagang tidak bisa melanjutkan absen
-                    if (is_null($attendance->end_time)) {
-                        $attendance->end_time = $attendance->start_time ?? now()->format('H:i:s');
-                    }
-                    $attendance->keterangan = "Absen online fiktif (Berbohong): Otomatis ditutup & dimasukkan ke kondisi Alpha (Wajib Ganti 1 Shift Full {$timeFormatted}). (" . ($penaltyNotes ?: 'Telah dikonfirmasi') . ")";
+                    // Set masuk dan pulang langsung ke jam masuk shift (durasi kerja = 0), reset istirahat
+                    $shiftStartTime = $detailSchedule?->shift?->start_time
+                        ?? $offline->shift?->start_time
+                        ?? $attendance->start_time
+                        ?? '09:00:00';
+
+                    $attendance->start_time = $shiftStartTime;
+                    $attendance->end_time = $shiftStartTime;
+                    $attendance->break_time = null;
+                    $attendance->back_time = null;
+                    $attendance->total_break_min = 0;
+                    $attendance->total_min = 0;
+                    $attendance->keterangan = "Absen online fiktif (Berbohong): Masuk & Pulang di-set ke {$shiftStartTime}, status Alpha (Wajib Ganti 1 Shift Full {$timeFormatted}). (" . ($penaltyNotes ?: 'Telah dikonfirmasi') . ")";
                     $attendance->adjusted_end_time = null;
                     $attendance->save();
 
@@ -1098,11 +1416,18 @@ class OfflineAttendanceController extends Controller
                 }
 
                 if ($attendance) {
-                    // Tutup sesi absensi online seketika jika masih terbuka
-                    if (is_null($attendance->end_time)) {
-                        $attendance->end_time = $attendance->start_time ?? now()->format('H:i:s');
-                    }
-                    $attendance->keterangan = "Absen online dianulir (Alpha fiktif). Sesi ditutup oleh Admin. Catatan: " . ($penaltyNotes ?: 'Tidak hadir fisik di kantor');
+                    $shiftStartTime = $detailSchedule?->shift?->start_time
+                        ?? $offline->shift?->start_time
+                        ?? $attendance->start_time
+                        ?? '09:00:00';
+
+                    $attendance->start_time = $shiftStartTime;
+                    $attendance->end_time = $shiftStartTime;
+                    $attendance->break_time = null;
+                    $attendance->back_time = null;
+                    $attendance->total_break_min = 0;
+                    $attendance->total_min = 0;
+                    $attendance->keterangan = "Absen online dianulir (Alpha fiktif). Masuk & Pulang di-set ke {$shiftStartTime}. Catatan: " . ($penaltyNotes ?: 'Tidak hadir fisik di kantor');
                     $attendance->save();
 
                     // Hapus dari rekap keterlambatan jika ada

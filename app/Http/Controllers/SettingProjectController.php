@@ -56,12 +56,22 @@ class SettingProjectController extends Controller
             return $project;
         });
 
+        $targetIntern = null;
+        if ($request->filled('intern_id')) {
+            $targetIntern = $interns->get((int) $request->input('intern_id'));
+        }
+
         $data = [
             "nameProject" => $nameProject,
             "user" => $userData,
             "intern" => $interns->values(),
             "projects" => $projectsWithDetails,
             "divisions" => $divisions,
+            "targetIntern" => $targetIntern,
+            "targetInternId" => $request->input('intern_id'),
+            "targetDivisionId" => $targetIntern?->division_id ?? $request->input('division_id'),
+            "action" => $request->input('action'),
+            "raiseId" => $request->input('raise_id'),
         ];
 
         return view('admin.pengaturan-project')->with($data);
@@ -114,7 +124,29 @@ class SettingProjectController extends Controller
 
     public function storeProject(StoreProjectRequest $storeProjectRequest)
     {
-        $this->projectService->create($storeProjectRequest);
+        $result = $this->projectService->create($storeProjectRequest);
+
+        if ($storeProjectRequest->filled('raise_id')) {
+            $raiseId = (int) $storeProjectRequest->input('raise_id');
+            $handRaise = \App\Models\HandRaise::find($raiseId);
+            if ($handRaise) {
+                $project = $result->getData();
+                $projectName = $project?->nameProject?->name ?? 'Project Baru';
+                $handRaise->update([
+                    'status' => 'in_progress',
+                    'project_id' => $project?->id,
+                    'admin_response' => "Tugas baru telah diberikan: {$projectName}",
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                \App\Helper\ActivityLogger::log(
+                    'ASSIGN_TASK',
+                    'Raise Hand',
+                    "Admin menugaskan project '{$projectName}' untuk pemagang via Raise Hand",
+                    ['hand_raise_id' => $handRaise->id, 'project_id' => $project?->id]
+                );
+            }
+        }
 
         return redirect()->route('admin.pengaturan.project')->with('success', 'Data project berhasil ditambahkan!');
     }

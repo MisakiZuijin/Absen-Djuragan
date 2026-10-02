@@ -93,9 +93,9 @@
                 <div class="w-full min-w-0 pt-2 border-t border-gray-100">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2.5">
                         <div class="min-w-0">
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            <span class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
                                 Pilih Target Divisi <span class="text-rose-500 ml-0.5">*</span>
-                            </label>
+                            </span>
                             <p class="text-[11px] text-gray-400">Centang divisi yang akan menggunakan link ini</p>
                         </div>
                         <div class="flex items-center gap-2 shrink-0">

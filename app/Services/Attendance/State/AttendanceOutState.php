@@ -10,6 +10,7 @@ use App\Repositories\Interface\DetailScheduleRepository;
 use App\Repositories\Interface\UserRepository;
 use App\Services\Attendance\AttendanceState;
 use App\Services\LocationService;
+use App\Utils\AttendanceStatus;
 use Carbon\Carbon;
 
 class AttendanceOutState implements AttendanceState
@@ -152,7 +153,7 @@ class AttendanceOutState implements AttendanceState
                     "absenceHistory" => $updatedAttendance,
                     "schedule_id" => $scheduleId,
                     "detail_schedule_id" => $detailScheduleId,
-                    "stage" => "all_done",
+                    "stage" => AttendanceStatus::AllDone,
                     "shift" => $shift
                 ]
             );

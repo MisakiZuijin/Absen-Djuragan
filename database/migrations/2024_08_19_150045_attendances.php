@@ -32,6 +32,11 @@ return new class extends Migration {
             $table->string("permit_description")->nullable();
             $table->string("permit_authorized_by")->nullable();
             $table->boolean("is_auto_end")->default(false);
+            $table->text("auto_end_note")->nullable();
+            $table->boolean("auto_end_notified")->default(false);
+            $table->boolean('is_debt_fulfilled')->default(false);
+            $table->unsignedBigInteger('debt_fulfilled_session_id')->nullable();
+            $table->timestamp('debt_fulfilled_at')->nullable();
             $table->string("start_time_message")->nullable();
             $table->string("break_time_message")->nullable();
             $table->string("back_time_message")->nullable();

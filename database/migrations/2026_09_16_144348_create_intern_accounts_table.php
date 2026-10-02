@@ -15,6 +15,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('intern_id')->unique()->constrained('interns')->cascadeOnDelete();
             $table->string('gdrive_url', 500)->nullable();
+            $table->string('spreadsheet_url', 500)->nullable();
+            $table->json('enabled_platforms')->nullable();
             $table->string('github_url', 255)->nullable();
             $table->string('gmail_account', 255)->nullable();
             $table->text('gmail_password')->nullable();

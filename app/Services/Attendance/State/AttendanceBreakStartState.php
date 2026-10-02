@@ -45,13 +45,23 @@ class AttendanceBreakStartState implements AttendanceState {
             return new ActionResult(false, "Data attendance tidak ditemukan", null);
         }
 
+        $shift = $detailSchedule->shift;
+        $user = $attendanceData->intern?->user ?? $attendanceData->user ?? null;
+        if (!$user && auth()->check()) {
+            $user = auth()->user();
+        }
+        $dateNow = \Carbon\Carbon::now('Asia/Jakarta');
+
         // Validate break time only if break_first is false and shift has break time settings
         if ($detailSchedule->is_break_first == false) {
-            if ($detailSchedule->shift->start_break_time && $detailSchedule->shift->start_break_time > $timeNow) {
+            $startBreakTime = $shift->getEffectiveStartBreakTime($dateNow, $user);
+            $endBreakTime = $shift->getEffectiveEndBreakTime($dateNow, $user);
+
+            if ($startBreakTime && $startBreakTime > $timeNow) {
                 return new ActionResult(false, "Belum waktunya istirahat", null);
             }
 
-            if ($detailSchedule->shift->end_break_time && $detailSchedule->shift->end_break_time <= $timeNow) {
+            if ($endBreakTime && $endBreakTime <= $timeNow) {
                 if (is_null($attendanceData->permit_start)) {
                     return new ActionResult(true, "Waktu jam istirahatmu sudah terlewat", [
                         "absenceHistory" => $attendanceData,
@@ -72,8 +82,8 @@ class AttendanceBreakStartState implements AttendanceState {
 
         // Determine break time based on is_break_first setting
         $breakTime = $timeNow; // Default to current time
-        if ($detailSchedule->is_break_first == false && $detailSchedule->shift->start_break_time) {
-            $breakTime = $detailSchedule->shift->start_break_time;
+        if ($detailSchedule->is_break_first == false && $shift->start_break_time) {
+            $breakTime = $shift->getEffectiveStartBreakTime($dateNow, $user);
         }
 
         $attData = [

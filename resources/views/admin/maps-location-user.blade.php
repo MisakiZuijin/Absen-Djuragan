@@ -16,19 +16,24 @@
         .custom-scrollbar::-webkit-scrollbar {
             width: 5px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-track {
             background: #f1f5f9;
         }
+
         .custom-scrollbar::-webkit-scrollbar-thumb {
             background: #cbd5e1;
             border-radius: 9999px;
         }
+
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #94a3b8;
         }
+
         #map {
             z-index: 1;
         }
+
         .leaflet-popup-content-wrapper {
             border-radius: 1rem;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
@@ -40,35 +45,35 @@
 <body class="bg-slate-100 text-slate-800 font-sans h-screen w-screen overflow-hidden relative select-none">
 
     @php
-        $officesData = $offices->map(function($o) {
-            $main = $o->coordinates->firstWhere('is_main', 1);
-            $boundaries = $o->coordinates->where('is_main', 0)->values();
-            
-            $radiusMeters = 25; // default fallback
-            if ($main && $boundaries->count() >= 2) {
-                $latDiff = abs((float)$main->latitude - (float)$boundaries[0]->latitude);
-                $calcRadius = round($latDiff * (M_PI / 180) * 6378137);
-                if ($calcRadius >= 5) {
-                    $radiusMeters = $calcRadius;
-                }
-            }
+    $officesData = $offices->map(function($o) {
+    $main = $o->coordinates->firstWhere('is_main', 1);
+    $boundaries = $o->coordinates->where('is_main', 0)->values();
 
-            return [
-                'id' => $o->id,
-                'name' => $o->name,
-                'address' => $o->address,
-                'capacity' => $o->capacity,
-                'main_latitude' => $main ? (float)$main->latitude : null,
-                'main_longitude' => $main ? (float)$main->longitude : null,
-                'radius' => $radiusMeters,
-                'boundary_top_left' => $boundaries->count() >= 1 ? ['lat' => (float)$boundaries[0]->latitude, 'lng' => (float)$boundaries[0]->longitude] : null,
-                'boundary_bottom_right' => $boundaries->count() >= 2 ? ['lat' => (float)$boundaries[1]->latitude, 'lng' => (float)$boundaries[1]->longitude] : null,
-            ];
-        });
+    $radiusMeters = 25; // default fallback
+    if ($main && $boundaries->count() >= 2) {
+    $latDiff = abs((float)$main->latitude - (float)$boundaries[0]->latitude);
+    $calcRadius = round($latDiff * (M_PI / 180) * 6378137);
+    if ($calcRadius >= 5) {
+    $radiusMeters = $calcRadius;
+    }
+    }
 
-        $backUrl = $intern_id 
-            ? route('admin.presence.detail', ['intern_id' => $intern_id]) . ($page ? '?page=' . $page : '') 
-            : url()->previous();
+    return [
+    'id' => $o->id,
+    'name' => $o->name,
+    'address' => $o->address,
+    'capacity' => $o->capacity,
+    'main_latitude' => $main ? (float)$main->latitude : null,
+    'main_longitude' => $main ? (float)$main->longitude : null,
+    'radius' => $radiusMeters,
+    'boundary_top_left' => $boundaries->count() >= 1 ? ['lat' => (float)$boundaries[0]->latitude, 'lng' => (float)$boundaries[0]->longitude] : null,
+    'boundary_bottom_right' => $boundaries->count() >= 2 ? ['lat' => (float)$boundaries[1]->latitude, 'lng' => (float)$boundaries[1]->longitude] : null,
+    ];
+    });
+
+    $backUrl = $intern_id
+    ? route('admin.presence.detail', ['intern_id' => $intern_id]) . ($page ? '?page=' . $page : '')
+    : url()->previous();
     @endphp
 
     <!-- Fullscreen Leaflet Map Container -->
@@ -77,7 +82,7 @@
     <!-- FLOATING TOP BAR -->
     <div class="absolute top-2.5 left-2.5 right-2.5 sm:top-4 sm:left-4 sm:right-4 z-[1000] pointer-events-none">
         <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-lg border border-slate-200/80 px-3 sm:px-3.5 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
-            
+
             <!-- Left: Back Button, Title & Breadcrumb -->
             <div class="flex items-center gap-2 sm:gap-3 min-w-0">
                 <a href="{{ $backUrl }}"
@@ -161,7 +166,7 @@
     <!-- FLOATING INFO & GEOFENCE PANEL -->
     <div id="floatingInfoPanel" class="absolute top-16 sm:top-20 right-2.5 sm:right-4 left-2.5 sm:left-auto z-[1000] sm:w-80 max-w-[calc(100vw-1.25rem)] max-h-[calc(100vh-8.5rem)] sm:max-h-[calc(100vh-5.5rem)] flex flex-col pointer-events-none transition-all duration-300 transform opacity-0 translate-y-4 sm:opacity-100 sm:translate-y-0">
         <div class="pointer-events-auto bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-slate-200/90 overflow-hidden flex flex-col max-h-full">
-            
+
             <!-- Panel Header -->
             <div class="px-3.5 py-2.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
                 <div class="flex items-center gap-2">
@@ -177,11 +182,11 @@
 
             <!-- Panel Scrollable Body -->
             <div class="overflow-y-auto custom-scrollbar p-3.5 space-y-3">
-                
+
                 <!-- 1. Status Presensi Siswa -->
                 <div class="space-y-2">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Status Presensi Siswa</span>
-                    
+
                     <!-- Presensi Masuk Card -->
                     <div class="p-2.5 bg-slate-50/80 rounded-xl border border-slate-200/70 space-y-1.5">
                         <div class="flex items-center justify-between">
@@ -254,7 +259,7 @@
 
                     <div class="space-y-1.5 max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
                         @foreach($officesData as $off)
-                        <div onclick="focusToOffice({{ $off['id'] }})"
+                        <div data-office-id="{{ $off['id'] }}" onclick="focusToOffice(this)"
                             class="p-2 rounded-xl border border-slate-100 hover:border-blue-300 hover:bg-blue-50/50 transition cursor-pointer bg-white group flex items-center justify-between gap-2">
                             <div class="min-w-0">
                                 <div class="flex items-center gap-1.5">
@@ -342,9 +347,14 @@
         </div>
     </div>
 
+    <script id="offices-data" type="application/json">
+        @json($officesData)
+    </script>
+
     <script>
         // Data dari Controller
-        const offices = @json($officesData);
+        const officesDataEl = document.getElementById('offices-data');
+        const offices = officesDataEl ? JSON.parse(officesDataEl.textContent) : [];
         const latStart = parseFloat("{{ $lat_start ?? '' }}") || null;
         const longStart = parseFloat("{{ $long_start ?? '' }}") || null;
         const latEnd = parseFloat("{{ $lat_end ?? '' }}") || null;
@@ -353,7 +363,7 @@
 
         // Toggle Floating Info Panel
         let isPanelOpen = window.innerWidth >= 640;
-        
+
         function updatePanelUI() {
             const panel = document.getElementById('floatingInfoPanel');
             const btn = document.getElementById('togglePanelBtn');
@@ -385,8 +395,8 @@
             const dLat = (lat2 - lat1) * (Math.PI / 180);
             const dLon = (lon2 - lon1) * (Math.PI / 180);
             const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-                      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+                Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             return Math.round(R * c);
         }
@@ -451,7 +461,9 @@
                     iconAnchor: [40, 20]
                 });
 
-                const marker = L.marker(officeLatLng, { icon: officeIcon }).addTo(map);
+                const marker = L.marker(officeLatLng, {
+                    icon: officeIcon
+                }).addTo(map);
                 officeMarkers[office.id] = marker;
 
                 const popupContent = `
@@ -478,7 +490,9 @@
                     weight: 2,
                     dashArray: '5, 5'
                 }).addTo(map);
-                circle.bindTooltip(`Radius Jangkauan: ${office.name} (±${office.radius}m)`, { sticky: true });
+                circle.bindTooltip(`Radius Jangkauan: ${office.name} (±${office.radius}m)`, {
+                    sticky: true
+                });
 
                 // Rectangle Geofence
                 if (office.boundary_top_left && office.boundary_bottom_right) {
@@ -493,7 +507,9 @@
                         fillOpacity: 0.08,
                         dashArray: '3, 4'
                     }).addTo(map);
-                    rect.bindTooltip(`Area Geofence: ${office.name}`, { sticky: true });
+                    rect.bindTooltip(`Area Geofence: ${office.name}`, {
+                        sticky: true
+                    });
                 }
             }
         });
@@ -525,7 +541,9 @@
                 iconAnchor: [45, 22]
             });
 
-            startMarker = L.marker(startLatLng, { icon: startIcon }).addTo(map);
+            startMarker = L.marker(startLatLng, {
+                icon: startIcon
+            }).addTo(map);
 
             let closestOffice = null;
             let minDistance = 999999;
@@ -600,7 +618,9 @@
                 iconAnchor: [45, 22]
             });
 
-            endMarker = L.marker(endLatLng, { icon: endIcon }).addTo(map);
+            endMarker = L.marker(endLatLng, {
+                icon: endIcon
+            }).addTo(map);
 
             let closestOfficeEnd = null;
             let minDistanceEnd = 999999;
@@ -671,22 +691,31 @@
         // Focus Handlers
         window.focusToStart = function() {
             if (latStart && longStart && startMarker) {
-                map.flyTo([latStart, longStart], 18, { duration: 1 });
+                map.flyTo([latStart, longStart], 18, {
+                    duration: 1
+                });
                 startMarker.openPopup();
             }
         };
 
         window.focusToEnd = function() {
             if (latEnd && longEnd && endMarker) {
-                map.flyTo([latEnd, longEnd], 18, { duration: 1 });
+                map.flyTo([latEnd, longEnd], 18, {
+                    duration: 1
+                });
                 endMarker.openPopup();
             }
         };
 
-        window.focusToOffice = function(officeId) {
+        window.focusToOffice = function(officeIdOrEl) {
+            const officeId = typeof officeIdOrEl === 'object' && officeIdOrEl !== null
+                ? parseInt(officeIdOrEl.dataset.officeId, 10)
+                : parseInt(officeIdOrEl, 10);
             const off = offices.find(o => o.id === officeId);
             if (off && off.main_latitude && off.main_longitude) {
-                map.flyTo([off.main_latitude, off.main_longitude], 18, { duration: 1 });
+                map.flyTo([off.main_latitude, off.main_longitude], 18, {
+                    duration: 1
+                });
                 if (officeMarkers[officeId]) {
                     officeMarkers[officeId].openPopup();
                 }

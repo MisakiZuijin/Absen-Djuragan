@@ -1,66 +1,54 @@
-{{-- File: resources/views/admin/partials/universal-permit-timer-script.blade.php --}}
+@php
+    $toiletMonitorIntervalSec = \App\Models\PopupSetting::getInterval('toilet_monitor', 15);
+@endphp
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const runningTimers = {};
+        const pollIntervalMs = {{ $toiletMonitorIntervalSec > 0 ? $toiletMonitorIntervalSec * 1000 : 0 }};
 
-        function initializeTimers() {
+        function formatSeconds(totalSecs) {
+            const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
+            const m = String(Math.floor((totalSecs % 3600) / 60)).padStart(2, '0');
+            const s = String(totalSecs % 60).padStart(2, '0');
+            return `${h}:${m}:${s}`;
+        }
+
+        function updateAllTimers() {
+            const nowEpoch = Math.floor(Date.now() / 1000);
             const timerElements = document.querySelectorAll('.timer-value');
             timerElements.forEach(timerElement => {
-                const permitId = timerElement.dataset.permitId;
-                if (!permitId || runningTimers[permitId]) {
-                    return; // Lewati jika tidak ada ID atau timer sudah berjalan
+                const startTimeEpoch = parseInt(timerElement.dataset.startTime, 10);
+                if (startTimeEpoch && !isNaN(startTimeEpoch) && startTimeEpoch > 0) {
+                    const elapsedSeconds = Math.max(0, nowEpoch - startTimeEpoch);
+                    timerElement.textContent = formatSeconds(elapsedSeconds);
                 }
-                startTimerFor(timerElement);
             });
         }
 
-        function startTimerFor(timerElement) {
-            const permitId = timerElement.dataset.permitId;
-            const baseUrl = timerElement.dataset.baseUrl; // Ambil URL template dari atribut HTML
+        // Jalankan kalkulasi durasi langsung & jalankan interval 1 detik berkelanjutan
+        updateAllTimers();
+        setInterval(updateAllTimers, 1000);
 
-            if (!permitId || !baseUrl) {
-                console.error('Timer Gagal: Atribut data-permit-id atau data-base-url tidak ada.', timerElement.dataset);
-                timerElement.textContent = 'Error';
-                return;
-            }
-            
-            // Buat URL yang valid dengan mengganti placeholder :id
-            const fetchUrl = baseUrl.replace(':id', permitId);
+        // Auto-refresh data tabel izin di latar belakang
+        if (pollIntervalMs >= 2000) {
+            setInterval(() => {
+                const tableBody = document.getElementById('internsTableBody');
+                if (!tableBody) return;
 
-            const updateTimer = () => {
-                fetch(fetchUrl)
-                    .then(response => {
-                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                        return response.json();
-                    })
-                    .then(data => {
-                        if (data.is_active) {
-                            timerElement.textContent = data.duration;
-                        } else {
-                            stopTimer(permitId, timerElement);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Gagal mengambil durasi:', error);
-                        stopTimer(permitId, timerElement);
-                    });
-            };
-
-            // Jalankan sekali saat dimulai
-            updateTimer();
-            // Simpan interval agar bisa dihentikan nanti
-            runningTimers[permitId] = setInterval(updateTimer, 1000);
+                fetch(window.location.href, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newTableBody = doc.getElementById('internsTableBody');
+                    if (newTableBody) {
+                        tableBody.innerHTML = newTableBody.innerHTML;
+                        updateAllTimers();
+                    }
+                })
+                .catch(() => {});
+            }, pollIntervalMs);
         }
-
-        function stopTimer(permitId, timerElement) {
-            if (runningTimers[permitId]) {
-                clearInterval(runningTimers[permitId]);
-                delete runningTimers[permitId];
-            }
-            timerElement.textContent = '00:00:00';
-        }
-
-        // Mulai semua timer saat halaman dimuat
-        initializeTimers();
     });
 </script>

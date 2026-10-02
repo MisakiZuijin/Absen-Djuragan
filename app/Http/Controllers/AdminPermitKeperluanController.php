@@ -95,21 +95,41 @@ class AdminPermitKeperluanController extends Controller
                 });
         }
 
-        // Calculate statistics secara efisien dalam 1 query aggregate
-        $today = Carbon::today('Asia/Jakarta')->toDateString();
+        // Calculate statistics — scoped to active period/date filter
+
+        // Build date condition for raw SQL
+        $dateCondition = '';
+        $dateBindings = [];
+        if (!empty($dateFilter)) {
+            $dateCondition = 'AND DATE(detail_schedules.date) = ?';
+            $dateBindings[] = $dateFilter;
+        } elseif ($period === 'today') {
+            $dateCondition = 'AND DATE(detail_schedules.date) = ?';
+            $dateBindings[] = $today;
+        }
+        // period = 'all' → no date condition
+
         $stats = DetailSchedule::leftJoin('permit_reasons', 'detail_schedules.permit_reason_id', '=', 'permit_reasons.id')
             ->selectRaw("
                 COUNT(CASE WHEN detail_schedules.attd_status_id = 3 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')) THEN 1 END) as total_izin,
-                COUNT(CASE WHEN DATE(detail_schedules.date) = ? AND (detail_schedules.attd_status_id = 5 OR (detail_schedules.attd_status_id = 3 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')))) THEN 1 END) as today_count,
+                COUNT(CASE WHEN detail_schedules.attd_status_id = 5 OR (detail_schedules.attd_status_id = 3 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%'))) THEN 1 END) as tidak_hadir_count,
                 COUNT(CASE WHEN detail_schedules.attd_status_id = 3 AND detail_schedules.isChangeSchedule = 2 AND (detail_schedules.permit_reason_id IS NULL OR (permit_reasons.permit_category_id NOT IN (1, 2) AND permit_reasons.description NOT LIKE '%sakit%')) THEN 1 END) as ganti_jam_count,
                 COUNT(CASE WHEN detail_schedules.attd_status_id = 5 THEN 1 END) as alpha_count
-            ", [$today])
+            ")
+            ->whereRaw("1=1 {$dateCondition}", $dateBindings)
             ->first();
 
         $totalIzin = (int) ($stats->total_izin ?? 0);
-        $todayCount = (int) ($stats->today_count ?? 0);
+        $tidakHadirCount = (int) ($stats->tidak_hadir_count ?? 0);
         $gantiJamCount = (int) ($stats->ganti_jam_count ?? 0);
         $alphaCount = (int) ($stats->alpha_count ?? 0);
+
+        // Dynamic label for period context
+        $periodLabel = match (true) {
+            !empty($dateFilter) => Carbon::parse($dateFilter)->translatedFormat('d M Y'),
+            $period === 'today' => 'Hari Ini',
+            default => 'Semua Periode',
+        };
 
         $permits = $query->orderBy('date', 'desc')
             ->orderBy('id', 'desc')
@@ -119,13 +139,14 @@ class AdminPermitKeperluanController extends Controller
         return view('admin.izin-keperluan', compact(
             'permits',
             'totalIzin',
-            'todayCount',
+            'tidakHadirCount',
             'gantiJamCount',
             'alphaCount',
             'typeFilter',
             'statusFilter',
             'dateFilter',
             'period',
+            'periodLabel',
             'search'
         ));
     }
@@ -141,6 +162,8 @@ class AdminPermitKeperluanController extends Controller
             'isChangeSchedule' => 2, // Wajib Ganti Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
         $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
         \App\Helper\ActivityLogger::log(
@@ -158,12 +181,14 @@ class AdminPermitKeperluanController extends Controller
      */
     public function approveLunas(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
+        $detailSchedule = DetailSchedule::with(['schedule.intern.user.profile', 'shift', 'attendance'])->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 1, // Bebas Ganti Jam (Lunas)
             'is_change_schedule_approved' => 1,
         ]);
+
+        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
         $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
         \App\Helper\ActivityLogger::log(
@@ -173,7 +198,7 @@ class AdminPermitKeperluanController extends Controller
             ['detail_schedule_id' => $id]
         );
 
-        return redirect()->back()->with('success', 'Dispensasi berhasil: Izin diberikan Bebas Ganti Jam (Lunas).');
+        return redirect()->back()->with('success', 'Dispensasi berhasil: Izin Keperluan diberikan Bebas Ganti Jam (Lunas). Jam masuk dan pulang disesuaikan jadwal shift pemagang.');
     }
 
     /**
@@ -238,6 +263,10 @@ class AdminPermitKeperluanController extends Controller
         $detailSchedule->isChangeSchedule = (int) $validated['jam_option'];
         $detailSchedule->is_change_schedule_approved = ((int) $validated['jam_option'] === 1) ? 1 : 0;
         $detailSchedule->save();
+
+        if ((int) $detailSchedule->attd_status_id === 3) {
+            \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
+        }
 
         return redirect()->back()->with('success', 'Data Izin Tidak Hadir berhasil diperbarui dengan rincian opsi yang dipilih.');
     }

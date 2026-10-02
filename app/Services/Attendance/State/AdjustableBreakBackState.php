@@ -17,17 +17,38 @@ class AdjustableBreakBackState implements AttendanceState {
     }
 
     public function handle(AttendanceDTO $data): ActionResult {
-         $adjustableId = $data->getAdjustableId();
+        $adjustableId = $data->getAdjustableId();
+        $user = \Illuminate\Support\Facades\Auth::user();
+        $internId = $user?->intern?->id;
 
-        if (!$adjustableId || $adjustableId <= 0) {
-            return new ActionResult(false, "ID adjustable tidak valid", null);
+        $adjustableOld = null;
+        if ($adjustableId && $adjustableId > 0) {
+            try {
+                $adjustableOld = $this->adjustableAttdRepository->getById($adjustableId);
+            } catch (\Throwable $e) {
+                $adjustableOld = null;
+            }
+        }
+
+        if (!$adjustableOld && $internId) {
+            $adjustableOld = \App\Models\AdjustableAttd::where('intern_id', $internId)
+                ->whereNotNull('start_time')
+                ->whereNull('end_time')
+                ->latest('id')
+                ->first();
+            if ($adjustableOld) {
+                $adjustableId = $adjustableOld->id;
+            }
+        }
+
+        if (!$adjustableOld) {
+            return new ActionResult(false, "Sesi ganti jam aktif tidak ditemukan atau sudah selesai.", null);
         }
 
         $timeNow = $data->getTimeNow();
 
         $scheduleId = $data->getScheduleId();
         $detailScheduleId = $data->getDetailSchedule();
-        $adjustableOld = $this->adjustableAttdRepository->getById($data->getAdjustableId());
 
         $attData = [
             "back_time" => $timeNow,
@@ -35,7 +56,7 @@ class AdjustableBreakBackState implements AttendanceState {
             "total_break_min" => DateNow::getDifferentInMinute($adjustableOld->break_time, $timeNow)
         ];
 
-        $adjustableData = $this->adjustableAttdRepository->update($data->getAdjustableId(), $attData);
+        $adjustableData = $this->adjustableAttdRepository->update($adjustableId, $attData);
 
         return new ActionResult(true, "Kamu kembali dari istirahat (ganti jam)", [
             "adjustableTimeHistory" => $adjustableData,

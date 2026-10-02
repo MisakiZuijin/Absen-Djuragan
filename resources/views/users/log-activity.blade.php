@@ -153,7 +153,7 @@
 </div>
 
 <!-- Edit Activity Popup -->
-<div id="popup-form" class="fixed inset-0 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 p-3 sm:p-4">
+<div id="popup-form" class="fixed inset-0 top-0 left-0 right-0 bottom-0 w-screen h-screen hidden flex items-center justify-center bg-black/60 backdrop-blur-sm z-[99999] p-3 sm:p-4 m-0" style="margin: 0 !important;">
     <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden border border-gray-100 animate-fadeIn">
         <!-- Header -->
         <div class="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-gray-100 flex items-center justify-between">
@@ -172,11 +172,11 @@
                     Keterangan Kegiatan <span class="text-red-500">*</span>
                 </label>
                 <textarea
-                    class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition-colors"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition-colors"
                     id="activity" name="activity" rows="5" placeholder="Apa yang telah anda kerjakan hari ini"
                     required></textarea>
                 <div id="activity-error" class="text-red-500 text-xs mt-1 hidden"></div>
-                <p class="text-[11px] text-gray-400 mt-1.5">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan. Tanda petik (', ") tidak diperbolehkan.</p>
+                <p class="text-xs text-gray-500 mt-1.5">Hanya huruf, angka, spasi, dan tanda baca dasar yang diperbolehkan. Tanda petik (', ") tidak diperbolehkan.</p>
             </div>
 
             <div class="flex justify-end items-center gap-2 pt-3 border-t border-gray-100">

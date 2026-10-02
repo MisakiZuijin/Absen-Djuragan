@@ -124,12 +124,12 @@
                         <input type="hidden" id="intern-id" name="intern_id">
 
                         <div>
-                            <label class="block text-gray-700">Nama</label>
+                            <label for="internName" class="block text-gray-700">Nama</label>
                             <input id="internName" type="text" value="Raihan Ahmad Hafidz" disabled
                                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
                         </div>
                         <div>
-                            <label class="block text-gray-700">Sistem Shift</label>
+                            <label for="type" class="block text-gray-700">Sistem Shift</label>
                             <select id="type" name="type"
                                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                                 required>
@@ -138,12 +138,12 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-gray-700">Divisi</label>
+                            <label for="division" class="block text-gray-700">Divisi</label>
                             <input id="division" type="text" value="UI/UX" disabled
                                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500">
                         </div>
                         <div>
-                            <label class="block text-gray-700">Shift</label>
+                            <label for="shift_id" class="block text-gray-700">Shift</label>
                             <select id="shift_id" name="shift_id"
                                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                                 required>
@@ -154,7 +154,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-gray-700">Kantor</label>
+                            <label for="office_id" class="block text-gray-700">Kantor</label>
                             <select id="office_id" name="office_id"
                                 class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
                                 required>
@@ -165,7 +165,7 @@
                             </select>
                         </div>
                         <div>
-                            <label class="block text-gray-700">Periode Magang</label>
+                            <label for="start_period" class="block text-gray-700">Periode Magang</label>
                             <div class="flex space-x-2">
                                 <input id="start_period" name="start_period" type="date"
                                     class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"

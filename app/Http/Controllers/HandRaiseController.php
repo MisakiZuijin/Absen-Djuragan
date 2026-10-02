@@ -45,9 +45,29 @@ class HandRaiseController extends Controller
                 })
                 ->count();
 
+            $latest = HandRaise::with(['user.profile', 'user.intern.school'])
+                ->where('is_raised', true)
+                ->where('status', '!=', 'done')
+                ->latest('updated_at')
+                ->first();
+
+            $latestMessage = \App\Models\HandRaiseMessage::where('is_from_admin', false)
+                ->latest('id')
+                ->first();
+
             return response()->json([
                 'count' => $totalCount,
                 'urgent_count' => $urgentCount,
+                'latest_id' => $latest?->id ?? 0,
+                'latest_message_id' => $latestMessage?->id ?? 0,
+                'latest_request' => $latest ? [
+                    'id' => $latest->id,
+                    'sender_name' => $latest->user?->profile?->full_name ?? $latest->user?->name ?? 'Pemagang',
+                    'school' => $latest->user?->intern?->school?->name ?? '-',
+                    'type' => $latest->type ?? 'question',
+                    'reason' => $latest->notes ?? $latest->reason ?? 'Membutuhkan bantuan/pertanyaan',
+                    'created_at' => $latest->created_at ? $latest->created_at->diffForHumans() : 'Baru saja',
+                ] : null,
                 'type' => 'raise_hand',
                 'timestamp' => now()->toISOString(),
                 'status' => 'success'
@@ -56,6 +76,9 @@ class HandRaiseController extends Controller
             return response()->json([
                 'count' => 0,
                 'urgent_count' => 0,
+                'latest_id' => 0,
+                'latest_message_id' => 0,
+                'latest_request' => null,
                 'type' => 'raise_hand',
                 'timestamp' => now()->toISOString(),
                 'status' => 'error',
@@ -136,6 +159,30 @@ class HandRaiseController extends Controller
     }
 
     /**
+     * Dapatkan daftar pesan riwayat percakapan untuk modal chat raise hand real-time
+     */
+    public function getMessages(int $id): JsonResponse
+    {
+        try {
+            $handRaise = HandRaise::with(['user.profile', 'resolver.profile'])->findOrFail($id);
+            $thread = $handRaise->conversation_thread;
+
+            return response()->json([
+                'success' => true,
+                'id' => $handRaise->id,
+                'status' => $handRaise->status,
+                'is_raised' => (bool) $handRaise->is_raised,
+                'thread' => $thread,
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal mengambil pesan: ' . $e->getMessage()
+            ], 404);
+        }
+    }
+
+    /**
      * Fetch data raise hand dengan relasi
      */
     private function fetchHandRaises()
@@ -158,6 +205,10 @@ class HandRaiseController extends Controller
      */
     public function confirmAction(Request $request, int $id)
     {
+        if (auth()->check() && (int) auth()->user()->role_id === 6) {
+            return redirect()->back()->with('error', 'Aksi ini hanya dapat dilakukan oleh Admin / Pembimbing Utama.');
+        }
+
         try {
             $handRaise = HandRaise::findOrFail($id);
             $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Peserta';
@@ -185,6 +236,28 @@ class HandRaiseController extends Controller
                     return redirect()->back()->with('error', 'Tanggapan / jawaban tidak boleh kosong.');
                 }
 
+                // Backfill initial question if not yet in messages table
+                if ($handRaise->messages()->count() === 0) {
+                    $initNote = trim($handRaise->notes ?? $handRaise->reason ?? '');
+                    if (!empty($initNote)) {
+                        \App\Models\HandRaiseMessage::create([
+                            'hand_raise_id' => $handRaise->id,
+                            'user_id' => $handRaise->user_id,
+                            'message' => $initNote,
+                            'is_from_admin' => false,
+                            'created_at' => $handRaise->created_at ?? now(),
+                        ]);
+                    }
+                }
+
+                // Simpan pesan balasan baru dari admin / mentor ke riwayat chat
+                $newMessage = \App\Models\HandRaiseMessage::create([
+                    'hand_raise_id' => $handRaise->id,
+                    'user_id' => auth()->id(),
+                    'message' => $adminResponse,
+                    'is_from_admin' => true,
+                ]);
+
                 $handRaise->update([
                     'status' => 'responded',
                     'admin_response' => $adminResponse,
@@ -200,6 +273,21 @@ class HandRaiseController extends Controller
                 );
 
                 Log::info("Question responded for {$userName} by " . auth()->user()->name);
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => true,
+                        'message' => "Tanggapan berhasil dikirimkan ke {$userName}.",
+                        'note' => [
+                            'id' => $newMessage->id,
+                            'sender_name' => auth()->user()->profile?->full_name ?? auth()->user()->name ?? 'Mentor',
+                            'message' => $adminResponse,
+                            'is_from_admin' => true,
+                            'time' => now()->format('H:i'),
+                        ],
+                    ]);
+                }
+
                 return redirect()->route('admin.raiseHand.index', ['tab' => $targetTab])
                     ->with('success', "Tanggapan berhasil dikirimkan ke {$userName}. Pemagang akan melihat popup tanggapan di dashboard.");
             }
@@ -293,6 +381,20 @@ class HandRaiseController extends Controller
                 $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
                 $pNotes = $request->input('notes') ?: $request->input('admin_response');
 
+                // Validasi: Jam pelaksanaan tidak boleh di bawah waktu saat ini jika tanggal hari ini / masa lalu
+                if ($pDate && $pTime) {
+                    try {
+                        $pDateTime = \Carbon\Carbon::parse("{$pDate} {$pTime}", 'Asia/Jakarta');
+                        $now = \Carbon\Carbon::now('Asia/Jakarta');
+                        if ($pDateTime->lessThanOrEqualTo($now)) {
+                            $timeFormatted = date('H:i', strtotime($pTime));
+                            return redirect()->back()->with('error', "Tidak dapat menerima jadwal: Waktu pelaksanaan yang dipilih ({$pDate} {$timeFormatted} WIB) sudah terlewat dari jam saat ini.");
+                        }
+                    } catch (\Throwable $e) {
+                        // Skip if parse fails
+                    }
+                }
+
                 $handRaise->update([
                     'status' => 'accepted',
                     'presentation_date' => $pDate,
@@ -319,6 +421,20 @@ class HandRaiseController extends Controller
                 $pDate = $request->input('presentation_date') ?: ($handRaise->presentation_date?->toDateString() ?: today()->toDateString());
                 $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
                 $pNotes = $request->input('notes') ?: $request->input('admin_response');
+
+                // Validasi: Jam pelaksanaan tidak boleh di bawah waktu saat ini jika tanggal hari ini / masa lalu
+                if ($pDate && $pTime) {
+                    try {
+                        $pDateTime = \Carbon\Carbon::parse("{$pDate} {$pTime}", 'Asia/Jakarta');
+                        $now = \Carbon\Carbon::now('Asia/Jakarta');
+                        if ($pDateTime->lessThanOrEqualTo($now)) {
+                            $timeFormatted = date('H:i', strtotime($pTime));
+                            return redirect()->back()->with('error', "Tidak dapat menjadwalkan ulang: Waktu pelaksanaan yang dipilih ({$pDate} {$timeFormatted} WIB) sudah terlewat dari jam saat ini.");
+                        }
+                    } catch (\Throwable $e) {
+                        // Skip if parse fails
+                    }
+                }
 
                 $handRaise->update([
                     'status' => 'rescheduled',
@@ -692,6 +808,10 @@ class HandRaiseController extends Controller
      */
     public function quickResolve(Request $request, int $id): JsonResponse
     {
+        if (auth()->check() && (int) auth()->user()->role_id === 6) {
+            return response()->json(['success' => false, 'message' => 'Aksi ini hanya dapat dilakukan oleh Admin / Pembimbing Utama.'], 403);
+        }
+
         try {
             $handRaise = HandRaise::findOrFail($id);
             $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'User';

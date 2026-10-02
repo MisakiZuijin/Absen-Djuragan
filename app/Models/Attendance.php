@@ -22,6 +22,10 @@ class Attendance extends Model {
         'start_time' => 'datetime',
         'end_time' => 'datetime',
         'adjusted_end_time' => 'datetime',
+        'is_auto_end' => 'boolean',
+        'auto_end_notified' => 'boolean',
+        'is_debt_fulfilled' => 'boolean',
+        'debt_fulfilled_at' => 'datetime',
     ];
 
     protected $fillable = [
@@ -55,6 +59,12 @@ class Attendance extends Model {
         "permit_type",
         "authorized_by",
         "proof_link",
+        "is_auto_end",
+        "auto_end_note",
+        "auto_end_notified",
+        "is_debt_fulfilled",
+        "debt_fulfilled_session_id",
+        "debt_fulfilled_at",
     ];
 
     public function detailSchedules(): HasOne {
@@ -63,6 +73,14 @@ class Attendance extends Model {
 
     public function intern(): BelongsTo {
         return $this->belongsTo(Intern::class);
+    }
+
+    public function debtFulfilledSession(): BelongsTo {
+        return $this->belongsTo(ChangeTimeSession::class, 'debt_fulfilled_session_id');
+    }
+
+    public function changeTimeSessionTargets(): HasMany {
+        return $this->hasMany(ChangeTimeSessionTarget::class, 'attendance_id');
     }
 
     public function user()

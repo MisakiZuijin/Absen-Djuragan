@@ -10,7 +10,7 @@ use App\Services\PrayerPermitService;
 
 class AdminIzinShalatController extends Controller
 {
-    protected $prayerPermitService;
+    protected PrayerPermitService $prayerPermitService;
 
     public function __construct(PrayerPermitService $prayerPermitService)
     {

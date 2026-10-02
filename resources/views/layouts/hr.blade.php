@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Halaman @yield('title') | HR Monitoring</title>
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
+    <title>Halaman @yield('title') | {{ $appSetting->app_name ?? 'HR Monitoring' }}</title>
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

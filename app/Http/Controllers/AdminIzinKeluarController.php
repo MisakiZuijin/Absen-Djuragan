@@ -11,7 +11,7 @@ use App\Helper\ActivityLogger;
 
 class AdminIzinKeluarController extends Controller
 {
-    protected $leavePermitService;
+    protected LeavePermitService $leavePermitService;
 
     public function __construct(LeavePermitService $leavePermitService)
     {
@@ -80,7 +80,7 @@ class AdminIzinKeluarController extends Controller
 
         $admin = $request->user();
         $isMandatory = (bool) $validated['is_mandatory_replace'];
-        $agreedMinutes = $isMandatory 
+        $agreedMinutes = $isMandatory
             ? ((int) ($validated['agreed_duration_minutes'] ?? $permitLog->duration_in_minutes ?? 0))
             : 0;
 
@@ -97,8 +97,8 @@ class AdminIzinKeluarController extends Controller
 
         $permitLog->update($data);
 
-        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name 
-            ?? $permitLog->attendance?->intern?->user?->name 
+        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
+            ?? $permitLog->attendance?->intern?->user?->name
             ?? 'Pemagang';
         $adminName = $admin->profile?->full_name ?? $admin->name ?? $admin->username;
         $statusMsg = $isMandatory ? "Wajib Ganti Jam ({$agreedMinutes} menit)" : "Bebas Waktu (Tanpa Ganti Jam)";
@@ -133,8 +133,8 @@ class AdminIzinKeluarController extends Controller
             'approval_status'         => 'approved',
         ]);
 
-        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name 
-            ?? $permitLog->attendance?->intern?->user?->name 
+        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
+            ?? $permitLog->attendance?->intern?->user?->name
             ?? 'Pemagang';
 
         ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menetapkan Bebas Waktu pada Izin Keluar pemagang {$internName}", [
@@ -180,8 +180,8 @@ class AdminIzinKeluarController extends Controller
 
         $permitLog->update($data);
 
-        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name 
-            ?? $permitLog->attendance?->intern?->user?->name 
+        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
+            ?? $permitLog->attendance?->intern?->user?->name
             ?? 'Pemagang';
 
         ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menetapkan Wajib Ganti Waktu {$minutes} menit pada Izin Keluar pemagang {$internName}", [

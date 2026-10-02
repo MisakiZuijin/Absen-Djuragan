@@ -307,20 +307,20 @@
 
             <!-- Judul -->
             <div>
-                <label class="block font-bold text-gray-700 mb-1">
+                <label for="sb_title" class="block font-bold text-gray-700 mb-1">
                     Judul / Subjek Pesan <span class="text-rose-500">*</span>
                 </label>
-                <input type="text" name="title" required value="{{ old('title') }}"
+                <input type="text" name="title" id="sb_title" required value="{{ old('title') }}"
                     class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                     placeholder="Contoh: Evaluasi Progres Harian">
             </div>
 
             <!-- Teks Pesan / Pertanyaan -->
             <div>
-                <label class="block font-bold text-gray-700 mb-1">
+                <label for="sb_message" class="block font-bold text-gray-700 mb-1">
                     Teks Pesan / Pertanyaan <span class="text-rose-500">*</span>
                 </label>
-                <textarea name="message" rows="3" required
+                <textarea name="message" id="sb_message" rows="3" required
                     class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm"
                     placeholder="Tuliskan isi pesan atau pertanyaan untuk pemagang...">{{ old('message') }}</textarea>
             </div>
@@ -329,21 +329,21 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <!-- Kolom Kiri: Waktu Pengiriman -->
                 <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 space-y-1.5">
-                    <label class="block font-bold text-gray-800 text-xs">
+                    <label for="sb_scheduled_at" class="block font-bold text-gray-800 text-xs">
                         <i class="fa-regular fa-clock mr-1 text-blue-600"></i>
                         Waktu Pengiriman <span class="text-rose-500">*</span>
                     </label>
                     <p class="text-[11px] text-gray-500">Pilih tanggal dan jam pengiriman broadcast.</p>
-                    <input type="datetime-local" name="scheduled_at" required value="{{ old('scheduled_at') }}"
+                    <input type="datetime-local" name="scheduled_at" id="sb_scheduled_at" required value="{{ old('scheduled_at') }}"
                         class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-xs bg-white mt-1 font-medium text-gray-700">
                 </div>
 
                 <!-- Kolom Kanan: Target Shift Kerja (Wajib Diisi) -->
                 <div class="bg-gray-50 p-3.5 rounded-xl border border-gray-200 space-y-1.5">
-                    <label class="block font-bold text-gray-800 text-xs">
+                    <span class="block font-bold text-gray-800 text-xs">
                         <i class="fa-solid fa-business-time mr-1 text-amber-600"></i>
                         Target Shift Kerja <span class="text-rose-500">*</span>
-                    </label>
+                    </span>
                     <p class="text-[11px] text-gray-500">Pilih shift kerja pemagang penerima.</p>
                     <div class="space-y-1 mt-1 max-h-32 overflow-y-auto pr-1">
                         @foreach($shifts as $shift)
@@ -358,7 +358,7 @@
 
             <!-- Filter Target Tambahan (Opsional) -->
             <div class="space-y-2 pt-1 border-t border-gray-100">
-                <label class="block font-bold text-gray-700">
+                <label for="broadcast_type" class="block font-bold text-gray-700">
                     <i class="fa-solid fa-filter mr-1 text-indigo-600"></i>
                     Filter Target Tambahan
                 </label>
@@ -424,10 +424,10 @@
 
             <!-- Lampiran Gambar (Single Image Upload & Clean Preview) -->
             <div>
-                <label class="block font-bold text-gray-700 mb-1 text-xs">
+                <span class="block font-bold text-gray-700 mb-1 text-xs">
                     <i class="fa-regular fa-image text-blue-600 mr-1"></i>
                     Lampiran Gambar <span class="text-gray-400 font-normal text-[11px]">(Opsional, Maks. 1 Gambar)</span>
-                </label>
+                </span>
 
                 <!-- Dropzone Area (Tampil jika belum ada gambar) -->
                 <div id="imageDropzone"
@@ -497,7 +497,7 @@
 
 <!-- Modal Lihat Laporan / Balasan Pemagang -->
 <div id="reportsModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm hidden p-3 sm:p-4" onclick="if(event.target === this) closeReportsModal()">
-    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden my-auto">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] flex flex-col overflow-hidden my-auto">
         <div class="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-gray-50 flex-shrink-0">
             <div>
                 <h3 id="modalReportTitle" class="font-bold text-gray-800 text-sm sm:text-base">Balasan Pemagang</h3>
@@ -694,13 +694,85 @@
 
                 let html = '';
                 data.reports.forEach(r => {
+                    const hasChats = r.chats && r.chats.length > 0;
+                    const unreadBadge = (r.unread_intern_chats && r.unread_intern_chats > 0) 
+                        ? `<span id="unread-badge-${r.id}" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">${r.unread_intern_chats} Pesan Baru</span>` 
+                        : '';
+
+                    let chatBubblesHtml = '';
+                    if (hasChats) {
+                        r.chats.forEach(c => {
+                            if (c.is_from_admin) {
+                                chatBubblesHtml += `
+                                    <div class="flex items-start gap-2 max-w-[85%] ml-auto justify-end">
+                                        <div class="bg-indigo-600 text-white p-2.5 rounded-2xl rounded-tr-xs text-xs shadow-2xs leading-relaxed space-y-0.5">
+                                            <span class="font-bold text-[10px] text-indigo-200 block">${escapeHtml(c.sender_name)} (Admin)</span>
+                                            <p class="whitespace-pre-line">${escapeHtml(c.message)}</p>
+                                            <span class="text-[9px] text-indigo-300 block text-right font-mono">${escapeHtml(c.time)}</span>
+                                        </div>
+                                    </div>`;
+                            } else {
+                                chatBubblesHtml += `
+                                    <div class="flex items-start gap-2 max-w-[85%]">
+                                        <div class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">
+                                            <i class="fa-solid fa-user"></i>
+                                        </div>
+                                        <div class="bg-white text-slate-800 p-2.5 rounded-2xl rounded-tl-xs text-xs border border-slate-200 shadow-2xs leading-relaxed space-y-0.5">
+                                            <span class="font-bold text-[10px] text-indigo-700 block">${escapeHtml(c.sender_name)}</span>
+                                            <p class="whitespace-pre-line">${escapeHtml(c.message)}</p>
+                                            <span class="text-[9px] text-slate-400 block text-right font-mono">${escapeHtml(c.time)}</span>
+                                        </div>
+                                    </div>`;
+                            }
+                        });
+                    }
+
                     html += `
-                        <div class="p-4 bg-gray-50 rounded-xl border border-gray-200/80 space-y-1">
-                            <div class="flex items-center justify-between text-xs">
-                                <span class="font-bold text-gray-800">${escapeHtml(r.name)}</span>
-                                <span class="text-gray-400 text-[11px]">${escapeHtml(r.submitted_at)}</span>
+                        <div class="p-3 bg-slate-50 hover:bg-slate-100/70 transition rounded-xl border border-slate-200/80 space-y-2" id="report-card-${r.id}">
+                            <!-- Baris Atas: Profil Pemagang, Waktu, Badge Unread & Tombol Icon Chat -->
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-6 h-6 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                    <span class="font-bold text-gray-800 text-xs truncate">${escapeHtml(r.name)}</span>
+                                    ${unreadBadge}
+                                </div>
+                                <div class="flex items-center gap-1.5 shrink-0">
+                                    <span class="text-gray-400 text-[10px] font-mono">${escapeHtml(r.submitted_at)}</span>
+                                    <!-- Tombol Chat Personal (Hanya Icon SVG) -->
+                                    <button type="button" onclick="toggleFollowUpThread(${r.id})" 
+                                        class="p-1.5 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition cursor-pointer flex items-center justify-center gap-1"
+                                        title="${hasChats ? 'Lihat Diskusi & Balas (' + r.chats.length + ')' : 'Kirim Chat / Tanya Pemagang'}">
+                                        <i class="fa-solid fa-comments text-xs"></i>
+                                        ${hasChats ? `<span class="text-[10px] font-bold text-indigo-700">${r.chats.length}</span>` : ''}
+                                    </button>
+                                </div>
                             </div>
-                            <p class="text-xs text-gray-700 whitespace-pre-wrap leading-relaxed">${escapeHtml(r.report)}</p>
+
+                            <!-- Jawaban/Laporan Pemagang -->
+                            <div class="bg-white px-3 py-2 rounded-lg border border-slate-200/70 text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">${escapeHtml(r.report ? r.report.trim() : '')}</div>
+
+                            <!-- Follow-up Chat Container (Accordion - Tersembunyi secara Default) -->
+                            <div id="follow-up-container-${r.id}" class="hidden space-y-2 pt-2 border-t border-slate-200">
+                                <div class="space-y-1.5 max-h-40 overflow-y-auto p-2 bg-slate-100/70 rounded-lg border border-slate-200" id="chat-thread-${r.id}">
+                                    ${chatBubblesHtml || '<p class="text-[11px] text-gray-400 italic text-center py-1">Belum ada percakapan lanjutan. Tulis pertanyaan di bawah untuk menanyakan pemagang.</p>'}
+                                </div>
+
+                                <!-- Form Kirim Chat Personal ke Pemagang -->
+                                <div class="flex items-center gap-1.5">
+                                    <input type="text" id="follow-up-input-${r.id}" 
+                                        placeholder="Ketik pertanyaan untuk ${escapeHtml(r.name)}..."
+                                        class="flex-1 px-3 py-1.5 text-xs border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white"
+                                        onkeydown="if(event.key === 'Enter') sendAdminFollowUp(${r.id});">
+                                    <button type="button" onclick="sendAdminFollowUp(${r.id})"
+                                        id="btn-send-followup-${r.id}"
+                                        class="p-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
+                                        title="Kirim Pesan">
+                                        <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>`;
                 });
                 container.innerHTML = html;
@@ -712,6 +784,80 @@
                         Gagal memuat balasan pemagang. Silakan coba lagi.
                     </div>`;
             });
+    }
+
+    function toggleFollowUpThread(reportId) {
+        const el = document.getElementById(`follow-up-container-${reportId}`);
+        if (el) {
+            const wasHidden = el.classList.contains('hidden');
+            el.classList.toggle('hidden');
+            if (wasHidden) {
+                // Tandai chat dibaca oleh admin ke server dan hapus badge notifikasi
+                fetch(`{{ url('/admin/scheduled-broadcasts/reports') }}/${reportId}/chats`)
+                    .then(res => res.json())
+                    .then(() => {
+                        const badge = document.getElementById(`unread-badge-${reportId}`);
+                        if (badge) badge.remove();
+                    })
+                    .catch(() => {});
+            }
+        }
+    }
+
+    function sendAdminFollowUp(reportId) {
+        const input = document.getElementById(`follow-up-input-${reportId}`);
+        const btn = document.getElementById(`btn-send-followup-${reportId}`);
+        const thread = document.getElementById(`chat-thread-${reportId}`);
+        if (!input || !input.value.trim()) return;
+
+        const message = input.value.trim();
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i>';
+        }
+
+        fetch(`{{ url('/admin/scheduled-broadcasts/reports') }}/${reportId}/follow-up`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ message: message })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.chat) {
+                input.value = '';
+                const badge = document.getElementById(`unread-badge-${reportId}`);
+                if (badge) badge.remove();
+                const bubble = `
+                    <div class="flex items-start gap-2 max-w-[85%] ml-auto justify-end">
+                        <div class="bg-indigo-600 text-white p-2.5 rounded-2xl rounded-tr-xs text-xs shadow-2xs leading-relaxed space-y-0.5">
+                            <span class="font-bold text-[10px] text-indigo-200 block">${escapeHtml(data.chat.sender_name)} (Admin)</span>
+                            <p class="whitespace-pre-line">${escapeHtml(data.chat.message)}</p>
+                            <span class="text-[9px] text-indigo-300 block text-right font-mono">${escapeHtml(data.chat.time)}</span>
+                        </div>
+                    </div>`;
+                if (thread.innerHTML.includes('Belum ada percakapan lanjutan')) {
+                    thread.innerHTML = bubble;
+                } else {
+                    thread.innerHTML += bubble;
+                }
+                thread.scrollTop = thread.scrollHeight;
+            } else {
+                alert(data.message || 'Gagal mengirim pesan.');
+            }
+        })
+        .catch(err => {
+            alert('Terjadi kesalahan saat mengirim pesan follow-up.');
+        })
+        .finally(() => {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane text-[10px]"></i> <span>Kirim</span>';
+            }
+        });
     }
 
     function closeReportsModal() {

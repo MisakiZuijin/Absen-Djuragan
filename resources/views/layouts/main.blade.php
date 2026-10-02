@@ -10,9 +10,10 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Absen Djuragan Admin" />
+    <meta name="apple-mobile-web-app-title" content="{{ $appSetting->app_name ?? 'Absen Djuragan' }} Admin" />
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
 
-    <title>Halaman @yield('title') | Admin</title>
+    <title>Halaman @yield('title') | {{ $appSetting->app_name ?? 'Admin' }}</title>
 
     {{-- Styles --}}
     @vite('resources/css/app.css')
@@ -65,7 +66,15 @@
 
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="{{ asset('js/admin/raise-hand-notifications.js') }}"></script>
+    @php
+        $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
+        $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
+    @endphp
+    <script>
+        window.__raiseHandPollIntervalMs = {{ $raiseHandNotifInterval * 1000 }};
+        window.__raiseHandNotificationsEnabled = {{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? 'true' : 'false' }};
+    </script>
+    <script src="{{ asset('js/admin/raise-hand-notifications.js') }}?v={{ file_exists(public_path('js/admin/raise-hand-notifications.js')) ? filemtime(public_path('js/admin/raise-hand-notifications.js')) : '1.0' }}"></script>
     <script>
         if (typeof $ !== 'undefined') {
             $.ajaxSetup({
@@ -107,6 +116,81 @@
                 window.location.reload();
             }
         });
+
+        // =========================================================================
+        // GLOBAL BACKGROUND SCROLL LOCKER (UNTUK SEMUA POPUP / MODAL DI SISTEM)
+        // =========================================================================
+        (function() {
+            let isLocked = false;
+            function updateBodyScrollLock() {
+                const swalOpen = document.querySelector('.swal2-container.swal2-shown, body.swal2-shown');
+                if (swalOpen) {
+                    if (!isLocked) {
+                        document.body.classList.add('overflow-hidden');
+                        document.documentElement.classList.add('overflow-hidden');
+                        isLocked = true;
+                    }
+                    return;
+                }
+
+                const candidateModals = document.querySelectorAll(
+                    '.fixed.inset-0:not(.hidden):not(#sidebar):not(#user-sidebar):not(#user-sidebar-backdrop):not(#settings-sidebar-wrapper):not(#main-navbar), ' +
+                    '.modal-backdrop:not(.hidden)'
+                );
+
+                let hasVisibleModal = false;
+                const minWidth = window.innerWidth * 0.5;
+                const minHeight = window.innerHeight * 0.5;
+
+                for (let i = 0; i < candidateModals.length; i++) {
+                    const el = candidateModals[i];
+                    const tag = el.tagName.toLowerCase();
+                    if (['button', 'a', 'input', 'select', 'textarea', 'nav', 'aside', 'header', 'footer', 'form'].includes(tag)) {
+                        continue;
+                    }
+
+                    if (el.offsetWidth >= minWidth && el.offsetHeight >= minHeight) {
+                        const style = window.getComputedStyle(el);
+                        if (
+                            style.position === 'fixed' &&
+                            style.display !== 'none' &&
+                            style.visibility !== 'hidden' &&
+                            style.opacity !== '0' &&
+                            style.pointerEvents !== 'none'
+                        ) {
+                            hasVisibleModal = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (hasVisibleModal && !isLocked) {
+                    document.body.classList.add('overflow-hidden');
+                    document.documentElement.classList.add('overflow-hidden');
+                    isLocked = true;
+                } else if (!hasVisibleModal && isLocked) {
+                    document.body.classList.remove('overflow-hidden');
+                    document.documentElement.classList.remove('overflow-hidden');
+                    isLocked = false;
+                }
+            }
+
+            const modalObserver = new MutationObserver(function() {
+                updateBodyScrollLock();
+            });
+
+            document.addEventListener('DOMContentLoaded', function() {
+                modalObserver.observe(document.body, {
+                    attributes: true,
+                    attributeFilter: ['class', 'style'],
+                    childList: true,
+                    subtree: true
+                });
+                updateBodyScrollLock();
+            });
+
+            window.updateBodyScrollLock = updateBodyScrollLock;
+        })();
     </script>
     @stack('scripts')
     @livewireScripts

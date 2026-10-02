@@ -47,6 +47,11 @@ class ShiftRepositoryIMPL implements ShiftRepository
         return $this->model->find($id);
     }
 
+    public function find(int $id)
+    {
+        return $this->model->find($id);
+    }
+
     public function getAll()
     {
         return $this->model->where('id', '!=', 1)->get();

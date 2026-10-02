@@ -35,6 +35,8 @@ use App\Http\Requests\UpdateTimeAttendanceRequest;
 use App\Http\Requests\UpdateStatusAttendanceRequest;
 use App\Http\Resources\DetailInternAttendanceResource;
 use App\Models\CheckinMessage; // [BARU] Import model CheckinMessage
+use App\Models\PermitLog;
+use App\Helper\ActivityLogger;
 
 class AttendanceController extends Controller
 {
@@ -376,12 +378,18 @@ class AttendanceController extends Controller
         $adjustableAttd = AdjustableAttd::find($id);
 
         if (!$adjustableAttd) {
-            return response()->json(['message' => 'Data not found'], 404);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Data tidak ditemukan!'], 404);
+            }
+            return redirect()->back()->with('error', 'Data tidak ditemukan!');
         }
 
         $adjustableAttd->is_approved = $request->input('is_approved');
-
         $adjustableAttd->save();
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true, 'message' => 'Status ganti jam berhasil diupdate!']);
+        }
 
         return redirect()->back()->with('status', 'Data Status berhasil diupdate!');
     }
@@ -576,6 +584,8 @@ class AttendanceController extends Controller
 
     public function reportUserPDF(int $internId)
     {
+        $attdStatusId = request('attd_status_id');
+
         $intern = Intern::with([
             'user.profile',
             'schedules.detailSchedules' => function ($query) use ($attdStatusId) {
@@ -989,6 +999,9 @@ class AttendanceController extends Controller
             $adjustableAttd = AdjustableAttd::find($id);
 
             if (!$adjustableAttd) {
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Data ganti jam tidak ditemukan!'], 404);
+                }
                 return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
             }
 
@@ -997,10 +1010,17 @@ class AttendanceController extends Controller
             $adjustableAttd->delete();
 
             DB::commit();
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Data ganti jam berhasil dihapus!']);
+            }
             return redirect()->back()->with('status', 'Data adjustable attendance berhasil dihapus!');
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error deleting adjustable attendance: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Gagal menghapus data ganti jam.'], 500);
+            }
             return redirect()->back()->with('error', 'Gagal menghapus data ganti jam. Silakan coba lagi.');
         }
     }
@@ -1013,6 +1033,9 @@ class AttendanceController extends Controller
             $adjustableAttd = AdjustableAttd::find($id);
 
             if (!$adjustableAttd) {
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => 'Data ganti jam tidak ditemukan!'], 404);
+                }
                 return redirect()->back()->with('error', 'Data adjustable attendance tidak ditemukan!');
             }
 
@@ -1020,11 +1043,126 @@ class AttendanceController extends Controller
             $adjustableAttd->save();
 
             DB::commit();
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Data ganti jam berhasil di-restore!']);
+            }
             return redirect()->back()->with('status', 'Data adjustable attendance berhasil di-restore!');
         } catch (\Exception $e) {
             DB::rollback();
             Log::error('Error restoring adjustable attendance: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Gagal memulihkan data ganti jam.'], 500);
+            }
             return redirect()->back()->with('error', 'Gagal memulihkan data ganti jam. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Aktivasi izin secara remote oleh Admin dari tabel presensi (berjalan sesuai waktu izin tanpa batasan waktu)
+     */
+    public function remoteActivatePermit(Request $request)
+    {
+        $request->validate([
+            'intern_id' => 'required|exists:interns,id',
+            'type' => 'required|in:leave,prayer,toilet',
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $intern = Intern::with('user.profile')->findOrFail($request->intern_id);
+            $internName = $intern->user?->profile?->full_name ?? $intern->user?->name ?? 'Pemagang';
+
+            // Cek apakah ada izin yang sedang aktif untuk pemagang ini
+            $activePermit = PermitLog::whereHas('attendance', function ($q) use ($intern) {
+                $q->where('intern_id', $intern->id);
+            })
+                ->whereNull('end_time')
+                ->first();
+
+            if ($activePermit) {
+                $typeLabels = [
+                    'leave' => 'Izin Keluar Keperluan',
+                    'prayer' => 'Izin Shalat',
+                    'toilet' => 'Izin Toilet',
+                ];
+                $activeLabel = $typeLabels[$activePermit->type] ?? ucfirst($activePermit->type);
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => "Pemagang {$internName} sedang memiliki {$activeLabel} yang masih aktif. Selesaikan izin tersebut terlebih dahulu.",
+                ], 422);
+            }
+
+            // Cari atau buat record attendance hari ini
+            $today = Carbon::today()->toDateString();
+            $attendance = Attendance::firstOrCreate(
+                ['intern_id' => $intern->id, 'date' => $today],
+                [
+                    'user_id' => $intern->user_id,
+                    'start_time' => Carbon::now('Asia/Jakarta')->format('H:i:s'),
+                    'keterangan' => 'Presensi / Izin oleh Admin',
+                ]
+            );
+
+            $type = $request->type;
+            $description = $request->description ?: ('Izin ' . ($type === 'leave' ? 'Keluar Keperluan' : ($type === 'prayer' ? 'Shalat' : 'Toilet')) . ' diaktifkan secara remote oleh Admin');
+
+            // Update record attendance jika izin keluar
+            if ($type === 'leave') {
+                $attendance->permit_type = 'leave';
+                $attendance->permit_start = Carbon::now('Asia/Jakarta');
+                $attendance->permit_back = null;
+                $attendance->permit_description = $description;
+                $attendance->save();
+            }
+
+            // Buat PermitLog (berjalan sesuai waktu izin aktual, tanpa batasan waktu)
+            $permitLog = PermitLog::create([
+                'attendance_id' => $attendance->id,
+                'type' => $type,
+                'description' => $description,
+                'authorized_by' => auth()->id(),
+                'start_time' => Carbon::now('Asia/Jakarta'),
+                'agreed_duration_minutes' => 0,
+                'is_mandatory_replace' => false,
+                'approval_status' => 'approved',
+            ]);
+
+            $typeDisplay = [
+                'leave' => 'Izin Keluar Keperluan',
+                'prayer' => 'Izin Shalat',
+                'toilet' => 'Izin Toilet',
+            ][$type] ?? ucfirst($type);
+
+            ActivityLogger::log(
+                'CREATE',
+                'Permit',
+                "Admin mengaktifkan {$typeDisplay} secara remote untuk pemagang {$internName}",
+                [
+                    'intern_id' => $intern->id,
+                    'user_id' => $intern->user_id,
+                    'type' => $type,
+                    'permit_log_id' => $permitLog->id,
+                    'authorized_by' => auth()->id(),
+                ]
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "{$typeDisplay} berhasil diaktifkan secara remote untuk {$internName}.",
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error activating remote permit: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengaktifkan izin remote: ' . $e->getMessage(),
+            ], 500);
         }
     }
 }

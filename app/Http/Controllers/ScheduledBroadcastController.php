@@ -9,6 +9,7 @@ use App\Models\Division;
 use App\Models\Office;
 use App\Models\Shift;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -137,19 +138,184 @@ class ScheduledBroadcastController extends Controller
     {
         $broadcast->loadMissing('shifts:id,name');
 
-        $reports = $broadcast->reports()->with('user.profile')->latest()->get()->map(function ($report) {
-            return [
-                'name' => $report->user->profile->full_name ?? $report->user->name ?? $report->user->username ?? 'N/A',
-                'report' => $report->report,
-                'submitted_at' => $report->created_at->format('d/m/Y H:i'),
-            ];
-        });
+        // Jika dibuka oleh admin, otomatis tandai semua chat pemagang di broadcast ini sebagai sudah dibaca
+        if (auth()->check() && auth()->user()->role_id != 2) {
+            $reportIds = $broadcast->reports()->pluck('id');
+            if ($reportIds->isNotEmpty()) {
+                \App\Models\BroadcastReportChat::whereIn('broadcast_report_id', $reportIds)
+                    ->where('is_from_admin', false)
+                    ->where('is_read', false)
+                    ->update(['is_read' => true]);
+            }
+        }
+
+        $reports = $broadcast->reports()
+            ->with(['user.profile', 'chats.user.profile'])
+            ->latest()
+            ->get()
+            ->map(function ($report) {
+                return [
+                    'id' => $report->id,
+                    'user_id' => $report->user_id,
+                    'name' => $report->user->profile->full_name ?? $report->user->name ?? $report->user->username ?? 'N/A',
+                    'report' => trim($report->report ?? ''),
+                    'submitted_at' => $report->created_at->format('d/m/Y H:i'),
+                    'unread_intern_chats' => $report->chats->where('is_from_admin', false)->where('is_read', false)->count(),
+                    'chats' => $report->chats->map(function ($c) {
+                        return [
+                            'id' => $c->id,
+                            'message' => trim($c->message ?? ''),
+                            'is_from_admin' => (bool) $c->is_from_admin,
+                            'sender_name' => $c->is_from_admin 
+                                ? ($c->user?->profile?->full_name ?? $c->user?->username ?? 'Admin')
+                                : ($c->user?->profile?->full_name ?? $c->user?->username ?? 'Pemagang'),
+                            'time' => $c->created_at ? $c->created_at->format('d/m H:i') : '-',
+                        ];
+                    })->values(),
+                ];
+            });
 
         return response()->json([
+            'id' => $broadcast->id,
             'title' => $broadcast->title,
             'question' => $broadcast->report_question,
             'shifts' => $broadcast->shifts->pluck('name')->implode(', '),
             'reports' => $reports,
+        ]);
+    }
+
+    /**
+     * Mengambil riwayat chat follow-up spesifik untuk satu laporan pemagang.
+     */
+    public function getReportChats(\App\Models\BroadcastReport $report): JsonResponse
+    {
+        // Jika diakses oleh admin/mentor, tandai pesan pemagang sebagai sudah dibaca
+        if (auth()->user()->role_id != 2) {
+            \App\Models\BroadcastReportChat::where('broadcast_report_id', $report->id)
+                ->where('is_from_admin', false)
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+        } else {
+            // Jika diakses pemagang sendiri, tandai pesan admin sebagai dibaca
+            \App\Models\BroadcastReportChat::where('broadcast_report_id', $report->id)
+                ->where('is_from_admin', true)
+                ->where('is_read', false)
+                ->update(['is_read' => true]);
+        }
+
+        $report->loadMissing(['user.profile', 'broadcast', 'chats.user.profile']);
+
+        $chats = $report->chats->map(function ($c) {
+            return [
+                'id' => $c->id,
+                'message' => $c->message,
+                'is_from_admin' => (bool) $c->is_from_admin,
+                'sender_name' => $c->is_from_admin 
+                    ? ($c->user?->profile?->full_name ?? $c->user?->username ?? 'Admin')
+                    : ($c->user?->profile?->full_name ?? $c->user?->username ?? 'Pemagang'),
+                'time' => $c->created_at ? $c->created_at->format('d/m H:i') : '-',
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'report_id' => $report->id,
+            'intern_name' => $report->user?->profile?->full_name ?? $report->user?->username ?? 'Pemagang',
+            'initial_report' => $report->report,
+            'broadcast_title' => $report->broadcast?->title,
+            'chats' => $chats,
+        ]);
+    }
+
+    /**
+     * Admin mengirim pesan follow-up ke pemagang terkait jawabannya.
+     */
+    public function sendFollowUp(Request $request, \App\Models\BroadcastReport $report): JsonResponse
+    {
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ], [
+            'message.required' => 'Pesan follow-up tidak boleh kosong.',
+            'message.max' => 'Pesan maksimal 1000 karakter.',
+        ]);
+
+        $chat = \App\Models\BroadcastReportChat::create([
+            'broadcast_report_id' => $report->id,
+            'user_id' => auth()->id(),
+            'message' => $request->input('message'),
+            'is_from_admin' => true,
+            'is_read' => false,
+        ]);
+
+        // Tandai seluruh pesan pemagang di laporan ini sebagai sudah dibaca
+        \App\Models\BroadcastReportChat::where('broadcast_report_id', $report->id)
+            ->where('is_from_admin', false)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $adminName = auth()->user()->profile?->full_name ?? auth()->user()->username ?? 'Admin';
+        $internName = $report->user?->profile?->full_name ?? $report->user?->username ?? 'Pemagang';
+
+        \App\Helper\ActivityLogger::log(
+            'CREATE',
+            'Broadcast Follow-up',
+            "Admin {$adminName} mengirim pertanyaan follow-up ke {$internName} terkait laporan broadcast: {$report->broadcast?->title}"
+        );
+
+        return response()->json([
+            'success' => true,
+            'chat' => [
+                'id' => $chat->id,
+                'message' => $chat->message,
+                'is_from_admin' => true,
+                'sender_name' => $adminName,
+                'time' => $chat->created_at->format('d/m H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * Pemagang membalas pesan follow-up dari admin.
+     */
+    public function replyFollowUp(Request $request, \App\Models\BroadcastReport $report): JsonResponse
+    {
+        $user = auth()->user();
+        if ($report->user_id !== $user->id && $user->role_id == 2) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'message' => 'required|string|max:1000',
+        ], [
+            'message.required' => 'Balasan tidak boleh kosong.',
+            'message.max' => 'Balasan maksimal 1000 karakter.',
+        ]);
+
+        $chat = \App\Models\BroadcastReportChat::create([
+            'broadcast_report_id' => $report->id,
+            'user_id' => $user->id,
+            'message' => $request->input('message'),
+            'is_from_admin' => false,
+            'is_read' => false,
+        ]);
+
+        // Tandai pesan admin sebelumnya sebagai sudah dibaca
+        \App\Models\BroadcastReportChat::where('broadcast_report_id', $report->id)
+            ->where('is_from_admin', true)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $internName = $user->profile?->full_name ?? $user->username ?? 'Pemagang';
+
+        return response()->json([
+            'success' => true,
+            'chat' => [
+                'id' => $chat->id,
+                'message' => $chat->message,
+                'is_from_admin' => false,
+                'sender_name' => $internName,
+                'time' => $chat->created_at->format('d/m H:i'),
+            ],
         ]);
     }
 

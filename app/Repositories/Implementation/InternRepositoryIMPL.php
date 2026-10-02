@@ -29,7 +29,7 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getById(int $id)
     {
-        return $this->model->find($id);
+        return $this->model->with(['user.profile'])->find($id);
     }
 
     public function getBySchoolId(int $schoolId)

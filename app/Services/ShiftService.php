@@ -48,6 +48,19 @@ class ShiftService
                 'end_break_time' => $storeShiftRequest->input('end_break_time'),
             ];
 
+            // Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+            $isFridayBreakActive = $storeShiftRequest->boolean('is_friday_break_active') || $storeShiftRequest->input('is_friday_break_active') == '1';
+            $fridayStartBreak = $storeShiftRequest->input('friday_start_break_time');
+            $fridayEndBreak = $storeShiftRequest->input('friday_end_break_time');
+            $fridayBreakMinutes = ($isFridayBreakActive && $fridayStartBreak && $fridayEndBreak)
+                ? DateNow::getDifferentInMinute($fridayStartBreak, $fridayEndBreak)
+                : 0;
+
+            $data['is_friday_break_active'] = $isFridayBreakActive;
+            $data['friday_start_break_time'] = $isFridayBreakActive ? $fridayStartBreak : null;
+            $data['friday_end_break_time'] = $isFridayBreakActive ? $fridayEndBreak : null;
+            $data['friday_break_time_in_minute'] = $fridayBreakMinutes;
+
             if ($storeShiftRequest->has('adt_start_break_time')) {
                 $data['adt_start_break_time'] = $storeShiftRequest->input('adt_start_break_time');
             }
@@ -95,6 +108,23 @@ class ShiftService
                 'adt_start_break_time' => $updateShiftRequest->input('edit_adt_start_break_time'),
                 'adt_end_break_time' => $updateShiftRequest->input('edit_adt_end_break_time'),
             ];
+
+            // Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+            $isFridayBreakActive = $updateShiftRequest->boolean('edit_is_friday_break_active')
+                || $updateShiftRequest->boolean('is_friday_break_active')
+                || $updateShiftRequest->input('edit_is_friday_break_active') == '1'
+                || $updateShiftRequest->input('is_friday_break_active') == '1';
+
+            $fridayStartBreak = $updateShiftRequest->input('edit_friday_start_break_time') ?? $updateShiftRequest->input('friday_start_break_time');
+            $fridayEndBreak = $updateShiftRequest->input('edit_friday_end_break_time') ?? $updateShiftRequest->input('friday_end_break_time');
+            $fridayBreakMinutes = ($isFridayBreakActive && $fridayStartBreak && $fridayEndBreak)
+                ? DateNow::getDifferentInMinute($fridayStartBreak, $fridayEndBreak)
+                : 0;
+
+            $data['is_friday_break_active'] = $isFridayBreakActive;
+            $data['friday_start_break_time'] = $isFridayBreakActive ? $fridayStartBreak : null;
+            $data['friday_end_break_time'] = $isFridayBreakActive ? $fridayEndBreak : null;
+            $data['friday_break_time_in_minute'] = $fridayBreakMinutes;
 
             if ($updateShiftRequest->has('is_gps_active')) {
                 $data['is_gps_active'] = (int) $updateShiftRequest->input('is_gps_active');

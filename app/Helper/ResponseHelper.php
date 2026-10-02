@@ -2,8 +2,12 @@
 
 namespace App\Helper;
 
-class ResponseHelper {
-    public static function jsonResponse($status, $message, $data = null, $statusCode = 200) {
+use Illuminate\Http\JsonResponse;
+
+class ResponseHelper
+{
+    public static function jsonResponse(bool|string $status, string $message, mixed $data = null, int $statusCode = 200): JsonResponse
+    {
         return response()->json([
             'status' => $status,
             'status_code' => $statusCode,

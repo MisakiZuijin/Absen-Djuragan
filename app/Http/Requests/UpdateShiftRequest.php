@@ -27,6 +27,12 @@ class UpdateShiftRequest extends FormRequest
             'edit_adt_start_break_time' => 'nullable',
             'edit_adt_end_break_time' => 'nullable',
             'is_gps_active' => 'nullable|in:0,1',
+            'is_friday_break_active' => 'nullable|in:0,1',
+            'friday_start_break_time' => 'nullable',
+            'friday_end_break_time' => 'nullable',
+            'edit_is_friday_break_active' => 'nullable|in:0,1',
+            'edit_friday_start_break_time' => 'nullable',
+            'edit_friday_end_break_time' => 'nullable',
         ];
     }
 }

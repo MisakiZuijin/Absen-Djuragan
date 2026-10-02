@@ -80,10 +80,10 @@
 
             <!-- 1. Rentang Tanggal (Span 4 on LG) -->
             <div class="col-span-1 sm:col-span-2 md:col-span-6 lg:col-span-4 space-y-1.5">
-                <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                <span class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <i class="fa-solid fa-calendar-days text-blue-600 text-[10px]"></i>
                     Rentang Tanggal
-                </label>
+                </span>
                 <div class="flex items-center gap-1.5">
                     <div class="relative w-full">
                         <input type="date" name="start_date" id="filter-start-date" value="{{ $startDate }}"
@@ -99,11 +99,11 @@
 
             <!-- 2. Filter Divisi (Span 2 on LG) -->
             <div class="col-span-1 sm:col-span-1 md:col-span-3 lg:col-span-2 space-y-1.5">
-                <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                <label for="filter_division_id" class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <i class="fa-solid fa-sitemap text-blue-600 text-[10px]"></i>
                     Divisi
                 </label>
-                <select name="division_id" class="w-full bg-slate-50 hover:bg-white text-slate-800 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none transition shadow-2xs truncate">
+                <select name="division_id" id="filter_division_id" class="w-full bg-slate-50 hover:bg-white text-slate-800 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none transition shadow-2xs truncate">
                     <option value="">Semua Divisi</option>
                     @foreach($divisions as $div)
                     <option value="{{ $div->id }}" {{ (string)($divisionId ?? '') === (string)$div->id ? 'selected' : '' }}>{{ $div->name }}</option>
@@ -113,11 +113,11 @@
 
             <!-- 3. Filter Sekolah / Kampus (Span 2 on LG) -->
             <div class="col-span-1 sm:col-span-1 md:col-span-3 lg:col-span-2 space-y-1.5">
-                <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                <label for="filter_school_id" class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <i class="fa-solid fa-graduation-cap text-blue-600 text-[10px]"></i>
                     Sekolah / Kampus
                 </label>
-                <select name="school_id" class="w-full bg-slate-50 hover:bg-white text-slate-800 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none transition shadow-2xs truncate">
+                <select name="school_id" id="filter_school_id" class="w-full bg-slate-50 hover:bg-white text-slate-800 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none transition shadow-2xs truncate">
                     <option value="">Semua Kampus/Sekolah</option>
                     @foreach($schools as $sch)
                     <option value="{{ $sch->id }}" {{ (string)($schoolId ?? '') === (string)$sch->id ? 'selected' : '' }}>{{ $sch->name }}</option>
@@ -127,12 +127,12 @@
 
             <!-- 4. Cari Mahasiswa (Span 2 on LG) -->
             <div class="col-span-1 sm:col-span-2 md:col-span-4 lg:col-span-2 space-y-1.5">
-                <label class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
+                <label for="filter_search_intern" class="text-[11px] font-bold text-slate-700 flex items-center gap-1">
                     <i class="fa-solid fa-search text-blue-600 text-[10px]"></i>
                     Cari Mahasiswa
                 </label>
                 <div class="relative">
-                    <input type="text" name="search" value="{{ $search ?? '' }}" placeholder="Nama / NIP..."
+                    <input type="text" name="search" id="filter_search_intern" value="{{ $search ?? '' }}" placeholder="Nama / NIP..."
                         class="w-full bg-slate-50 hover:bg-white text-slate-800 border border-slate-200 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-100 rounded-lg pl-7 pr-2.5 py-1.5 text-xs font-semibold outline-none transition shadow-2xs">
                     <i class="fa-solid fa-search absolute left-2.5 top-2.5 text-slate-400 text-[10px]"></i>
                 </div>
@@ -500,7 +500,7 @@
                             </td>
                             <td class="px-2.5 py-2.5 text-center whitespace-nowrap">
                                 <div class="flex items-center justify-center gap-1">
-                                    <button type="button" onclick="openInternModalFromButton(this)" data-intern="{{ json_encode($p) }}" class="p-1.5 bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-600 rounded-lg transition text-2xs font-bold shadow-2xs" title="Ringkasan Cepat">
+                                    <button type="button" onclick="openInternModalFromButton(this)" data-intern='@json($p)' class="p-1.5 bg-slate-100 hover:bg-indigo-600 hover:text-white text-slate-600 rounded-lg transition text-2xs font-bold shadow-2xs" title="Ringkasan Cepat">
                                         <i class="fa-solid fa-eye"></i>
                                     </button>
                                     <a href="{{ route('admin.presence.detail', $p['id']) }}" class="p-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition text-2xs font-bold shadow-2xs" title="Buka Detail Presensi">

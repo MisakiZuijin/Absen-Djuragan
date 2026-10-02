@@ -71,14 +71,14 @@
             <form method="GET" action="{{ route('admin.outsiders.index') }}"
                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="filter-form">
                 <div>
-                    <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Cari</label>
+                    <label for="search-input" class="block text-sm font-medium text-gray-700 mb-1">Cari</label>
                     <input type="text" name="search" id="search-input" value="{{ $filter_search }}"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                         placeholder="Nama/Email/Username">
                 </div>
 
                 <div>
-                    <label for="type" class="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
+                    <label for="type-select" class="block text-sm font-medium text-gray-700 mb-1">Tipe</label>
                     <select name="type" id="type-select"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                         <option value="">Semua Tipe</option>
@@ -88,7 +88,7 @@
                 </div>
 
                 <div>
-                    <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <label for="status-select" class="block text-sm font-medium text-gray-700 mb-1">Status</label>
                     <select name="status" id="status-select"
                         class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
                         <option value="">Semua Status</option>

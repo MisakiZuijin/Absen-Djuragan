@@ -170,9 +170,9 @@
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                            <span class="block text-sm font-medium text-gray-700 mb-2">
                                 Gambar Pendukung <span class="text-sm text-gray-500">(opsional)</span>
-                            </label>
+                            </span>
                             <!-- [MODIFIKASI] Tombol terlihat & Input file tersembunyi -->
                             <button type="button" id="addFilesButton" class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition">
                                 <i class="fas fa-upload mr-2"></i> Pilih atau Tambahkan File
@@ -263,7 +263,7 @@
 
                         <!-- Current Images -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Gambar Saat Ini</label>
+                            <span class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Gambar Saat Ini</span>
                             <div id="currentImagesContainer" class="mt-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 border border-gray-200 rounded-xl p-4 bg-gray-50 min-h-[8rem]">
                                 <p id="noCurrentImages" class="text-xs text-gray-500 col-span-full hidden">Tidak ada gambar saat ini.</p>
                             </div>
@@ -271,7 +271,7 @@
 
                         <!-- Add New Images -->
                         <div>
-                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tambah Gambar Baru <span class="text-gray-400 font-normal normal-case">(opsional)</span></label>
+                            <span class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Tambah Gambar Baru <span class="text-gray-400 font-normal normal-case">(opsional)</span></span>
                             <button type="button" id="editFilesButton" class="w-full px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs shadow-xs transition">
                                 <i class="fas fa-upload mr-2"></i> Pilih atau Tambahkan File
                             </button>

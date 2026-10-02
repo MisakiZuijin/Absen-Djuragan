@@ -154,10 +154,10 @@
                     </div>
                 </div>
                 <div class="flex items-center">
-                    <input type="checkbox" name="notif_enabled" value="1"
+                    <input type="checkbox" name="notif_enabled" id="edit_notif_enabled" value="1"
                         {{ old('notif_enabled', $user->outsider->notif_enabled) ? 'checked' : '' }}
                         class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                    <label class="ml-2 text-sm text-gray-700">Aktifkan notifikasi WhatsApp</label>
+                    <label for="edit_notif_enabled" class="ml-2 text-sm text-gray-700 cursor-pointer">Aktifkan notifikasi WhatsApp</label>
                 </div>
             </div>
 
@@ -166,17 +166,17 @@
                 <h3 class="text-lg font-semibold text-gray-800 mb-4">Pengaturan Akun</h3>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="flex items-center">
-                        <input type="checkbox" name="is_active" value="1"
+                        <input type="checkbox" name="is_active" id="edit_outsider_is_active" value="1"
                             {{ old('is_active', $user->is_active) ? 'checked' : '' }}
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label class="ml-2 text-sm text-gray-700">Akun Aktif</label>
+                        <label for="edit_outsider_is_active" class="ml-2 text-sm text-gray-700 cursor-pointer">Akun Aktif</label>
                     </div>
 
                     <div class="flex items-center">
-                        <input type="checkbox" name="is_confirm" value="1"
+                        <input type="checkbox" name="is_confirm" id="edit_outsider_is_confirm" value="1"
                             {{ old('is_confirm', $user->is_confirm) ? 'checked' : '' }}
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label class="ml-2 text-sm text-gray-700">Email Terkonfirmasi</label>
+                        <label for="edit_outsider_is_confirm" class="ml-2 text-sm text-gray-700 cursor-pointer">Email Terkonfirmasi</label>
                     </div>
 
                     {{-- <div class="flex items-center">

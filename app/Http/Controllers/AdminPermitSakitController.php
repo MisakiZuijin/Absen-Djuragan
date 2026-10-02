@@ -77,37 +77,51 @@ class AdminPermitSakitController extends Controller
             });
         }
 
-        // Calculate summary statistics
-        $today = Carbon::today()->toDateString();
-        $totalSakit = DetailSchedule::where('attd_status_id', 3)
-            ->whereHas('permitReason', function ($pr) {
-                $pr->whereIn('permit_category_id', [1, 2])
-                   ->orWhere('description', 'like', '%sakit%');
-            })->count();
+        // Calculate summary statistics — scoped to active period/date filter
+        $sickCondition = function ($q) {
+            $q->where('attd_status_id', 3)
+              ->whereHas('permitReason', function ($pr) {
+                  $pr->whereIn('permit_category_id', [1, 2])
+                     ->orWhere('description', 'like', '%sakit%');
+              });
+        };
 
-        $todaySakit = DetailSchedule::whereDate('date', $today)
-            ->where('attd_status_id', 3)
-            ->whereHas('permitReason', function ($pr) {
-                $pr->whereIn('permit_category_id', [1, 2])
-                   ->orWhere('description', 'like', '%sakit%');
-            })->count();
+        $applyDateScope = function ($q) use ($dateFilter, $period, $today) {
+            if (!empty($dateFilter)) {
+                $q->whereDate('date', $dateFilter);
+            } elseif ($period === 'today') {
+                $q->whereDate('date', $today);
+            }
+            // period = 'all' → no date filter
+        };
 
-        $lunasCount = DetailSchedule::where('attd_status_id', 3)
-            ->where('isChangeSchedule', 1)
-            ->whereHas('permitReason', function ($pr) {
-                $pr->whereIn('permit_category_id', [1, 2])
-                   ->orWhere('description', 'like', '%sakit%');
-            })->count();
+        $totalSakit = DetailSchedule::where(function ($q) use ($sickCondition) {
+            $sickCondition($q);
+        })->where(function ($q) use ($applyDateScope) {
+            $applyDateScope($q);
+        })->count();
 
-        $pendingCount = DetailSchedule::where('attd_status_id', 3)
-            ->where(function ($q) {
-                $q->whereNull('isChangeSchedule')
-                  ->orWhere('isChangeSchedule', 0);
-            })
-            ->whereHas('permitReason', function ($pr) {
-                $pr->whereIn('permit_category_id', [1, 2])
-                   ->orWhere('description', 'like', '%sakit%');
-            })->count();
+        $lunasCount = DetailSchedule::where(function ($q) use ($sickCondition) {
+            $sickCondition($q);
+        })->where('isChangeSchedule', 1)->where(function ($q) use ($applyDateScope) {
+            $applyDateScope($q);
+        })->count();
+
+        $pendingCount = DetailSchedule::where(function ($q) use ($sickCondition) {
+            $sickCondition($q);
+        })->where(function ($q) {
+            $q->whereNull('isChangeSchedule')
+              ->orWhere('isChangeSchedule', 0);
+        })->where(function ($q) use ($applyDateScope) {
+            $applyDateScope($q);
+        })->count();
+
+        // Dynamic label for period context
+        $periodLabel = match (true) {
+            !empty($dateFilter) => Carbon::parse($dateFilter)->translatedFormat('d M Y'),
+            $period === 'today' => 'Hari Ini',
+            default => 'Semua Periode',
+        };
 
         $permits = $query->orderBy('date', 'desc')
             ->orderBy('id', 'desc')
@@ -117,12 +131,12 @@ class AdminPermitSakitController extends Controller
         return view('admin.izin-sakit', compact(
             'permits',
             'totalSakit',
-            'todaySakit',
             'lunasCount',
             'pendingCount',
             'statusFilter',
             'dateFilter',
             'period',
+            'periodLabel',
             'search'
         ));
     }
@@ -132,12 +146,14 @@ class AdminPermitSakitController extends Controller
      */
     public function approveLunas(int $id): RedirectResponse
     {
-        $detailSchedule = DetailSchedule::with('schedule.intern.user.profile')->findOrFail($id);
+        $detailSchedule = DetailSchedule::with(['schedule.intern.user.profile', 'shift', 'attendance'])->findOrFail($id);
         $detailSchedule->update([
             'attd_status_id' => 3, // Izin
             'isChangeSchedule' => 1, // Bebas Ganti Jam (Lunas)
             'is_change_schedule_approved' => 1,
         ]);
+
+        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
         $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
         \App\Helper\ActivityLogger::log(
@@ -147,7 +163,7 @@ class AdminPermitSakitController extends Controller
             ['detail_schedule_id' => $id]
         );
 
-        return redirect()->back()->with('success', 'Izin Sakit berhasil disetujui: Bebas Ganti Jam (Lunas). Pemagang tidak berhutang jam kerja.');
+        return redirect()->back()->with('success', 'Izin Sakit berhasil disetujui: Bebas Ganti Jam (Lunas). Jam masuk dan pulang disesuaikan jadwal shift pemagang.');
     }
 
     /**
@@ -161,6 +177,8 @@ class AdminPermitSakitController extends Controller
             'isChangeSchedule' => 2, // Wajib Ganti Jam / Hutang Jam
             'is_change_schedule_approved' => 0,
         ]);
+
+        \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
 
         $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
         \App\Helper\ActivityLogger::log(
@@ -215,6 +233,10 @@ class AdminPermitSakitController extends Controller
         $detailSchedule->isChangeSchedule = (int) $validated['jam_option'];
         $detailSchedule->is_change_schedule_approved = ((int) $validated['jam_option'] === 1) ? 1 : 0;
         $detailSchedule->save();
+
+        if ((int) $detailSchedule->attd_status_id === 3) {
+            \App\Helper\TimeHelper::syncValidPermitAttendance($detailSchedule, $detailSchedule->shift);
+        }
 
         return redirect()->back()->with('success', 'Data Izin Sakit berhasil diperbarui.');
     }

@@ -31,8 +31,13 @@ class AttendanceBreakBackState implements AttendanceState {
             "total_break_min" => DateNow::getDifferentInMinute($absenceHistory->break_time, $timeNow)
         ];
 
-        if ($absenceHistory->detailSchedules->shift->end_break_time > $timeNow) {
-            $attData["back_time"] =  $absenceHistory->detailSchedules->shift->end_break_time;
+        $shift = $absenceHistory->detailSchedules?->shift;
+        $user = $absenceHistory->intern?->user ?? $absenceHistory->user ?? (auth()->check() ? auth()->user() : null);
+        $effectiveEndBreak = $shift?->getEffectiveEndBreakTime(\Carbon\Carbon::now('Asia/Jakarta'), $user);
+
+        if ($effectiveEndBreak && $effectiveEndBreak > $timeNow) {
+            $attData["back_time"] = $effectiveEndBreak;
+            $attData["total_break_min"] = DateNow::getDifferentInMinute($absenceHistory->break_time, $effectiveEndBreak);
         }
 
         $attendanceData = $this->attendanceRepository->update($data->getAttendanceId(), $attData);

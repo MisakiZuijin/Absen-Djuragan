@@ -29,12 +29,15 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">History</th>
                             </tr>
                         </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
+                        <tbody id="internsTableBody" class="bg-white divide-y divide-gray-200">
                             {{-- [DIUBAH] Gunakan variabel $interns --}}
                             @forelse($interns as $intern)
                                 @php
                                     $permit = $intern->activePermitLog;
                                     $isPermitted = $permit && $permit->type === 'leave';
+                                    $startEpoch = ($isPermitted && $permit->start_time) ? \Carbon\Carbon::parse($permit->start_time)->timestamp : 0;
+                                    $initialElapsed = $startEpoch > 0 ? max(0, time() - $startEpoch) : 0;
+                                    $initialTimerStr = sprintf('%02d:%02d:%02d', floor($initialElapsed / 3600), floor(($initialElapsed % 3600) / 60), $initialElapsed % 60);
                                 @endphp
                                 <tr>
                                     {{-- [DIUBAH] Penomoran yang benar untuk paginasi --}}
@@ -50,9 +53,10 @@
                                     </td>
                                     <td class="px-6 py-4 font-mono">
                                         @if($isPermitted)
-                                            <div class="timer-value"
+                                            <div class="timer-value font-mono"
                                                  data-permit-id="{{ $permit->id }}"
-                                                 data-base-url="{{ route('assistant.permit.leave.duration', ['permitLog' => ':id']) }}">00:00:00</div>
+                                                 data-base-url="{{ route('assistant.permit.leave.duration', ['permitLog' => ':id']) }}"
+                                                 data-start-time="{{ $startEpoch }}">{{ $initialTimerStr }}</div>
                                         @else
                                             <div>-</div>
                                         @endif

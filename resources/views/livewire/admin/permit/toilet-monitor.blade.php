@@ -1,6 +1,4 @@
-<div>
-    {{-- wire:poll.15s="loadInterns" memanggil method loadInterns() setiap 15 detik --}}
-    <div wire:poll.15s="loadInterns">
+<div @if(isset($pollInterval) && $pollInterval > 0) wire:poll.{{ $pollInterval }}s="loadInterns" @endif>
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <div class="p-6">
                 <h2 class="text-xl font-semibold text-gray-900 mb-4">Daftar Intern</h2>
@@ -20,10 +18,9 @@
                         <tbody class="bg-white divide-y divide-gray-200">
                             @forelse($allInterns as $intern)
                                 @php
-                                    // Cari izin yang sedang aktif (jenis apapun)
-                                    $activePermit = $intern->attendances->firstWhere(function ($att) {
-                                        return $att->permit_start && !$att->permit_back;
-                                    });
+                                    // Cari izin yang sedang aktif
+                                    $activePermit = $intern->activePermitLog;
+                                    $isToilet = $activePermit && $activePermit->type === 'toilet';
                                 @endphp
                                 <tr class="intern-row hover:bg-gray-50 transition-all duration-200">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ $loop->iteration }}</td>
@@ -35,7 +32,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($activePermit)
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                                <i class="fas fa-{{ $activePermit->permit_type === 'toilet' ? 'toilet' : 'walking' }} mr-1"></i> Sedang Izin {{ ucfirst($activePermit->permit_type) }}
+                                                <i class="fas fa-{{ $activePermit->type === 'toilet' ? 'toilet' : 'walking' }} mr-1"></i> Sedang Izin {{ ucfirst($activePermit->type) }}
                                             </span>
                                         @else
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -46,9 +43,9 @@
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         @if($activePermit)
                                             <div class="text-sm text-gray-900" 
-                                                 x-data="timer('{{ \Carbon\Carbon::parse($activePermit->permit_start)->toIso8601String() }}')" 
+                                                 x-data="timer('{{ \Carbon\Carbon::parse($activePermit->start_time)->toIso8601String() }}')" 
                                                  x-init="init()"
-                                                 wire:key="timer-{{ $intern->id }}-{{ $activePermit->id }}"> {{-- Kunci yang lebih unik --}}
+                                                 wire:key="timer-{{ $intern->id }}-{{ $activePermit->id }}">
                                                 <span class="font-mono">
                                                     <i class="fas fa-clock mr-1"></i>
                                                     <span x-text="time"></span>

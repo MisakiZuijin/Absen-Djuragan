@@ -130,6 +130,28 @@ class UserController extends Controller
         $todaysShift = $todaysDetailSchedule?->shift;
         $absenceHistory = $todaysDetailSchedule?->attendance;
 
+        // Cek pendaftaran pra-ganti jam pemagang
+        $approvedRegistrationToday = $user->intern ? \App\Models\ChangeTimeRegistration::where('intern_id', $user->intern->id)
+            ->where('status', 'approved')
+            ->whereDate('requested_date', today())
+            ->with(['shift', 'office'])
+            ->first() : null;
+
+        $activeRegistration = $user->intern ? \App\Models\ChangeTimeRegistration::where('intern_id', $user->intern->id)
+            ->whereIn('status', ['pending', 'approved'])
+            ->where(function ($q) {
+                $q->whereNull('requested_date')
+                  ->orWhereDate('requested_date', '>=', today());
+            })
+            ->with(['shift', 'office', 'approver.profile', 'notes.user.profile'])
+            ->orderByRaw("CASE WHEN status = 'approved' THEN 1 ELSE 2 END")
+            ->latest('id')
+            ->first() : null;
+
+        if ($approvedRegistrationToday && !$todaysShift) {
+            $todaysShift = $approvedRegistrationToday->shift;
+        }
+
         $permitCategoriesResult = $this->permitReasonService->getAllPermitCategory();
         $listPermitCategory = $permitCategoriesResult->isSuccess() ? $permitCategoriesResult->getData() : [];
 
@@ -151,6 +173,27 @@ class UserController extends Controller
                 $all_adjustable = collect($stageData['all_adjustable']);
             }
         }
+
+        if ($all_adjustable->isEmpty() && $user->intern) {
+            $activeChangeTime = \App\Models\ChangeTimeSession::where('intern_id', $user->intern->id)
+                ->where('status', 'active')
+                ->first();
+            if ($activeChangeTime) {
+                $all_adjustable = collect([$activeChangeTime]);
+            } else {
+                $all_adjustable = AdjustableAttd::where('intern_id', $user->intern->id)
+                    ->where(function ($q) {
+                        $q->whereDate('date', today())
+                          ->orWhereNull('end_time');
+                    })
+                    ->get();
+            }
+        }
+
+        $hasActiveAdjustable = $all_adjustable->whereNull('end_time')->isNotEmpty();
+        $hasActiveRegular = $absenceHistory && !is_null($absenceHistory->start_time) && is_null($absenceHistory->end_time);
+
+        $isAdjustable = $hasActiveAdjustable || (!$hasActiveRegular && $all_adjustable->isNotEmpty() && (!$absenceHistory || is_null($absenceHistory->start_time)));
 
         $birth_date = $user->profile->date_of_birth ?? null;
         $latestHandRaises = HandRaise::where('user_id', $user->id)->latest()->take(5)->get();
@@ -225,9 +268,31 @@ class UserController extends Controller
             $hours = floor($lackInSecondsToday / 3600);
             $minutes = floor(($lackInSecondsToday % 3600) / 60);
             $seconds = $lackInSecondsToday % 60;
-            $internTargetData['change_time_total'] = sprintf("-%02d:%02d:%02d", $hours, $minutes, $seconds);
+            // Format positif tanpa tanda minus
+            $internTargetData['change_time_total'] = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
             $internTargetData['total_lack_in_seconds'] = $lackInSecondsToday;
         }
+
+        // ====================================================================
+        // [BARU GANTI JAM V2] DAFTAR ITEM HUTANG JAM & SESI GANTI JAM AKTIF
+        // ====================================================================
+        $debtCalcService = app(\App\Services\DebtCalculationService::class);
+        $changeTimeService = app(\App\Services\ChangeTimeService::class);
+
+        $internId = $user->intern?->id;
+        $internDebts = $internId ? $debtCalcService->getInternDebts($internId, true) : collect();
+        $totalDebtMinutes = (int) $internDebts->sum('debt_minutes');
+        $totalDebtSeconds = $totalDebtMinutes * 60;
+        $totalDebtHours = round($totalDebtMinutes / 60, 1);
+        $totalDebtTimeFormatted = sprintf("%02d:%02d:00", floor($totalDebtMinutes / 60), $totalDebtMinutes % 60);
+
+        $normalDebts = $internDebts->values();
+        $smallDebts = $internDebts->values();
+
+        $activeChangeTimeSession = $internId ? $changeTimeService->getActiveSession($internId) : null;
+        $pendingChangeTimeSession = ($internId && !$activeChangeTimeSession) ? $changeTimeService->getPendingSession($internId) : null;
+
+        $isAdjustable = !empty($activeChangeTimeSession);
 
         // Kandidat pemberi izin keluar: Admin (1) & Asisten Admin (6),
         // plus pemagang divisi Human Resource (18) jika ada.
@@ -270,6 +335,31 @@ class UserController extends Controller
         $activeTasksCount = $user->getActiveTasksCount();
         $hasActiveTasks = $activeTasksCount > 0;
 
+        // Cek popup pulang otomatis yang belum dilihat (muncul 1x saat lupa absen pulang)
+        $autoEndPopup = Attendance::with(['detailSchedules.shift'])
+            ->where('intern_id', $user->intern->id)
+            ->where('is_auto_end', true)
+            ->where('auto_end_notified', false)
+            ->orderByDesc('date')
+            ->first();
+
+        // Konfigurasi & Opsi untuk Sesi Ganti Jam
+        $changeTimeSetting = \App\Models\ChangeTimeSetting::getSettings();
+        $allowedShiftIds = $changeTimeSetting->allowed_shift_ids ?: [];
+        $shiftsForChangeTime = \App\Models\Shift::where('id', '>', 1)
+            ->when(!empty($allowedShiftIds), fn($q) => $q->whereIn('id', $allowedShiftIds))
+            ->orderBy('start_time')->get();
+
+        $allowedOfficeIds = $changeTimeSetting->allowed_office_ids ?: [];
+        $officesForChangeTime = \App\Models\Office::when(!empty($allowedOfficeIds), fn($q) => $q->whereIn('id', $allowedOfficeIds))
+            ->orderBy('name')->get();
+        if ($officesForChangeTime->isEmpty()) {
+            $officesForChangeTime = $allOffices;
+        }
+
+        $defaultOfficeIdForChangeTime = $changeTimeSetting->default_office_id ?: ($officesForChangeTime->first()?->id ?: 1);
+        $isChangeTimeAllowedToday = !empty($approvedRegistrationToday) || !empty($activeChangeTimeSession);
+
         // Data yang dikirim ke view sekarang menggunakan variabel $schedules yang sudah difilter
         $data = [
             "hrUsers" => $hrUsers,
@@ -300,9 +390,48 @@ class UserController extends Controller
             "activeProjects" => $activeProjects,
             "hasActiveTasks" => $hasActiveTasks,
             "activeTasksCount" => $activeTasksCount,
+            "autoEndPopup" => $autoEndPopup,
+            "changeTimeSetting" => $changeTimeSetting,
+            "shiftsForChangeTime" => $shiftsForChangeTime,
+            "officesForChangeTime" => $officesForChangeTime,
+            "defaultOfficeIdForChangeTime" => $defaultOfficeIdForChangeTime,
+            "isChangeTimeAllowedToday" => $isChangeTimeAllowedToday,
+            "approvedRegistrationToday" => $approvedRegistrationToday,
+            "activeRegistration" => $activeRegistration,
+            "internDebts" => $internDebts,
+            "normalDebts" => $normalDebts,
+            "smallDebts" => $smallDebts,
+            "activeChangeTimeSession" => $activeChangeTimeSession,
+            "pendingChangeTimeSession" => $pendingChangeTimeSession,
+            "totalDebtSeconds" => $totalDebtSeconds,
+            "totalDebtHours" => $totalDebtHours,
+            "totalDebtTimeFormatted" => $totalDebtTimeFormatted,
+            "isAdjustable" => $isAdjustable,
         ];
 
         return view("users.index")->with($data);
+    }
+
+    /**
+     * Menandai popup notifikasi pulang otomatis sebagai telah dilihat oleh pemagang (popup 1x).
+     */
+    public function dismissAutoEndPopup(int $id)
+    {
+        $user = auth()->user();
+        if (!$user || !$user->intern) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $attendance = Attendance::where('id', $id)
+            ->where('intern_id', $user->intern->id)
+            ->first();
+
+        if ($attendance) {
+            $attendance->update(['auto_end_notified' => true]);
+            return response()->json(['success' => true, 'message' => 'Notifikasi pulang otomatis berhasil ditutup.']);
+        }
+
+        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan.'], 404);
     }
 
     /**
@@ -348,9 +477,15 @@ class UserController extends Controller
         ]);
 
         $user = Auth::user();
+        if (!$user || !$user->intern) {
+            return redirect()->back()->with('error', 'Data pemagang tidak ditemukan.');
+        }
+
+        $internId = $user->intern->id;
         $permitType = $request->input('type');
 
-        $attendance = Attendance::where('intern_id', $user->intern->id)
+        // Cek apakah ada absensi reguler hari ini
+        $attendance = Attendance::where('intern_id', $internId)
             ->whereDate('date', today())
             ->first();
 
@@ -358,24 +493,31 @@ class UserController extends Controller
         if ($attendance) {
             $hasCheckedIn = !is_null($attendance->start_time);
         }
-        $hasActiveAdjustable = AdjustableAttd::where('intern_id', $user->intern->id)
-            ->whereDate('date', today())
+
+        // Cek apakah ada sesi ganti jam aktif (baik ChangeTimeSession maupun AdjustableAttd)
+        $hasActiveAdjustable = \App\Models\ChangeTimeSession::where('intern_id', $internId)
+            ->where('status', 'active')
+            ->exists()
+            || \App\Models\AdjustableAttd::where('intern_id', $internId)
             ->whereNotNull('start_time')
             ->whereNull('end_time')
             ->exists();
-
-        if (!$attendance) {
-            $attendance = Attendance::create([
-                'intern_id' => $user->intern->id,
-                'date' => today()->toDateString(),
-            ]);
-        }
 
         if (!$hasCheckedIn && !$hasActiveAdjustable) {
             return redirect()->back()->with('error', 'Anda harus presensi masuk terlebih dahulu atau sedang dalam sesi ganti jam untuk memulai izin.');
         }
 
-        $activePermit = PermitLog::where('attendance_id', $attendance->id)
+        // Jika belum ada record attendance hari ini (misal ganti jam di hari libur/minggu), buatkan record shell
+        if (!$attendance) {
+            $attendance = Attendance::firstOrCreate(
+                ['intern_id' => $internId, 'date' => today()->toDateString()]
+            );
+        }
+
+        // Cek apakah ada izin lain yang sedang aktif
+        $activePermit = PermitLog::whereHas('attendance', function ($q) use ($internId) {
+            $q->where('intern_id', $internId);
+        })
             ->whereNull('end_time')
             ->exists();
 
@@ -385,13 +527,16 @@ class UserController extends Controller
 
         $limitSetting = PermitSetting::where('type', $permitType)->first();
 
-        if ($limitSetting) {
-            $todaysPermitCount = PermitLog::where('attendance_id', $attendance->id)
+        // Hanya cek batas harian jika max_daily_count > 0 (0 = unlimited / tidak dibatasi)
+        if ($limitSetting && (int) $limitSetting->max_daily_count > 0) {
+            $todaysPermitCount = PermitLog::whereHas('attendance', function ($q) use ($internId) {
+                $q->where('intern_id', $internId);
+            })
                 ->where('type', $permitType)
                 ->whereDate('start_time', today())
                 ->count();
 
-            if ($todaysPermitCount >= $limitSetting->max_daily_count) {
+            if ($todaysPermitCount >= (int) $limitSetting->max_daily_count) {
                 return redirect()->back()->with('error', 'Anda telah mencapai batas maksimal untuk Izin ' . ucfirst($permitType) . ' hari ini (' . $limitSetting->max_daily_count . ' kali).');
             }
         }
@@ -404,6 +549,7 @@ class UserController extends Controller
             'start_time' => now(),
             'approval_status' => $permitType === 'leave' ? 'pending' : 'approved',
             'is_mandatory_replace' => false,
+            'agreed_duration_minutes' => 0,
         ]);
 
         $internName = $user->profile->full_name ?? $user->name ?? $user->username;
@@ -424,17 +570,17 @@ class UserController extends Controller
     public function endPermit()
     {
         $user = Auth::user();
-
-        $attendance = Attendance::where('intern_id', $user->intern->id)
-            ->whereDate('date', today())
-            ->first();
-
-        if (!$attendance) {
-            return redirect()->back()->with('error', 'Data presensi hari ini tidak ditemukan.');
+        if (!$user || !$user->intern) {
+            return redirect()->back()->with('error', 'Data pemagang tidak ditemukan.');
         }
 
-        $activePermit = PermitLog::where('attendance_id', $attendance->id)
+        $internId = $user->intern->id;
+
+        $activePermit = PermitLog::whereHas('attendance', function ($q) use ($internId) {
+            $q->where('intern_id', $internId);
+        })
             ->whereNull('end_time')
+            ->latest('start_time')
             ->first();
 
         if (!$activePermit) {
@@ -444,16 +590,46 @@ class UserController extends Controller
         $startTime = Carbon::parse($activePermit->start_time);
         $endTime = now();
 
-        $durationInMinutes = ceil($startTime->diffInSeconds($endTime) / 60);
+        $durationInMinutes = (int) ceil($startTime->diffInSeconds($endTime) / 60);
 
-        $activePermit->update([
+        // Ambil konfigurasi batas durasi
+        $limitSetting = PermitSetting::where('type', $activePermit->type)->first();
+        $maxDuration = $limitSetting ? (int) $limitSetting->max_duration_minutes : 0;
+
+        $isOverdue = false;
+        $overdueMinutes = 0;
+        $updateData = [
             'end_time' => $endTime->format('Y-m-d H:i:s'),
             'duration_in_minutes' => $durationInMinutes,
-        ]);
+        ];
 
-        $totalPermitMinutesToday = PermitLog::where('attendance_id', $attendance->id)->sum('duration_in_minutes');
-        $attendance->total_permit_min = $totalPermitMinutesToday;
-        $attendance->save();
+        // Konsekuensi jika izin Sholat atau Toilet melebihi batas waktu:
+        // Kelebihan waktu otomatis dimasukkan ke hutang jam (wajib ganti jam)
+        if (in_array($activePermit->type, ['prayer', 'toilet']) && $maxDuration > 0 && $durationInMinutes > $maxDuration) {
+            $isOverdue = true;
+            $overdueMinutes = $durationInMinutes - $maxDuration;
+
+            $updateData['is_mandatory_replace'] = true;
+            $updateData['agreed_duration_minutes'] = $overdueMinutes;
+            $updateData['approval_status'] = 'approved';
+
+            $overdueNote = "Melebihi batas waktu ({$durationInMinutes}m / batas {$maxDuration}m, kelebihan {$overdueMinutes}m masuk hutang jam)";
+            $updateData['description'] = $activePermit->description 
+                ? ($activePermit->description . ' | ' . $overdueNote) 
+                : $overdueNote;
+        }
+
+        $activePermit->update($updateData);
+
+        $attendance = $activePermit->attendance;
+        if ($attendance) {
+            $totalPermitMinutesToday = PermitLog::where('attendance_id', $attendance->id)->sum('duration_in_minutes');
+            $attendance->total_permit_min = $totalPermitMinutesToday;
+            if ($activePermit->type === 'leave' && $attendance->permit_start && !$attendance->permit_back) {
+                $attendance->permit_back = $endTime;
+            }
+            $attendance->save();
+        }
 
         $internName = $user->profile->full_name ?? $user->name ?? $user->username;
         $typeName = match ($activePermit->type) {
@@ -462,12 +638,26 @@ class UserController extends Controller
             'toilet' => 'Toilet',
             default => ucfirst($activePermit->type)
         };
-        ActivityLogger::log('UPDATE', 'Izin', "Pemagang {$internName} menyelesaikan Izin {$typeName} (Durasi: {$durationInMinutes} menit)", [
+
+        $logDesc = "Pemagang {$internName} menyelesaikan Izin {$typeName} (Durasi: {$durationInMinutes} menit)";
+        if ($isOverdue) {
+            $logDesc .= " - MELEBIHI BATAS {$maxDuration}m (Kelebihan {$overdueMinutes}m masuk Hutang Jam)";
+        }
+
+        ActivityLogger::log('UPDATE', 'Izin', $logDesc, [
             'type' => $activePermit->type,
             'duration_minutes' => $durationInMinutes,
+            'max_duration_minutes' => $maxDuration,
+            'overdue_minutes' => $overdueMinutes,
+            'is_mandatory_replace' => $isOverdue,
         ], $user);
 
-        return redirect()->back()->with('success', 'Izin ' . str_replace('_', ' ', $activePermit->type) . ' telah selesai.');
+        $successMsg = 'Izin ' . str_replace('_', ' ', $activePermit->type) . " telah selesai (Durasi: {$durationInMinutes} menit).";
+        if ($isOverdue) {
+            $successMsg .= " Anda melebihi batas waktu ({$maxDuration} menit), kelebihan {$overdueMinutes} menit secara otomatis dimasukkan ke target Hutang Jam Anda.";
+        }
+
+        return redirect()->back()->with('success', $successMsg);
     }
 
     // Di dalam file UserController.php
@@ -494,164 +684,7 @@ class UserController extends Controller
         }
 
         $internId = $user->intern->id;
-
-        $allSchedules = DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
-            $q->where('intern_id', $internId);
-        })
-            ->whereDate('date', '<=', today())
-            ->with(['shift', 'permitReason.category'])
-            ->get();
-
-        // Pre-fetch semua data attendance lengkap dengan relasi permitLogs dalam 1 query tunggal untuk mencegah N+1 di dalam loop
-        $attendancesByDate = \App\Models\Attendance::where('intern_id', $internId)
-            ->whereDate('date', '<=', today())
-            ->with('permitLogs')
-            ->get()
-            ->keyBy(fn($a) => Carbon::parse($a->date)->format('Y-m-d'));
-
-        $schedulesWithDeficit = collect();
-
-        foreach ($allSchedules as $schedule) {
-            if (!$schedule->shift) {
-                continue;
-            }
-
-            $scheduleDate = Carbon::parse($schedule->date);
-            $dateKey = $scheduleDate->format('Y-m-d');
-            $attendanceRecord = $attendancesByDate->get($dateKey) ?? $schedule->attendance;
-            $schedule->attendance = $attendanceRecord;
-
-            $shiftMinutes = (int) ($schedule->shift->total_time_in_minute ?? 0);
-            if ($shiftMinutes <= 0 && $schedule->shift && $schedule->shift->start_time && $schedule->shift->end_time && $schedule->shift->start_time !== '00:00:00') {
-                $start = Carbon::parse($schedule->shift->start_time);
-                $end = Carbon::parse($schedule->shift->end_time);
-                $break = (int) ($schedule->shift->break_time_in_minute ?? 0);
-                $shiftMinutes = max(0, $end->diffInMinutes($start) - $break);
-            }
-            $differenceInMinutes = 0;
-
-            $permitReason = $schedule->permitReason;
-            $categoryId = $permitReason?->permit_category_id;
-            $description = strtolower($permitReason?->description ?? '');
-            $proofUrl = $permitReason?->proof_url;
-            $hasProof = !empty($proofUrl);
-            $isSakit = ($categoryId == 1 || $categoryId == 2 || str_contains($description, 'sakit'));
-
-            // 1. Skenario Izin Bebas Ganti Jam (Lunas / Bebas Jam yang disetujui) -> Tidak berhutang jam
-            if ($schedule->attd_status_id == 3 && ($schedule->isChangeSchedule == 1 || $schedule->is_change_schedule_approved == 1)) {
-                continue;
-            }
-
-            // 2. Skenario Izin Sakit:
-            if ($schedule->attd_status_id == 3 && $isSakit) {
-                $hours = floor($shiftMinutes / 60);
-                $minutes = $shiftMinutes % 60;
-
-                // Jika admin menetapkan Wajib Ganti Jam (isChangeSchedule == 2) atau tanpa bukti:
-                if ($schedule->isChangeSchedule == 2 || !$hasProof || $categoryId == 2) {
-                    $schedule->kategori = "Ganti Jam (Tanpa Bukti Surat)";
-                    $schedule->kategori_badge = "bg-amber-100 text-amber-800 border-amber-300";
-                    $schedule->keterangan = "Izin Sakit - Wajib Ganti Jam Tanpa Bukti Surat ({$hours} Jam {$minutes} Menit)";
-                    $schedule->status = 'Belum Lunas';
-                    $schedule->is_paid_off = false;
-                    $schedulesWithDeficit->push($schedule);
-                    continue;
-                } elseif ($hasProof && ($schedule->isChangeSchedule === null || $schedule->isChangeSchedule == 0)) {
-                    // Ada bukti surat dokter dan belum/menunggu keputusan admin -> tidak dihitung sebagai hutang jam dulu
-                    continue;
-                }
-            }
-
-            // 3. Skenario Izin Keperluan:
-            if ($schedule->attd_status_id == 3) {
-                $hours = floor($shiftMinutes / 60);
-                $minutes = $shiftMinutes % 60;
-
-                // Jika admin menetapkan Wajib Ganti Jam (isChangeSchedule == 2) atau tanpa bukti:
-                if ($schedule->isChangeSchedule == 2 || !$hasProof) {
-                    $schedule->kategori = "Ganti Jam (Tanpa Bukti Surat)";
-                    $schedule->kategori_badge = "bg-orange-100 text-orange-800 border-orange-300";
-                    $schedule->keterangan = "Izin Keperluan - Wajib Ganti Jam Tanpa Bukti Surat ({$hours} Jam {$minutes} Menit)";
-                    $schedule->status = 'Belum Lunas';
-                    $schedule->is_paid_off = false;
-                    $schedulesWithDeficit->push($schedule);
-                    continue;
-                } elseif ($hasProof && ($schedule->isChangeSchedule === null || $schedule->isChangeSchedule == 0)) {
-                    // Ada bukti surat izin dan masih menunggu keputusan admin -> tidak dihitung sebagai hutang jam dulu
-                    continue;
-                }
-            }
-
-            // 4. Skenario Alpha (Tidak Hadir) -> Otomatis berhutang jam kerja penuh sebesar shift
-            if ($schedule->attd_status_id == 5) {
-                $hours = floor($shiftMinutes / 60);
-                $minutes = $shiftMinutes % 60;
-                $schedule->kategori = "Alpha (Tidak Hadir)";
-                $schedule->kategori_badge = "bg-rose-100 text-rose-800 border-rose-300";
-                $schedule->keterangan = "Alpha (Tidak Hadir) - Wajib Ganti Jam {$hours} Jam {$minutes} Menit";
-                $schedule->status = 'Belum Lunas';
-                $schedule->is_paid_off = false;
-                $schedulesWithDeficit->push($schedule);
-                continue;
-            }
-
-            // Jika bukan kehadiran reguler (1 atau 2), lewati agar tidak salah hitung sebagai kekurangan jam reguler
-            if ($schedule->attd_status_id != 1 && $schedule->attd_status_id != 2) {
-                continue;
-            }
-
-            // ================================================================
-            // LOGIKA PRESENSI REGULER (TERLAMBAT / PULANG AWAL)
-            // ================================================================
-            $workingMinutes = 0;
-            if ($schedule->attendance && $schedule->attendance->start_time && $schedule->attendance->end_time) {
-                // Skenario 1: SUDAH ABSEN MASUK DAN PULANG
-                // Hitung ulang durasi dari timestamp mentah untuk akurasi maksimal
-                $startTime = Carbon::parse($schedule->attendance->start_time);
-                $endTime = Carbon::parse($schedule->attendance->end_time);
-                $totalDuration = $endTime->diffInMinutes($startTime);
-                $breakDuration = $schedule->attendance->total_break_min ?? 0;
-                $workingMinutes = $totalDuration - $breakDuration;
-            }
-
-            // Perhitungan final: Total shift - jam kerja yang berhasil dihitung (bisa 0)
-            $differenceInMinutes = $shiftMinutes - $workingMinutes;
-
-            // Logika tambahan untuk hari ini: jika belum pulang, hitung berdasarkan keterlambatan saja
-            if ($scheduleDate->isToday() && $schedule->attendance && $schedule->attendance->start_time && !$schedule->attendance->end_time) {
-                $scheduledStartTime = Carbon::parse($schedule->date . ' ' . $schedule->shift->start_time);
-                $actualStartTime = Carbon::parse($schedule->attendance->start_time);
-
-                if ($actualStartTime->isAfter($scheduledStartTime)) {
-                    $differenceInMinutes = $actualStartTime->diffInMinutes($scheduledStartTime);
-                } else {
-                    $differenceInMinutes = 0; // Jika masuk tepat waktu, belum ada kekurangan
-                }
-            }
-
-
-            // Hutang tambahan dari izin keluar wajib ganti jam (approved)
-            $extraLeaveDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($schedule->attendance);
-            $differenceInMinutes += $extraLeaveDebt;
-
-            if ($differenceInMinutes > 1) { // Toleransi 1 menit
-                $hours = floor($differenceInMinutes / 60);
-                $minutes = $differenceInMinutes % 60;
-
-                $schedule->kategori = "Kekurangan Jam Reguler";
-                $schedule->kategori_badge = "bg-slate-100 text-slate-800 border-slate-300";
-                $schedule->keterangan = "Kekurangan jam kerja {$hours} Jam {$minutes} Menit";
-                if ($extraLeaveDebt > 0) {
-                    $debtHours = floor($extraLeaveDebt / 60);
-                    $debtMinutes = $extraLeaveDebt % 60;
-                    $schedule->keterangan .= " (termasuk izin keluar wajib ganti {$debtHours} Jam {$debtMinutes} Menit)";
-                }
-                $schedule->status = 'Belum Lunas';
-                $schedule->is_paid_off = false;
-
-                $schedulesWithDeficit->push($schedule);
-            }
-        }
+        $schedulesWithDeficit = $this->calculateInternScheduleDeficits($internId, true);
 
         return view('users.change-time', [
             'schedules' => $schedulesWithDeficit->sortByDesc('date'),
@@ -660,6 +693,225 @@ class UserController extends Controller
             'date_now' => $date_now,
             'quotes' => $quotes
         ]);
+    }
+
+    /**
+     * Menghitung daftar jadwal yang memiliki kekurangan/hutang jam kerja,
+     * setelah memperhitungkan jam ganti (adjustable attendance) yang telah dikerjakan.
+     *
+     * @param int $internId
+     * @param bool $includeToday
+     * @return \Illuminate\Support\Collection
+     */
+    private function calculateInternScheduleDeficits(int $internId, bool $includeToday = false): \Illuminate\Support\Collection
+    {
+        $dateLimit = $includeToday ? DateNow::getCurrentDateYMD() : Carbon::yesterday()->format('Y-m-d');
+
+        $schedules = DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
+            $q->where('intern_id', $internId);
+        })
+            ->whereDate('date', '<=', $dateLimit)
+            ->with(['shift', 'attendance.permitLogs', 'permitReason.category', 'adjustableAttendance'])
+            ->orderBy('date', 'asc') // Urutan kronologis (FIFO) agar hutang terlama terlunasi terlebih dahulu
+            ->get();
+
+        // Pre-fetch data attendance berdasarkan tanggal sebagai fallback jika attendance_id di detail_schedules null
+        $attendancesByDate = \App\Models\Attendance::where('intern_id', $internId)
+            ->whereDate('date', '<=', $dateLimit)
+            ->with('permitLogs')
+            ->get()
+            ->keyBy(fn($a) => Carbon::parse($a->date)->format('Y-m-d'));
+
+        // Pre-fetch daftar tanggal libur nasional
+        $holidayDates = \App\Models\Holiday::whereDate('date', '<=', $dateLimit)
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
+        // Ambil semua sesi ganti jam pemagang yang valid (bukan ditolak / is_approved != 2)
+        $allAdjustables = \App\Models\AdjustableAttd::where('intern_id', $internId)
+            ->where(function ($q) {
+                $q->whereNull('is_approved')
+                  ->orWhere('is_approved', '!=', 2);
+            })
+            ->get();
+
+        // Hitung total pool menit ganti jam dari seluruh sesi ganti jam yang valid
+        $totalGantiJamPool = 0;
+        foreach ($allAdjustables as $adj) {
+            $isApprovedVal = is_array($adj->is_approved) 
+                ? ($adj->is_approved['value'] ?? 0) 
+                : ($adj->is_approved->value ?? $adj->is_approved ?? 0);
+            if ((int)$isApprovedVal !== 2) {
+                $totalMin = (int) ($adj->total_min ?? 0);
+                $breakMin = (int) ($adj->total_break_min ?? 0);
+                $adjMins = max(0, $totalMin - $breakMin);
+                if ($adjMins <= 0 && !empty($adj->start_time) && !empty($adj->end_time)) {
+                    $adjMins = max(0, Carbon::parse($adj->end_time)->diffInMinutes(Carbon::parse($adj->start_time)) - $breakMin);
+                }
+                $totalGantiJamPool += $adjMins;
+            }
+        }
+
+        $deficitList = collect();
+
+        foreach ($schedules as $schedule) {
+            if (!$schedule->shift) {
+                continue;
+            }
+
+            $scheduleDate = Carbon::parse($schedule->date);
+            $dateKey = $scheduleDate->format('Y-m-d');
+            if (!$schedule->attendance) {
+                $schedule->attendance = $attendancesByDate->get($dateKey);
+            }
+
+            // Hari libur / Minggu tanpa presensi masuk tidak menghasilkan hutang jam
+            $isSunday = $scheduleDate->isSunday();
+            $isHoliday = in_array($dateKey, $holidayDates, true);
+            $hasCheckIn = $schedule->attendance && !empty($schedule->attendance->start_time);
+            if (($isSunday || $isHoliday) && !$hasCheckIn && (int)$schedule->attd_status_id !== 3) {
+                continue;
+            }
+
+            $shiftMinutes = (int) ($schedule->shift->total_time_in_minute ?? 0);
+            if ($shiftMinutes <= 0 && $schedule->shift && $schedule->shift->start_time && $schedule->shift->end_time && $schedule->shift->start_time !== '00:00:00') {
+                $start = Carbon::parse($schedule->shift->start_time);
+                $end = Carbon::parse($schedule->shift->end_time);
+                $break = (int) ($schedule->shift->break_time_in_minute ?? 0);
+                $shiftMinutes = max(0, $end->diffInMinutes($start) - $break);
+            }
+
+            $permitReason = $schedule->permitReason;
+            $categoryId = $permitReason?->permit_category_id;
+            $description = strtolower($permitReason?->description ?? '');
+            $proofUrl = $permitReason?->proof_url;
+            $hasProof = !empty($proofUrl);
+            $isSakit = ($categoryId == 1 || $categoryId == 2 || str_contains($description, 'sakit'));
+
+            $isDeficit = false;
+            $baseDeficitMinutes = 0;
+            $categoryName = '';
+            $badgeClass = '';
+            $type = '';
+
+            // 1. Skenario Izin Bebas Ganti Jam (Lunas / Bebas Jam yang disetujui) -> Tidak berhutang
+            if ($schedule->attd_status_id == 3 && ($schedule->isChangeSchedule == 1 || $schedule->is_change_schedule_approved == 1)) {
+                continue;
+            }
+
+            // 2. Skenario Izin Sakit
+            if ($schedule->attd_status_id == 3 && $isSakit) {
+                if ($schedule->isChangeSchedule == 2 || !$hasProof || $categoryId == 2) {
+                    $isDeficit = true;
+                    $baseDeficitMinutes = $shiftMinutes;
+                    $categoryName = "Ganti Jam (Tanpa Bukti Surat)";
+                    $badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
+                    $type = "sakit_wajib_ganti";
+                } elseif ($hasProof && ($schedule->isChangeSchedule === null || $schedule->isChangeSchedule == 0)) {
+                    continue; // Menunggu keputusan admin
+                }
+            }
+
+            // 3. Skenario Izin Keperluan
+            elseif ($schedule->attd_status_id == 3) {
+                if ($schedule->isChangeSchedule == 2 || !$hasProof) {
+                    $isDeficit = true;
+                    $baseDeficitMinutes = $shiftMinutes;
+                    $categoryName = "Ganti Jam (Tanpa Bukti Surat)";
+                    $badgeClass = "bg-orange-100 text-orange-800 border-orange-300";
+                    $type = "izin_wajib_ganti";
+                } elseif ($hasProof && ($schedule->isChangeSchedule === null || $schedule->isChangeSchedule == 0)) {
+                    continue; // Menunggu keputusan admin
+                }
+            }
+
+            // 4. Skenario Alpha (Tidak Hadir)
+            elseif ($schedule->attd_status_id == 5) {
+                $isDeficit = true;
+                $baseDeficitMinutes = $shiftMinutes;
+                $categoryName = "Alpha (Tidak Hadir)";
+                $badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
+                $type = "alpha";
+            }
+
+            // 5. Skenario Presensi Reguler (Hadir / Belum Absen / Pulang Awal / Lupa Absen)
+            elseif ($schedule->attd_status_id == 1 || $schedule->attd_status_id == 2) {
+                $workingMinutes = 0;
+                if ($schedule->attendance && $schedule->attendance->start_time && $schedule->attendance->end_time) {
+                    $startTime = Carbon::parse($schedule->attendance->start_time);
+                    $endTime = Carbon::parse($schedule->attendance->end_time);
+                    $totalDuration = $endTime->diffInMinutes($startTime);
+                    $breakDuration = $schedule->attendance->total_break_min ?? 0;
+                    $workingMinutes = max(0, $totalDuration - $breakDuration);
+                }
+
+                $differenceInMinutes = $shiftMinutes - $workingMinutes;
+
+                // Hari ini yang belum absen pulang: hitung dari keterlambatan masuk jika ada
+                if ($scheduleDate->isToday() && $schedule->attendance && $schedule->attendance->start_time && !$schedule->attendance->end_time) {
+                    $scheduledStartTime = Carbon::parse($schedule->date . ' ' . $schedule->shift->start_time);
+                    $actualStartTime = Carbon::parse($schedule->attendance->start_time);
+                    if ($actualStartTime->isAfter($scheduledStartTime)) {
+                        $differenceInMinutes = $actualStartTime->diffInMinutes($scheduledStartTime);
+                    } else {
+                        $differenceInMinutes = 0;
+                    }
+                }
+
+                $extraLeaveDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($schedule->attendance);
+                $differenceInMinutes += $extraLeaveDebt;
+
+                if ($differenceInMinutes > 1) { // Toleransi 1 menit
+                    $isDeficit = true;
+                    $baseDeficitMinutes = $differenceInMinutes;
+                    $categoryName = "Kekurangan Jam Reguler";
+                    $badgeClass = "bg-slate-100 text-slate-800 border-slate-300";
+                    $type = "regular";
+                }
+            }
+
+            if (!$isDeficit || $baseDeficitMinutes <= 1) {
+                continue;
+            }
+
+            // Alokasikan jam ganti jam yang tersedia untuk melunasi kekurangan jadwal ini
+            $coveredByGantiJam = min($baseDeficitMinutes, $totalGantiJamPool);
+            $totalGantiJamPool -= $coveredByGantiJam;
+            $remainingDeficit = $baseDeficitMinutes - $coveredByGantiJam;
+
+            // Jika sudah tercover lunas (sisa <= 1 menit), jangan tampilkan di daftar hutang
+            if ($remainingDeficit <= 1) {
+                continue;
+            }
+
+            $remHours = floor($remainingDeficit / 60);
+            $remMins = $remainingDeficit % 60;
+            $origHours = floor($baseDeficitMinutes / 60);
+            $origMins = $baseDeficitMinutes % 60;
+
+            if ($coveredByGantiJam > 0) {
+                $coveredH = floor($coveredByGantiJam / 60);
+                $coveredM = $coveredByGantiJam % 60;
+                $descText = "Kekurangan jam kerja {$remHours} Jam {$remMins} Menit (Sisa dari {$origHours} Jam {$origMins} Menit, telah diganti {$coveredH} Jam {$coveredM} Menit)";
+            } else {
+                $descText = "Kekurangan jam kerja {$remHours} Jam {$remMins} Menit";
+            }
+
+            $schedule->kategori = $categoryName;
+            $schedule->kategori_badge = $badgeClass;
+            $schedule->keterangan = $descText;
+            $schedule->status = 'Belum Lunas';
+            $schedule->is_paid_off = false;
+            $schedule->base_deficit_minutes = $baseDeficitMinutes;
+            $schedule->covered_ganti_jam_minutes = $coveredByGantiJam;
+            $schedule->remaining_deficit_minutes = $remainingDeficit;
+            $schedule->deficit_type = $type;
+
+            $deficitList->push($schedule);
+        }
+
+        return $deficitList;
     }
 
 
@@ -689,7 +941,9 @@ class UserController extends Controller
         $validated = $request->validate([
             'github_url' => 'nullable|url|max:255',
             'gmail_account' => 'nullable|email|max:255',
+            'gmail_password' => 'nullable|string|max:255',
             'figma_url' => 'nullable|url|max:500',
+            'spreadsheet_url' => 'nullable|url|max:500',
             'notes' => 'nullable|string|max:1000',
             'social_media_links' => 'nullable|array',
             'social_media_links.*.platform' => 'nullable|string|max:50',
@@ -714,13 +968,23 @@ class UserController extends Controller
         }
 
         $account = $intern->account;
-        $dataToSave = [
-            'github_url' => $validated['github_url'] ?? null,
-            'gmail_account' => $validated['gmail_account'] ?? null,
-            'figma_url' => $validated['figma_url'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'social_media_links' => $filteredLinks,
-        ];
+        $dataToSave = [];
+
+        // Update fields only for platforms allowed/enabled by admin
+        if (!$account || $account->isPlatformEnabled('github')) {
+            $dataToSave['github_url'] = $validated['github_url'] ?? null;
+            $dataToSave['gmail_account'] = $validated['gmail_account'] ?? null;
+            if (array_key_exists('gmail_password', $validated)) {
+                $dataToSave['gmail_password'] = $validated['gmail_password'];
+            }
+        }
+        if (!$account || $account->isPlatformEnabled('figma')) {
+            $dataToSave['figma_url'] = $validated['figma_url'] ?? null;
+        }
+        if (!$account || $account->isPlatformEnabled('sosmed')) {
+            $dataToSave['social_media_links'] = $filteredLinks;
+        }
+        $dataToSave['notes'] = $validated['notes'] ?? null;
 
         if ($account) {
             $account->update($dataToSave);
@@ -934,21 +1198,6 @@ class UserController extends Controller
         $user = Auth::user();
         if (!$user || !$user->intern) {
             return redirect()->route('login.view');
-        }
-
-        // Pastikan divisi pemagang adalah Programmer atau UI/UX
-        $divisionName = strtolower($user->intern->division?->name ?? '');
-        $divisionId = (int) ($user->intern->division_id ?? 0);
-        $isProgrammer = ($divisionId === 4)
-            || str_contains($divisionName, 'programmer')
-            || str_contains($divisionName, 'program');
-        $isUiUx = ($divisionId === 1)
-            || str_contains($divisionName, 'ui/ux')
-            || str_contains($divisionName, 'ui / ux')
-            || (str_contains($divisionName, 'ui') && str_contains($divisionName, 'ux'));
-
-        if (!$isProgrammer && !$isUiUx) {
-            return redirect()->back()->with('error', 'Divisi Anda tidak memerlukan tautan repository/Figma pada tugas.');
         }
 
         // Pastikan project ini memang ditugaskan ke pemagang bersangkutan

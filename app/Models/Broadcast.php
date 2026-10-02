@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -95,7 +96,7 @@ class Broadcast extends Model
     /**
      * Scope khusus untuk Pengumuman Banner/Dashboard biasa
      */
-    public function scopeAnnouncements($query)
+    public function scopeAnnouncements(Builder $query): Builder
     {
         return $query->where('category', 'announcement');
     }
@@ -103,7 +104,7 @@ class Broadcast extends Model
     /**
      * Scope khusus untuk Broadcast Pesan/Pertanyaan Terjadwal
      */
-    public function scopeScheduledBroadcasts($query)
+    public function scopeScheduledBroadcasts(Builder $query): Builder
     {
         return $query->where('category', 'scheduled_broadcast');
     }

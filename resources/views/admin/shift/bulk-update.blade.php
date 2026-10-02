@@ -89,7 +89,7 @@
                         </div>
                         
                         <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
-                            <label class="block text-sm font-semibold text-gray-800 mb-3">
+                            <label for="school_ids" class="block text-sm font-semibold text-gray-800 mb-3">
                                 <i class="fas fa-school mr-2 text-blue-600"></i>Daftar Sekolah
                             </label>
                             <select name="school_ids[]" id="school_ids" class="select-school w-full" multiple="multiple" required>
@@ -119,9 +119,9 @@
                         </div>
                         
                         <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
-                            <label class="block text-sm font-semibold text-gray-800 mb-3">
+                            <span class="block text-sm font-semibold text-gray-800 mb-3">
                                 <i class="fas fa-user-graduate mr-2 text-blue-600"></i>Daftar Intern
-                            </label>
+                            </span>
                             
                             <!-- Select All Checkbox -->
                             <div class="mb-4 p-3 bg-white rounded-lg border border-blue-200" id="select-all-container" style="display: none;">

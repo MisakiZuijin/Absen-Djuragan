@@ -37,6 +37,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin Mulai</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin Selesai</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status / Hutang Jam</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -63,10 +64,25 @@
                                         @endphp
                                         {{ $durationString }}
                                     </td>
+                                    <td class="px-6 py-4 text-xs text-gray-700">
+                                        @if($log->is_mandatory_replace)
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                                                <i class="fas fa-exclamation-triangle text-rose-500"></i>
+                                                Hutang Jam: {{ $log->agreed_duration_minutes ?? $log->duration_in_minutes }} menit
+                                            </span>
+                                            @if($log->description)
+                                                <div class="text-[11px] text-gray-500 mt-1 max-w-xs truncate" title="{{ $log->description }}">{{ $log->description }}</div>
+                                            @endif
+                                        @else
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                                <i class="fas fa-check-circle text-emerald-500"></i> Sesuai Batas
+                                            </span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">
                                         Tidak ada riwayat izin toilet untuk intern ini.
                                     </td>
                                 </tr>

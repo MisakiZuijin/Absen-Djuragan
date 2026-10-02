@@ -11,6 +11,7 @@ use App\Models\HandRaise;
 use App\Models\Intern;
 use App\Models\InternAccount;
 use App\Models\Profile;
+use App\Models\Projects;
 use App\Models\School;
 use App\Models\Shift;
 use App\Models\User;
@@ -168,12 +169,134 @@ class InternController extends Controller
             ->latest()
             ->first();
 
+        // Mode: Selesaikan sesi presentasi (Lulus / Ada Revisi)
+        if ($request->input('action') === 'complete_presentation') {
+            if ($activeHandRaise && $activeHandRaise->type === 'presentation') {
+                $outcome = $request->input('outcome', 'passed');
+                $userName = $user->profile?->full_name ?? $user->name ?? $user->username;
+                $project = $activeHandRaise->project_id ? Projects::find($activeHandRaise->project_id) : null;
+
+                if ($outcome === 'passed') {
+                    $activeHandRaise->update([
+                        'status' => 'done',
+                        'is_raised' => false,
+                        'resolved_at' => now(),
+                        'resolved_by' => $user->id,
+                    ]);
+
+                    if ($project) {
+                        $project->update(['status' => 'done']);
+                        HandRaise::where('user_id', $user->id)
+                            ->where('project_id', $project->id)
+                            ->where('type', 'new_task')
+                            ->where('is_raised', true)
+                            ->update([
+                                'status' => 'done',
+                                'is_raised' => false,
+                                'resolved_at' => now(),
+                                'resolved_by' => $user->id,
+                            ]);
+                    }
+
+                    \App\Helper\ActivityLogger::log(
+                        'RESOLVE',
+                        'Raise Hand',
+                        "Pemagang {$userName} menyelesaikan sesi presentasi: Lulus Tanpa Revisi (Selesai Valid)",
+                        [
+                            'hand_raise_id' => $activeHandRaise->id,
+                            'user_id' => $user->id,
+                            'outcome' => 'passed',
+                            'status' => 'done',
+                        ]
+                    );
+
+                    return redirect()->back()->with('success', 'Selamat! Sesi presentasi berhasil diselesaikan dengan status Lulus Tanpa Revisi.');
+                } else {
+                    $activeHandRaise->update([
+                        'status' => 'needs_revision',
+                        'is_raised' => false,
+                        'resolved_at' => now(),
+                        'resolved_by' => $user->id,
+                    ]);
+
+                    if ($project) {
+                        $project->update(['status' => 'progress']);
+                    }
+
+                    \App\Helper\ActivityLogger::log(
+                        'RESOLVE',
+                        'Raise Hand',
+                        "Pemagang {$userName} menyelesaikan sesi presentasi: Ada Catatan Revisi Mentor",
+                        [
+                            'hand_raise_id' => $activeHandRaise->id,
+                            'user_id' => $user->id,
+                            'outcome' => 'revision',
+                            'status' => 'needs_revision',
+                        ]
+                    );
+
+                    return redirect()->back()->with('success', 'Sesi presentasi selesai dengan catatan revisi. Silakan isi detail catatan revisi di halaman Tugas.');
+                }
+            }
+            return redirect()->back()->with('error', 'Data presentasi aktif tidak ditemukan.');
+        }
+
+        // Mode: Selesaikan sesi tanya jawab
+        if ($request->input('action') === 'complete_question') {
+            if ($activeHandRaise && $activeHandRaise->type === 'question') {
+                $userName = $user->profile?->full_name ?? $user->name ?? $user->username;
+                $activeHandRaise->update([
+                    'status' => 'done',
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => $user->id,
+                ]);
+
+                \App\Helper\ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Pemagang {$userName} telah memahami arahan dan menyelesaikan sesi pertanyaan",
+                    [
+                        'hand_raise_id' => $activeHandRaise->id,
+                        'user_id' => $user->id,
+                        'type' => 'question',
+                        'status' => 'done',
+                    ]
+                );
+
+                return redirect()->back()->with('success', 'Sesi pertanyaan / bantuan telah berhasil diselesaikan.');
+            }
+            return redirect()->back()->with('error', 'Data pertanyaan aktif tidak ditemukan.');
+        }
+
         // Mode: Turunkan tangan (jika sudah terangkat atau request action == lower)
         if ($request->input('action') === 'lower' || ($activeHandRaise && !$request->has('type'))) {
             if ($activeHandRaise) {
+                // Proteksi: Jika presentasi/tugas sudah direspon/dijadwalkan dan belum ditolak/pending, jangan turunkan langsung
+                if ($activeHandRaise->type === 'presentation' && in_array($activeHandRaise->status, ['accepted', 'rescheduled'])) {
+                    return redirect()->back()->with('error', 'Pengajuan presentasi telah diterima/dijadwalkan oleh mentor. Silakan gunakan tombol penyelesaian sesi.');
+                }
+
+                $statusToUpdate = $activeHandRaise->status === 'rejected' ? 'rejected' : ($activeHandRaise->admin_response ? 'done' : $activeHandRaise->status);
                 $activeHandRaise->update([
                     'is_raised' => false,
+                    'status' => $statusToUpdate,
+                    'resolved_at' => now(),
                 ]);
+
+                $userName = $user->profile?->full_name ?? $user->username;
+                \App\Helper\ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Pemagang {$userName} menyelesaikan / menurunkan sesi Raise Hand [{$activeHandRaise->type}]",
+                    [
+                        'hand_raise_id' => $activeHandRaise->id,
+                        'user_id' => $user->id,
+                        'type' => $activeHandRaise->type,
+                        'status' => $statusToUpdate,
+                        'resolved_by' => $user->id,
+                    ]
+                );
             }
 
             Log::info('Raise hand lowered', [
@@ -249,6 +372,15 @@ class InternController extends Controller
             'performance_notes' => null,
             'admin_response' => null,
         ]);
+
+        if ($type === 'question' && !empty($notes)) {
+            \App\Models\HandRaiseMessage::create([
+                'hand_raise_id' => $handRaise->id,
+                'user_id' => $user->id,
+                'message' => $notes,
+                'is_from_admin' => false,
+            ]);
+        }
 
         Log::info('Raise hand submitted', [
             'user_id' => $user->id,

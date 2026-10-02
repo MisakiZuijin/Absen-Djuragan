@@ -32,11 +32,27 @@ class SettingHolidayController extends Controller
         });
         $offices = Office::all();
 
+        $defaultOfficeId = (string)($offices->first()?->id ?? '1');
+        $legacyOfficeId = $request->get('office_id');
+        $activeTab = $request->get('tab', 'holiday');
+
+        // SOP Magang: default global ('all') atau spesifik jika dipilih
+        $sopOfficeId = $request->get('sop_office_id', ($activeTab === 'sop' && $legacyOfficeId) ? $legacyOfficeId : 'all');
+
+        // Peraturan Kantor: default spesifik per-kantor pertama agar tidak menimpa semua kantor
+        $rulesOfficeId = $request->get('rules_office_id', ($activeTab === 'rules' && $legacyOfficeId) ? $legacyOfficeId : $defaultOfficeId);
+
+        // Jadwal Piket: default spesifik per-kantor pertama agar tidak menimpa semua kantor
+        $piketOfficeId = $request->get('piket_office_id', ($activeTab === 'piket' && $legacyOfficeId) ? $legacyOfficeId : $defaultOfficeId);
+
         $data = [
             "holidaylist" => $holidaylist,
             "offices" => $offices,
             "user" => $userData,
-            "activeTab" => $request->get('tab', 'holiday'),
+            "activeTab" => $activeTab,
+            "sopOfficeId" => $sopOfficeId,
+            "rulesOfficeId" => $rulesOfficeId,
+            "piketOfficeId" => $piketOfficeId,
         ];
 
         return view('admin.pengaturan-holiday')->with($data);
@@ -56,6 +72,27 @@ class SettingHolidayController extends Controller
     public function storeHoliday(Request $request)
     {
         $this->holidayService->create($request);
+
+        // Hapus jadwal kosong yang belum terisi pada tanggal libur baru tersebut agar otomatis menjadi libur (seperti Minggu)
+        $holidayDate = $request->input('date') ? Carbon::parse($request->input('date'))->toDateString() : null;
+        if ($holidayDate) {
+            $emptyDetailSchedules = \App\Models\DetailSchedule::whereDate('date', $holidayDate)
+                ->where(function ($q) {
+                    $q->whereDoesntHave('attendance')
+                      ->orWhereHas('attendance', fn($aq) => $aq->whereNull('start_time'));
+                })
+                ->where('attd_status_id', 1)
+                ->get();
+
+            foreach ($emptyDetailSchedules as $ds) {
+                $attId = $ds->attendance_id;
+                $ds->delete();
+                if ($attId) {
+                    \App\Models\Attendance::where('id', $attId)->whereNull('start_time')->delete();
+                }
+            }
+        }
+
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
 
         \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan Hari Libur baru: {$request->input('title')} ({$request->input('date')})");
@@ -65,7 +102,37 @@ class SettingHolidayController extends Controller
 
     public function updateHoliday(Request $request, int $id)
     {
+        $oldHoliday = Holiday::find($id);
+        $oldDate = $oldHoliday && $oldHoliday->date ? Carbon::parse($oldHoliday->date)->toDateString() : null;
+
         $this->holidayService->update($request, $id);
+
+        $newDate = $request->input('date') ? Carbon::parse($request->input('date'))->toDateString() : null;
+
+        // Jika tanggal berubah, pulihkan jadwal pada tanggal lama yang sekarang bukan lagi hari libur
+        if ($oldDate && $oldDate !== $newDate) {
+            $this->restoreSchedulesForDate($oldDate);
+        }
+
+        // Dan hapus jadwal kosong pada tanggal libur baru
+        if ($newDate) {
+            $emptyDetailSchedules = \App\Models\DetailSchedule::whereDate('date', $newDate)
+                ->where(function ($q) {
+                    $q->whereDoesntHave('attendance')
+                      ->orWhereHas('attendance', fn($aq) => $aq->whereNull('start_time'));
+                })
+                ->where('attd_status_id', 1)
+                ->get();
+
+            foreach ($emptyDetailSchedules as $ds) {
+                $attId = $ds->attendance_id;
+                $ds->delete();
+                if ($attId) {
+                    \App\Models\Attendance::where('id', $attId)->whereNull('start_time')->delete();
+                }
+            }
+        }
+
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
 
         \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui Hari Libur: {$request->input('title')} ({$request->input('date')})", ['holiday_id' => $id]);
@@ -75,12 +142,98 @@ class SettingHolidayController extends Controller
 
     public function deleteHoliday(int $id)
     {
+        $holiday = Holiday::find($id);
+        $holidayDate = $holiday && $holiday->date ? Carbon::parse($holiday->date)->toDateString() : null;
+
         $this->holidayService->delete($id);
+
+        if ($holidayDate) {
+            $this->restoreSchedulesForDate($holidayDate);
+        }
+
         $this->clearAllCaches(); // Panggil fungsi pembersihan cache
 
         \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus data Hari Libur ID: {$id}", ['holiday_id' => $id]);
 
-        return redirect()->back()->with('success', 'Data Hari libur berhasil dihapus!');
+        return redirect()->back()->with('success', 'Data Hari libur berhasil dihapus dan jadwal terkait telah dipulihkan kembali!');
+    }
+
+    /**
+     * Memulihkan kembali jadwal pemagang aktif ketika hari libur dibatalkan / dihapus.
+     */
+    public function restoreSchedulesForDate(string $date): void
+    {
+        try {
+            $carbonDate = Carbon::parse($date);
+
+            // 1. Hari Minggu tidak pernah memiliki jadwal reguler
+            if ($carbonDate->isSunday()) {
+                return;
+            }
+
+            // 2. Jika tanggal ini masih terdaftar di tabel hari libur lain, jangan di-restore
+            if (Holiday::whereDate('date', $date)->exists()) {
+                return;
+            }
+
+            // 3. Ambil semua Schedule yang periode berlakunya mencakup tanggal ini
+            $schedules = \App\Models\Schedule::whereDate('start_period', '<=', $date)
+                ->whereDate('end_period', '>=', $date)
+                ->get();
+
+            foreach ($schedules as $sched) {
+                // Cek apakah sudah ada DetailSchedule untuk jadwal dan tanggal ini
+                $existingDs = \App\Models\DetailSchedule::where('schedule_id', $sched->id)
+                    ->whereDate('date', $date)
+                    ->first();
+
+                if ($existingDs) {
+                    continue; // Sudah ada, tidak perlu dibuat ulang
+                }
+
+                // Tentukan shift_id: cari dari minggu yang sama atau hari terdekat dalam jadwal ini
+                $nearbyShiftId = \App\Models\DetailSchedule::where('schedule_id', $sched->id)
+                    ->whereNotNull('shift_id')
+                    ->whereBetween('date', [
+                        $carbonDate->copy()->startOfWeek()->toDateString(),
+                        $carbonDate->copy()->endOfWeek()->toDateString()
+                    ])
+                    ->value('shift_id');
+
+                if (!$nearbyShiftId) {
+                    $nearbyShiftId = \App\Models\DetailSchedule::where('schedule_id', $sched->id)
+                        ->whereNotNull('shift_id')
+                        ->latest('date')
+                        ->value('shift_id');
+                }
+
+                if (!$nearbyShiftId) {
+                    $nearbyShiftId = \App\Models\Shift::first()?->id ?? 1;
+                }
+
+                // Buat atau cari Attendance
+                $attendance = \App\Models\Attendance::firstOrCreate(
+                    [
+                        'intern_id' => $sched->intern_id,
+                        'date' => $date
+                    ],
+                    []
+                );
+
+                // Buat DetailSchedule baru
+                \App\Models\DetailSchedule::create([
+                    'attendance_id' => $attendance->id,
+                    'schedule_id' => $sched->id,
+                    'shift_id' => $nearbyShiftId,
+                    'office_id' => $sched->office_id ?? 1,
+                    'date' => $date,
+                    'attd_status_id' => 1,
+                    'isChangeSchedule' => 0,
+                ]);
+            }
+        } catch (\Throwable $th) {
+            \Illuminate\Support\Facades\Log::error("Error restoring schedules for date {$date}: " . $th->getMessage());
+        }
     }
 
     public function updateOfficeInfo(Request $request)
@@ -94,8 +247,19 @@ class SettingHolidayController extends Controller
             'piket_description' => 'nullable|string',
         ]);
 
-        $applyAll = $request->boolean('apply_all');
+        $isCheckboxChecked = $request->boolean('apply_all');
         $officeId = $request->input('office_id');
+
+        if ($officeId === 'all') {
+            if ($isCheckboxChecked) {
+                $targetMode = 'all';
+            } else {
+                $targetMode = 'specific';
+                $officeId = Office::first()?->id;
+            }
+        } else {
+            $targetMode = $isCheckboxChecked ? 'all' : 'specific';
+        }
 
         $dataToUpdate = [];
         if ($request->has('sop_url')) {
@@ -115,9 +279,9 @@ class SettingHolidayController extends Controller
         }
 
         if (!empty($dataToUpdate)) {
-            if ($applyAll || $officeId === 'all') {
+            if ($targetMode === 'all') {
                 Office::query()->update($dataToUpdate);
-            } else {
+            } elseif ($officeId && is_numeric($officeId)) {
                 $office = Office::findOrFail($officeId);
                 $office->update($dataToUpdate);
             }
@@ -132,7 +296,20 @@ class SettingHolidayController extends Controller
             'piket' => 'Jadwal Piket',
             default => 'Kantor'
         };
-        return redirect()->route('admin.pengaturan.holiday', ['tab' => $activeTab])
+        $targetOfficeParam = $targetMode === 'all' ? 'all' : $officeId;
+        $redirectParams = [
+            'tab' => $activeTab,
+        ];
+
+        if ($activeTab === 'sop') {
+            $redirectParams['sop_office_id'] = $targetOfficeParam;
+        } elseif ($activeTab === 'rules') {
+            $redirectParams['rules_office_id'] = $targetOfficeParam;
+        } elseif ($activeTab === 'piket') {
+            $redirectParams['piket_office_id'] = $targetOfficeParam;
+        }
+
+        return redirect()->route('admin.pengaturan.holiday', $redirectParams)
             ->with('success', "Pengaturan dokumen {$tabLabel} berhasil diperbarui!");
     }
 }

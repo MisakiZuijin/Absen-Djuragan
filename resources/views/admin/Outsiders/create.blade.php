@@ -176,21 +176,21 @@
                     <h3 class="text-lg font-semibold text-gray-800 mb-4">Pengaturan Akun</h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div class="flex items-center">
-                            <input type="checkbox" name="is_active" value="1" {{ old('is_active', '1') ? 'checked' : '' }}
+                            <input type="checkbox" name="is_active" id="create_outsider_is_active" value="1" {{ old('is_active', '1') ? 'checked' : '' }}
                                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <label class="ml-2 text-sm text-gray-700">Akun Aktif</label>
+                            <label for="create_outsider_is_active" class="ml-2 text-sm text-gray-700 cursor-pointer">Akun Aktif</label>
                         </div>
 
                         <div class="flex items-center">
-                            <input type="checkbox" name="is_confirm" value="1" {{ old('is_confirm', '1') ? 'checked' : '' }}
+                            <input type="checkbox" name="is_confirm" id="create_outsider_is_confirm" value="1" {{ old('is_confirm', '1') ? 'checked' : '' }}
                                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <label class="ml-2 text-sm text-gray-700">Email Terkonfirmasi</label>
+                            <label for="create_outsider_is_confirm" class="ml-2 text-sm text-gray-700 cursor-pointer">Email Terkonfirmasi</label>
                         </div>
 
                         <div class="flex items-center">
-                            <input type="checkbox" name="is_reset_token" value="1" {{ old('is_reset_token') ? 'checked' : '' }}
+                            <input type="checkbox" name="is_reset_token" id="create_outsider_is_reset_token" value="1" {{ old('is_reset_token') ? 'checked' : '' }}
                                 class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                            <label class="ml-2 text-sm text-gray-700">Wajib Reset Password</label>
+                            <label for="create_outsider_is_reset_token" class="ml-2 text-sm text-gray-700 cursor-pointer">Wajib Reset Password</label>
                         </div>
                     </div>
                 </div>

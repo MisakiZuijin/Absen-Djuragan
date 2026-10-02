@@ -46,6 +46,9 @@
                                 @php
                                     $permit = $intern->activePermitLog;
                                     $isPraying = $permit && $permit->type === 'prayer';
+                                    $startEpoch = ($isPraying && $permit->start_time) ? \Carbon\Carbon::parse($permit->start_time)->timestamp : 0;
+                                    $initialElapsed = $startEpoch > 0 ? max(0, time() - $startEpoch) : 0;
+                                    $initialTimerStr = sprintf('%02d:%02d:%02d', floor($initialElapsed / 3600), floor(($initialElapsed % 3600) / 60), $initialElapsed % 60);
                                 @endphp
                                 <tr class="intern-row hover:bg-gray-50 transition-all duration-200"
                                     data-name="{{ strtolower($intern->user->profile->full_name ?? '') }}">
@@ -66,7 +69,10 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm font-mono">
                                         @if($isPraying)
-                                            <div class="text-gray-900 timer-value" data-permit-id="{{ $permit->id }}" data-permit-type="prayer">00:00:00</div>
+                                            <div class="text-gray-900 timer-value font-mono"
+                                                 data-permit-id="{{ $permit->id }}"
+                                                 data-permit-type="prayer"
+                                                 data-start-time="{{ $startEpoch }}">{{ $initialTimerStr }}</div>
                                         @else
                                             <div class="text-gray-500">-</div>
                                         @endif

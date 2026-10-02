@@ -12,5 +12,11 @@ class PermitSetting extends Model
     protected $fillable = [
         'type',
         'max_daily_count',
+        'max_duration_minutes',
+    ];
+
+    protected $casts = [
+        'max_daily_count' => 'integer',
+        'max_duration_minutes' => 'integer',
     ];
 }

@@ -43,8 +43,8 @@
                 <form method="GET" action="{{ route('outsider.presensi.show', $pemagang->id) }}"
                     class="flex flex-col sm:flex-row gap-4 items-end">
                     <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
-                        <select name="month"
+                        <label for="filter_month" class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
+                        <select name="month" id="filter_month"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium">
                             @foreach($months as $key => $monthName)
                                 <option value="{{ $key }}" {{ $selectedMonth == $key ? 'selected' : '' }}>{{ $monthName }}</option>
@@ -52,8 +52,8 @@
                         </select>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
-                        <select name="year"
+                        <label for="filter_year" class="block text-sm font-medium text-gray-700 mb-2">Tahun</label>
+                        <select name="year" id="filter_year"
                             class="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-medium">
                             @foreach($years as $year)
                                 <option value="{{ $year }}" {{ $selectedYear == $year ? 'selected' : '' }}>{{ $year }}</option>

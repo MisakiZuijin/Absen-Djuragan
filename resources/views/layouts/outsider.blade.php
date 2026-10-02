@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title') - Outsider Panel</title>
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
+    <title>@yield('title') - {{ $appSetting->app_name ?? 'Outsider Panel' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -22,7 +23,7 @@
         $userBirth = $birth_date ? \Carbon\Carbon::parse($birth_date)->format('m-d') : null;
         @endphp
 
-        <img src="{{ asset($today === $userBirth ? 'img/bg2.jpg' : 'img/bg.jpg') }}"
+        <img src="{{ $today === $userBirth ? asset('img/bg2.jpg') : ($appSetting->intern_banner_url ?? asset('img/bg.jpg')) }}"
             alt="Background Image"
             class="w-full h-full object-cover md:rounded-br-[40px] no-select">
 

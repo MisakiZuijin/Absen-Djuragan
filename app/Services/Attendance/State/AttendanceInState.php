@@ -79,6 +79,17 @@ class AttendanceInState implements AttendanceState
             $shift = ($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow);
             $isWfhSchedule = $existingDetailSchedule && strtolower($existingDetailSchedule->work_type ?? '') === 'wfh';
 
+            // Validasi jadwal masuk (dapat absen mulai 30 menit sebelum jam shift dimulai)
+            if ($shift) {
+                if ($timeNow < DateNow::getLastHour($shift->start_time, 30) && ($existingDetailSchedule?->isBackFirst == false || !$existingDetailSchedule)) {
+                    return new ActionResult(false, "Belum waktunya presensi", null);
+                }
+
+                if ($timeNow > $shift->end_time) {
+                    return new ActionResult(false, "Jadwalmu sudah terlewat", null);
+                }
+            }
+
             // Validasi apakah GPS diwajibkan (User WFO & Shift mengharuskan GPS & Jadwal bukan WFH)
             $isGpsRequired = ($user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
 
@@ -148,6 +159,9 @@ class AttendanceInState implements AttendanceState
                 $result = $resultAtt;
                 DB::commit();
                 \App\Helper\ActivityLogger::log('CREATE', 'Presensi', 'Pemagang ' . (Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'User') . ' melakukan Absen Masuk.');
+
+                $this->sendCheckinWaNotification($user, $timeToCheck);
+
                 return new ActionResult(true, "Berhasil menandai presensi hari ini.", [
                     "absenceHistory" => $result,
                     "shift" => $shift,
@@ -174,6 +188,9 @@ class AttendanceInState implements AttendanceState
                 $detailSchedule = $this->detailScheduleRepository->update($detailScheduleId, ["attendance_id" => $resultAtt->id, "shift_id" => $shift->id, "attd_status_id" => 2]);
                 DB::commit();
                 \App\Helper\ActivityLogger::log('CREATE', 'Presensi', 'Pemagang ' . (Auth::user()?->profile?->full_name ?? Auth::user()?->username ?? 'User') . ' melakukan Absen Masuk.');
+
+                $this->sendCheckinWaNotification($user, $timeToCheck);
+
                 return new ActionResult(true, "Berhasil menandai presensi hari ini.", [
                     "absenceHistory" => $result,
                     // "adjustableTimeHistory" => $adjustableData,
@@ -185,7 +202,7 @@ class AttendanceInState implements AttendanceState
 
 
             $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
-            if ($timeNow < DateNow::getLastHour($detailSchedule->shift->start_time, 60) && $detailSchedule->isBackFirst == false) {
+            if ($timeNow < DateNow::getLastHour($detailSchedule->shift->start_time, 30) && $detailSchedule->isBackFirst == false) {
                 return new ActionResult(false, "Belum waktunya presensi", null);
             }
 
@@ -205,26 +222,7 @@ class AttendanceInState implements AttendanceState
 
             DB::commit();
 
-            $intern = $user->intern;
-            if ($intern) {
-                $waNumberInfo = $intern->whatsappNumber;
-                if ($waNumberInfo && $waNumberInfo->is_notification_active) {
-
-                    $internName = $user->profile->full_name;
-                    $status = 'MASUK';
-                    $time = Carbon::parse($timeToCheck)->format('H:i');
-
-                    $message = "*Notifikasi Presensi*\n\n" .
-                        "Ananda *{$internName}* telah melakukan presensi *{$status}* pada pukul *{$time}*.\n\n" .
-                        "Terima kasih.";
-
-                    try {
-                        $this->whatsappService->sendNotificationToAllTargets($intern, $message);
-                    } catch (\Exception $e) {
-                        Log::error('Gagal mengirim notifikasi presensi untuk intern ' . $intern->id . ': ' . $e->getMessage());
-                    }
-                }
-            }
+            $this->sendCheckinWaNotification($user, $timeToCheck);
 
             return new ActionResult(true, "Berhasil menandai presensi hari ini.", [
                 "absenceHistory" => $result,
@@ -299,5 +297,28 @@ class AttendanceInState implements AttendanceState
         }
         $result->isInArea = $isInOfficeArea;
         return $result;
+    }
+
+    private function sendCheckinWaNotification(mixed $user, string $timeToCheck): void
+    {
+        try {
+            $intern = $user?->intern;
+            if ($intern) {
+                $waNumberInfo = $intern->whatsappNumber;
+                if ($waNumberInfo && $waNumberInfo->is_notification_active) {
+                    $internName = $user->profile?->full_name ?? $user->username;
+                    $status = 'MASUK';
+                    $time = Carbon::parse($timeToCheck)->format('H:i');
+
+                    $message = "*Notifikasi Presensi*\n\n" .
+                        "Ananda *{$internName}* telah melakukan presensi *{$status}* pada pukul *{$time}*.\n\n" .
+                        "Terima kasih.";
+
+                    $this->whatsappService->sendNotificationToAllTargets($intern, $message);
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Gagal mengirim notifikasi presensi untuk user ' . $user?->id . ': ' . $e->getMessage());
+        }
     }
 }

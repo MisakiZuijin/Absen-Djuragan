@@ -20,8 +20,13 @@
                 <option value="{{ route('admin.pengaturan.kantor') }}" {{ Request::is('*office*') ? 'selected' : '' }}>Manage Kantor</option>
                 <option value="{{ route('admin.pengaturan.holiday') }}" {{ Request::is('*holiday*') ? 'selected' : '' }}>Manage Info & Libur</option>
                 <option value="{{ route('admin.pengaturan.izin.view') }}" {{ Request::is('*setting/izin*') ? 'selected' : '' }}>Manage Izin</option>
+                <option value="{{ route('admin.pengaturan.ganti-jam.view') }}" {{ Request::is('*setting/ganti-jam*') ? 'selected' : '' }}>Manage Ganti Jam</option>
                 <option value="{{ route('admin.pengaturan.checkin-message') }}" {{ Request::is('*setting/checkin-message*') ? 'selected' : '' }}>Manage Popup Check-in</option>
+                <option value="{{ route('admin.pengaturan.popup') }}" {{ Request::is('*manage-popup*') ? 'selected' : '' }}>Manage Popup</option>
                 <option value="{{ route('admin.pengaturan.broadcast') }}" {{ Request::is('*broadcast*') ? 'selected' : '' }}>Manage Pengumuman</option>
+                @if(auth()->check() && (int) auth()->user()->role_id === 7)
+                <option value="{{ route('super-admin.app-settings.index') }}" {{ Request::is('*app-settings*') ? 'selected' : '' }}>Manage Web</option>
+                @endif
             </select>
             <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
                 <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -31,17 +36,20 @@
 </div>
 
 <!-- Desktop Sidebar Pengaturan -->
-<div class="hidden lg:block fixed bottom-0 top-20 left-64">
+<div id="settings-sidebar-wrapper" class="hidden lg:block fixed bottom-0 top-20 left-64 transition-all duration-300 ease-in-out">
     <aside class="w-64 bg-white shadow h-full overflow-y-auto hide-scrollbar">
         <style>
             /* Sembunyikan scrollbar untuk Chrome, Safari, Opera */
             .hide-scrollbar::-webkit-scrollbar {
                 display: none;
             }
+
             /* Sembunyikan scrollbar untuk IE, Edge, dan Firefox */
             .hide-scrollbar {
-                -ms-overflow-style: none;  /* IE and Edge */
-                scrollbar-width: none;  /* Firefox */
+                -ms-overflow-style: none;
+                /* IE and Edge */
+                scrollbar-width: none;
+                /* Firefox */
             }
         </style>
         <div class="p-4 mt-3 pb-16">
@@ -112,6 +120,13 @@
                     </a>
                 </li>
 
+                <li class="mb-3">
+                    <a href="{{ route('admin.pengaturan.ganti-jam.view') }}"
+                        class="{{ Request::is('*setting/ganti-jam*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
+                        <span class="ml-3">Manage Ganti Jam</span>
+                    </a>
+                </li>
+
                 {{-- Setelah blok Pengaturan Izin yang sudah ada, tambahkan: --}}
                 <li class="mb-3">
                     <a href="{{ route('admin.pengaturan.checkin-message') }}"
@@ -121,11 +136,28 @@
                 </li>
 
                 <li class="mb-3">
+                    <a href="{{ route('admin.pengaturan.popup') }}"
+                        class="{{ Request::is('*manage-popup*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
+                        <span class="ml-3">Manage Popup</span>
+                    </a>
+                </li>
+
+                <li class="mb-3">
                     <a href="{{ route('admin.pengaturan.broadcast') }}"
                         class="{{ Request::is('*broadcast*') ? 'flex items-center p-2 rounded text-white bg-gray-700' : 'flex items-center p-2 rounded text-gray-800 hover:text-white hover:bg-gray-700' }}">
                         <span class="ml-3">Manage Pengumuman</span>
                     </a>
                 </li>
+
+                @if(auth()->check() && (int) auth()->user()->role_id === 7)
+                <li class="mb-3 pt-2 border-t border-gray-200">
+                    <a href="{{ route('super-admin.app-settings.index') }}"
+                        class="{{ Request::is('*app-settings*') ? 'flex items-center p-2 rounded text-white bg-gradient-to-r from-indigo-600 to-blue-600 font-bold shadow-sm' : 'flex items-center p-2 rounded text-indigo-700 hover:text-white hover:bg-indigo-600 bg-indigo-50/50' }}">
+                        <i class="fa-solid fa-crown text-amber-500 text-xs ml-2"></i>
+                        <span class="ml-2 font-semibold">Manage Web</span>
+                    </a>
+                </li>
+                @endif
             </ul>
         </div>
     </aside>

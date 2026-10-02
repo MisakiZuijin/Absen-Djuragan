@@ -20,7 +20,8 @@ class StoreProjectRequest extends FormRequest {
             'team_name' => 'required|string|max:255',
             'members' => 'nullable|array',
             'members.*' => 'exists:interns,id',
-            'description' => 'nullable|string'
+            'description' => 'nullable|string',
+            'raise_id' => 'nullable|integer|exists:hand_raises,id',
         ];
     }
 }

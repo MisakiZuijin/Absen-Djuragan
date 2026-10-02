@@ -117,16 +117,38 @@
         </div>
     </div>
 
+    @php
+    $sopOfficeId = $sopOfficeId ?? 'all';
+    $sopOffice = ($sopOfficeId && $sopOfficeId !== 'all')
+        ? ($offices->firstWhere('id', (int)$sopOfficeId) ?? $offices->first())
+        : $offices->first();
+    $isSopApplyAll = ($sopOfficeId === 'all');
+
+    $firstOfficeId = (string)($offices->first()?->id ?? '1');
+
+    $rulesOfficeId = $rulesOfficeId ?? $firstOfficeId;
+    $rulesOffice = ($rulesOfficeId && $rulesOfficeId !== 'all')
+        ? ($offices->firstWhere('id', (int)$rulesOfficeId) ?? $offices->first())
+        : $offices->first();
+    $isRulesApplyAll = ($rulesOfficeId === 'all');
+
+    $piketOfficeId = $piketOfficeId ?? $firstOfficeId;
+    $piketOffice = ($piketOfficeId && $piketOfficeId !== 'all')
+        ? ($offices->firstWhere('id', (int)$piketOfficeId) ?? $offices->first())
+        : $offices->first();
+    $isPiketApplyAll = ($piketOfficeId === 'all');
+    @endphp
+
     <!-- TAB 2: SOP MAGANG -->
     <div id="content-tab-sop" class="admin-tab-content hidden space-y-6">
-        <div class="bg-blue-50 border border-blue-200 rounded-xl p-5 flex items-start space-x-4">
-            <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 text-xl flex-shrink-0">
-                <i class="fas fa-file-contract"></i>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex items-start space-x-3 sm:space-x-4 shadow-xs">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 text-lg flex-shrink-0">
+                <i class="fas fa-file-contract text-blue-600"></i>
             </div>
             <div>
-                <h3 class="font-bold text-blue-900 text-base">Standar Operasional Prosedur (SOP) Magang</h3>
-                <p class="text-xs text-blue-700 mt-1 leading-relaxed">
-                    Tautan ini merupakan URL dokumen resmi (Google Docs / PDF) yang dapat diakses langsung oleh pemagang saat menekan tombol <strong>"Buka Dokumen SOP Lengkap"</strong> pada modal <em>Info & Libur</em> di dashboard mereka.
+                <h3 class="font-bold text-gray-900 text-sm sm:text-base">Standar Operasional Prosedur (SOP) Magang</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Tautan dokumen resmi SOP magang (Google Docs / PDF) yang dapat diakses pemagang di modal Info & Libur.
                 </p>
             </div>
         </div>
@@ -138,10 +160,10 @@
 
                 <div>
                     <label for="sop_office_id" class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kantor / Target Penerapan</label>
-                    <select id="sop_office_id" name="office_id" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
-                        <option value="all">Semua Lokasi Kantor (Global)</option>
+                    <select id="sop_office_id" name="office_id" onchange="handleOfficeSelectChange('sop', this.value)" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
+                        <option value="all" {{ $sopOfficeId === 'all' ? 'selected' : '' }}>Semua Lokasi Kantor (Global)</option>
                         @foreach($offices as $office)
-                        <option value="{{ $office->id }}">{{ $office->name }} ({{ $office->address }})</option>
+                        <option value="{{ $office->id }}" {{ (string)$sopOfficeId === (string)$office->id ? 'selected' : '' }}>{{ $office->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -152,11 +174,11 @@
                     </label>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="url" id="input_sop_url" name="sop_url"
-                            value="{{ $offices->first()->sop_url ?? 'https://docs.google.com/document/d/sop-magang-djuragan' }}"
+                            value="{{ $sopOffice?->sop_url ?? 'https://docs.google.com/document/d/sop-magang-djuragan' }}"
                             placeholder="https://docs.google.com/document/d/..."
                             class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm">
                         <a id="btn-preview-sop"
-                            href="{{ $offices->first()->sop_url ?? '#' }}"
+                            href="{{ $sopOffice?->sop_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
                             class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
@@ -166,8 +188,9 @@
                 </div>
 
                 <div class="flex items-center">
-                    <input type="checkbox" id="sop_apply_all" name="apply_all" value="1" class="h-4 w-4 text-blue-600 rounded border-gray-300" checked>
-                    <label for="sop_apply_all" class="ml-2 text-xs font-medium text-gray-700">Terapkan tautan SOP ini ke semua lokasi kantor</label>
+                    <input type="hidden" name="apply_all" value="0">
+                    <input type="checkbox" id="sop_apply_all" name="apply_all" value="1" onchange="handleApplyAllToggle('sop', this.checked)" class="h-4 w-4 text-blue-600 rounded border-gray-300 cursor-pointer" {{ $isSopApplyAll ? 'checked' : '' }}>
+                    <label for="sop_apply_all" class="ml-2 text-xs font-medium text-gray-700 cursor-pointer">Terapkan tautan SOP ini ke semua lokasi kantor</label>
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
@@ -181,14 +204,14 @@
 
     <!-- TAB 3: PERATURAN KANTOR -->
     <div id="content-tab-rules" class="admin-tab-content hidden space-y-6">
-        <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-5 flex items-start space-x-4">
-            <div class="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 text-xl flex-shrink-0">
-                <i class="fas fa-building"></i>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex items-start space-x-3 sm:space-x-4 shadow-xs">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 text-lg flex-shrink-0">
+                <i class="fas fa-building text-indigo-600"></i>
             </div>
             <div>
-                <h3 class="font-bold text-indigo-900 text-base">Tata Tertib & Dokumen Peraturan Kantor</h3>
-                <p class="text-xs text-indigo-700 mt-1 leading-relaxed">
-                    Atur rincian poin tata tertib dan tautan dokumen peraturan penempatan. Pemagang akan melihat rincian aturan ini sesuai kantor penempatan masing-masing.
+                <h3 class="font-bold text-gray-900 text-sm sm:text-base">Tata Tertib & Peraturan Kantor</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Kelola poin tata tertib dan dokumen aturan penempatan sesuai kantor masing-masing.
                 </p>
             </div>
         </div>
@@ -199,10 +222,11 @@
                 <input type="hidden" name="active_tab" value="rules">
 
                 <div>
-                    <label for="rules_office_select" class="block text-sm font-semibold text-gray-700 mb-2">Pilih Lokasi Kantor</label>
-                    <select id="rules_office_select" name="office_id" onchange="loadOfficeRules(this.value)" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                    <label for="rules_office_select" class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kantor / Target Penerapan</label>
+                    <select id="rules_office_select" name="office_id" onchange="handleOfficeSelectChange('rules', this.value)" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
+                        <option value="all" {{ $rulesOfficeId === 'all' ? 'selected' : '' }}>Semua Lokasi Kantor (Global)</option>
                         @foreach($offices as $office)
-                        <option value="{{ $office->id }}">{{ $office->name }} ({{ $office->address }})</option>
+                        <option value="{{ $office->id }}" {{ (string)$rulesOfficeId === (string)$office->id ? 'selected' : '' }}>{{ $office->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -213,11 +237,11 @@
                     </label>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="url" id="input_rules_url" name="rules_url"
-                            value="{{ $offices->first()->rules_url ?? '' }}"
+                            value="{{ $rulesOffice?->rules_url ?? '' }}"
                             placeholder="https://docs.google.com/document/d/..."
                             class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm">
                         <a id="btn-preview-rules"
-                            href="{{ $offices->first()->rules_url ?? '#' }}"
+                            href="{{ $rulesOffice?->rules_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
                             class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
@@ -231,13 +255,14 @@
                     </label>
                     <textarea id="input_rules_desc" name="rules_description" rows="7"
                         placeholder="Contoh:&#10;1. Wajib hadir dan presensi tepat waktu.&#10;2. Berpakaian rapi dan mengenakan ID Card.&#10;3. Menjaga kebersihan meja kerja..."
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm leading-relaxed">{{ $offices->first()->rules_description ?? '' }}</textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none text-sm leading-relaxed">{{ $rulesOffice?->rules_description ?? '' }}</textarea>
                     <p class="text-xs text-gray-500 mt-1">Gunakan baris baru (Enter) atau angka urut untuk setiap poin aturan.</p>
                 </div>
 
                 <div class="flex items-center">
-                    <input type="checkbox" id="rules_apply_all" name="apply_all" value="1" class="h-4 w-4 text-indigo-600 rounded border-gray-300">
-                    <label for="rules_apply_all" class="ml-2 text-xs font-medium text-gray-700">Terapkan aturan & link ini ke semua kantor sekaligus</label>
+                    <input type="hidden" name="apply_all" value="0">
+                    <input type="checkbox" id="rules_apply_all" name="apply_all" value="1" onchange="handleApplyAllToggle('rules', this.checked)" class="h-4 w-4 text-indigo-600 rounded border-gray-300 cursor-pointer" {{ $isRulesApplyAll ? 'checked' : '' }}>
+                    <label for="rules_apply_all" class="ml-2 text-xs font-medium text-gray-700 cursor-pointer">Terapkan aturan & link ini ke semua kantor sekaligus</label>
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
@@ -251,14 +276,14 @@
 
     <!-- TAB 4: JADWAL PIKET -->
     <div id="content-tab-piket" class="admin-tab-content hidden space-y-6">
-        <div class="bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start space-x-4">
-            <div class="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 text-xl flex-shrink-0">
-                <i class="fa-solid fa-broom"></i>
+        <div class="bg-white border border-gray-200 rounded-2xl p-4 sm:p-5 flex items-start space-x-3 sm:space-x-4 shadow-xs">
+            <div class="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-700 text-lg flex-shrink-0">
+                <i class="fa-solid fa-broom text-amber-600"></i>
             </div>
             <div>
-                <h3 class="font-bold text-amber-900 text-base">Jadwal & Tugas Piket Kantor</h3>
-                <p class="text-xs text-amber-800 mt-1 leading-relaxed">
-                    Atur tautan spreadsheet/dokumen jadwal piket kebersihan dan rincian tugas piket harian. Pemagang dapat langsung membuka tautan jadwal piket melalui tombol pada modal <em>Info & Libur</em> di dashboard mereka.
+                <h3 class="font-bold text-gray-900 text-sm sm:text-base">Jadwal & Tugas Piket Kantor</h3>
+                <p class="text-xs text-gray-500 mt-1 leading-relaxed">
+                    Kelola tautan spreadsheet dan rincian tugas piket kebersihan harian kantor.
                 </p>
             </div>
         </div>
@@ -270,10 +295,10 @@
 
                 <div>
                     <label for="piket_office_select" class="block text-sm font-semibold text-gray-700 mb-2">Pilih Kantor / Target Penerapan</label>
-                    <select id="piket_office_select" name="office_id" onchange="loadOfficePiket(this.value)" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm">
-                        <option value="all">Semua Lokasi Kantor (Global)</option>
+                    <select id="piket_office_select" name="office_id" onchange="handleOfficeSelectChange('piket', this.value)" class="w-full md:w-1/2 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm">
+                        <option value="all" {{ $piketOfficeId === 'all' ? 'selected' : '' }}>Semua Lokasi Kantor (Global)</option>
                         @foreach($offices as $office)
-                        <option value="{{ $office->id }}">{{ $office->name }} ({{ $office->address }})</option>
+                        <option value="{{ $office->id }}" {{ (string)$piketOfficeId === (string)$office->id ? 'selected' : '' }}>{{ $office->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -284,11 +309,11 @@
                     </label>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="url" id="input_piket_url" name="piket_url"
-                            value="{{ $offices->first()->piket_url ?? '' }}"
+                            value="{{ $piketOffice?->piket_url ?? '' }}"
                             placeholder="https://docs.google.com/spreadsheets/d/..."
                             class="flex-1 px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm">
                         <a id="btn-preview-piket"
-                            href="{{ $offices->first()->piket_url ?? '#' }}"
+                            href="{{ $piketOffice?->piket_url ?? '#' }}"
                             target="_blank" rel="noopener noreferrer"
                             class="inline-flex items-center justify-center px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs transition shadow-xs">
                             <i class="fas fa-arrow-up-right-from-square mr-1.5"></i> Tes Link
@@ -303,13 +328,14 @@
                     </label>
                     <textarea id="input_piket_desc" name="piket_description" rows="7"
                         placeholder="Contoh:&#10;1. Datang 15 menit lebih awal untuk persiapan ruang kerja.&#10;2. Menyapu dan merapikan ruang kerja bersama.&#10;3. Membuang sampah ke tempat pembuangan akhir di sore hari.&#10;4. Memastikan AC dan lampu telah dimatikan sebelum pulang..."
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm leading-relaxed">{{ $offices->first()->piket_description ?? '' }}</textarea>
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none text-sm leading-relaxed">{{ $piketOffice?->piket_description ?? '' }}</textarea>
                     <p class="text-xs text-gray-500 mt-1">Poin-poin tugas yang wajib dijalankan oleh petugas piket hari tersebut.</p>
                 </div>
 
                 <div class="flex items-center">
-                    <input type="checkbox" id="piket_apply_all" name="apply_all" value="1" class="h-4 w-4 text-amber-600 rounded border-gray-300" checked>
-                    <label for="piket_apply_all" class="ml-2 text-xs font-medium text-gray-700">Terapkan tautan & ketentuan piket ini ke semua kantor sekaligus</label>
+                    <input type="hidden" name="apply_all" value="0">
+                    <input type="checkbox" id="piket_apply_all" name="apply_all" value="1" onchange="handleApplyAllToggle('piket', this.checked)" class="h-4 w-4 text-amber-600 rounded border-gray-300 cursor-pointer" {{ $isPiketApplyAll ? 'checked' : '' }}>
+                    <label for="piket_apply_all" class="ml-2 text-xs font-medium text-gray-700 cursor-pointer">Terapkan tautan & ketentuan piket ini ke semua kantor sekaligus</label>
                 </div>
 
                 <div class="pt-3 border-t flex justify-end">
@@ -430,29 +456,58 @@
             .addClass('bg-blue-600 text-white font-semibold shadow-xs');
     }
 
-    function loadOfficeRules(officeId) {
-        const found = allOfficesData.find(o => o.id == officeId);
-        if (found) {
-            $('#input_rules_url').val(found.rules_url || '');
-            $('#input_rules_desc').val(found.rules_description || '');
-            $('#btn-preview-rules').attr('href', found.rules_url || '#');
+    function handleOfficeSelectChange(type, officeId) {
+        const checkbox = document.getElementById(`${type}_apply_all`);
+        if (officeId === 'all') {
+            if (checkbox) checkbox.checked = true;
+            const first = allOfficesData[0] || {};
+            populateOfficeFields(type, first);
+        } else {
+            if (checkbox) checkbox.checked = false;
+            const found = allOfficesData.find(o => String(o.id) === String(officeId)) || {};
+            populateOfficeFields(type, found);
         }
     }
 
+    function handleApplyAllToggle(type, isChecked) {
+        const selectId = type === 'rules' ? 'rules_office_select' : (type === 'piket' ? 'piket_office_select' : 'sop_office_id');
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        if (isChecked) {
+            select.value = 'all';
+            // Biarkan isi input tetap ada agar admin bisa menerapkan teks/link yang sedang diketik ke semua kantor
+        } else {
+            if (select.value === 'all') {
+                const firstId = allOfficesData[0]?.id;
+                if (firstId) {
+                    select.value = String(firstId);
+                }
+            }
+        }
+    }
+
+    function populateOfficeFields(type, office) {
+        if (type === 'sop') {
+            $('#input_sop_url').val(office.sop_url || '');
+            $('#btn-preview-sop').attr('href', office.sop_url || '#');
+        } else if (type === 'rules') {
+            $('#input_rules_url').val(office.rules_url || '');
+            $('#input_rules_desc').val(office.rules_description || '');
+            $('#btn-preview-rules').attr('href', office.rules_url || '#');
+        } else if (type === 'piket') {
+            $('#input_piket_url').val(office.piket_url || '');
+            $('#input_piket_desc').val(office.piket_description || '');
+            $('#btn-preview-piket').attr('href', office.piket_url || '#');
+        }
+    }
+
+    function loadOfficeRules(officeId) {
+        handleOfficeSelectChange('rules', officeId);
+    }
+
     function loadOfficePiket(officeId) {
-        if (officeId === 'all') {
-            const first = allOfficesData[0];
-            $('#input_piket_url').val(first?.piket_url || '');
-            $('#input_piket_desc').val(first?.piket_description || '');
-            $('#btn-preview-piket').attr('href', first?.piket_url || '#');
-            return;
-        }
-        const found = allOfficesData.find(o => o.id == officeId);
-        if (found) {
-            $('#input_piket_url').val(found.piket_url || '');
-            $('#input_piket_desc').val(found.piket_description || '');
-            $('#btn-preview-piket').attr('href', found.piket_url || '#');
-        }
+        handleOfficeSelectChange('piket', officeId);
     }
 
     $(document).ready(function() {
@@ -635,17 +690,6 @@
 
         const initialTab = "{{ $activeTab ?? 'holiday' }}";
         switchAdminTab(initialTab);
-
-        $('#sop_office_id').on('change', function() {
-            const officeId = $(this).val();
-            if (officeId !== 'all') {
-                const found = allOfficesData.find(o => o.id == officeId);
-                if (found && found.sop_url) {
-                    $('#input_sop_url').val(found.sop_url);
-                    $('#btn-preview-sop').attr('href', found.sop_url);
-                }
-            }
-        });
 
         $('#input_sop_url').on('input', function() {
             const val = $(this).val();

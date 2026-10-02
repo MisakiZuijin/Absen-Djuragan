@@ -3,6 +3,7 @@
 @section('title', 'Portofolio Project Selesai')
 
 @section('contents')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
         .project-portfolio-grid {
             display: grid;
@@ -37,6 +38,71 @@
             .project-portfolio-grid {
                 grid-template-columns: repeat(6, minmax(0, 1fr));
             }
+        }
+
+        /* Select2 Custom Tailwind Styling */
+        .select2-container--default .select2-selection--single {
+            height: 32px !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 0.5rem !important;
+            padding: 2px 8px !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #ffffff !important;
+            font-size: 0.75rem !important;
+            transition: all 0.2s ease !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #334155 !important;
+            line-height: 28px !important;
+            padding-left: 0 !important;
+            font-weight: 500 !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 30px !important;
+            right: 8px !important;
+        }
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+            outline: none !important;
+        }
+        .select2-dropdown {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            font-size: 0.75rem !important;
+            z-index: 9999 !important;
+            overflow: hidden !important;
+        }
+        .select2-search--dropdown {
+            padding: 6px !important;
+        }
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 0.375rem !important;
+            padding: 5px 8px !important;
+            font-size: 0.75rem !important;
+            outline: none !important;
+        }
+        .select2-search--dropdown .select2-search__field:focus {
+            border-color: #6366f1 !important;
+            box-shadow: 0 0 0 1px #6366f1 !important;
+        }
+        .select2-results__option {
+            padding: 6px 10px !important;
+            font-size: 0.75rem !important;
+            color: #334155 !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #4f46e5 !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: #eef2ff !important;
+            color: #4338ca !important;
+            font-weight: 600 !important;
         }
     </style>
 
@@ -104,13 +170,12 @@
             </div>
 
             <!-- Filter & Search Toolbar (CSS Grid) -->
-            <div class="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs space-y-2.5 w-full">
-                <!-- Search & Filter Form (CSS Grid) -->
-                <form method="GET" action="{{ route('admin.projects.completed') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-2 w-full">
-                    @if($selectedDivision)
-                        <input type="hidden" name="division_id" value="{{ $selectedDivision }}">
-                    @endif
-                    <div class="sm:col-span-8 md:col-span-9 lg:col-span-10 relative">
+            <div class="bg-white rounded-xl p-3 border border-slate-200/80 shadow-2xs w-full">
+                <!-- Search & Filter Form -->
+                <form method="GET" action="{{ route('admin.projects.completed') }}" class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-center w-full">
+                    
+                    <!-- Search Input (Keyword) -->
+                    <div class="sm:col-span-6 lg:col-span-6 relative">
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-slate-400 text-xs">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
@@ -118,8 +183,24 @@
                             placeholder="Cari nama project, tim, pemagang, kampus..."
                             class="w-full pl-8 pr-3 py-1.5 text-xs h-8 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition placeholder:text-slate-400">
                     </div>
-                    <div class="sm:col-span-4 md:col-span-3 lg:col-span-2 grid grid-cols-2 gap-1.5">
-                        <button type="submit" class="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold h-8 transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer">
+
+                    <!-- Searchable Division Dropdown -->
+                    <div class="sm:col-span-4 lg:col-span-4 min-w-0">
+                        <select name="division_id" id="divisionSelect" class="select2 w-full">
+                            <option value="all" {{ (empty($selectedDivision) || $selectedDivision === 'all') ? 'selected' : '' }}>
+                                Semua Divisi ({{ $totalCompletedProjects }})
+                            </option>
+                            @foreach($divisions as $div)
+                                <option value="{{ $div->id }}" {{ ($selectedDivision == $div->id) ? 'selected' : '' }}>
+                                    {{ $div->name }} ({{ $div->completed_count }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="sm:col-span-2 lg:col-span-2 grid grid-cols-2 gap-1.5">
+                        <button type="submit" class="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold h-8 transition flex items-center justify-center gap-1 shadow-2xs cursor-pointer" title="Terapkan Pencarian">
                             <i class="fa-solid fa-filter text-[10px]"></i>
                             <span>Cari</span>
                         </button>
@@ -135,32 +216,26 @@
                     </div>
                 </form>
 
-                <!-- Division Pills (Clean Wrap Grid Layout) -->
-                <div class="pt-2 border-t border-slate-100">
-                    <div class="flex items-center gap-1.5 mb-1.5">
-                        <i class="fa-solid fa-layer-group text-indigo-500 text-xs"></i>
-                        <span class="text-xs font-bold text-slate-700">Filter Divisi:</span>
-                    </div>
-                    <div class="flex flex-wrap gap-1.5 w-full">
-                        <a href="{{ route('admin.projects.completed', array_merge(request()->query(), ['division_id' => 'all'])) }}"
-                            class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition inline-flex items-center gap-1 {{ (empty($selectedDivision) || $selectedDivision === 'all') ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                            <span>Semua</span>
-                            <span class="text-[9px] px-1 py-0.2 rounded-full {{ (empty($selectedDivision) || $selectedDivision === 'all') ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-600' }}">
-                                {{ $totalCompletedProjects }}
+                @if(!empty($searchKeyword) || (!empty($selectedDivision) && $selectedDivision !== 'all'))
+                    <div class="flex flex-wrap items-center gap-2 pt-2.5 mt-2.5 border-t border-slate-100 text-[11px] text-slate-500">
+                        <span class="font-medium text-slate-400">Filter aktif:</span>
+                        @if(!empty($searchKeyword))
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-md border border-indigo-200/60 font-semibold text-[10px]">
+                                <i class="fa-solid fa-magnifying-glass text-[8px]"></i> "{{ $searchKeyword }}"
                             </span>
-                        </a>
-
-                        @foreach($divisions as $div)
-                            <a href="{{ route('admin.projects.completed', array_merge(request()->query(), ['division_id' => $div->id])) }}"
-                                class="px-2.5 py-1 rounded-lg text-[11px] font-semibold transition inline-flex items-center gap-1 {{ ($selectedDivision == $div->id) ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}">
-                                <span>{{ $div->name }}</span>
-                                <span class="text-[9px] px-1 py-0.2 rounded-full {{ ($selectedDivision == $div->id) ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-600' }}">
-                                    {{ $div->completed_count }}
+                        @endif
+                        @if(!empty($selectedDivision) && $selectedDivision !== 'all')
+                            @php
+                                $activeDiv = $divisions->firstWhere('id', $selectedDivision);
+                            @endphp
+                            @if($activeDiv)
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md border border-purple-200/60 font-semibold text-[10px]">
+                                    <i class="fa-solid fa-layer-group text-[8px]"></i> {{ $activeDiv->name }} ({{ $activeDiv->completed_count }})
                                 </span>
-                            </a>
-                        @endforeach
+                            @endif
+                        @endif
                     </div>
-                </div>
+                @endif
             </div>
 
             <!-- Project Cards Grid (Responsif & Adaptif: 3 kolom pas saat 100%, otomatis bertambah saat zoom out) -->
@@ -379,4 +454,18 @@
 
         </div>
     </div>
+
+    <!-- Select2 JS & Auto-submit initialization -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#divisionSelect').select2({
+                placeholder: 'Pilih / Cari Divisi...',
+                allowClear: false,
+                width: '100%'
+            }).on('change', function() {
+                $(this).closest('form').submit();
+            });
+        });
+    </script>
 @endsection

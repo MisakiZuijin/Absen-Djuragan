@@ -30,6 +30,9 @@ class DetailSchedule extends Model {
     public function adjustableAttendance(): HasMany {
         return $this->hasMany(AdjustableAttd::class, "detail_schedule_id", "id");
     }
+    public function changeTimeSessionTargets(): HasMany {
+        return $this->hasMany(ChangeTimeSessionTarget::class, "detail_schedule_id", "id");
+    }
     public function logActivity(): BelongsTo {
         return $this->belongsTo(LogActivity::class, 'log_activity_id');
     }

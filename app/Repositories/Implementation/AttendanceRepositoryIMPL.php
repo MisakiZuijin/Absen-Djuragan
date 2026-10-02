@@ -301,95 +301,106 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
             ->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
+    private function buildAutoEndQuery(?string $name = null, ?string $date = null)
+    {
+        $query = $this->model->newQuery()
+            ->with([
+                'intern.user.profile',
+                'intern.division',
+                'intern.school',
+                'intern.shift',
+                'detailSchedules.office',
+                'detailSchedules.shift',
+                'detailSchedules.schedule.intern.user.profile',
+                'detailSchedules.schedule.intern.division',
+                'detailSchedules.schedule.intern.school',
+            ])
+            ->where("is_auto_end", true);
+
+        if (!empty($date)) {
+            $query->whereDate("date", $date);
+        }
+
+        if (!empty($name)) {
+            $query->where(function ($q) use ($name) {
+                if (is_numeric($name)) {
+                    $q->where('intern_id', $name)
+                      ->orWhere('id', $name);
+                }
+                $q->orWhereHas('intern.user.profile', function ($p) use ($name) {
+                    $p->where('full_name', 'LIKE', "%{$name}%");
+                })->orWhereHas('intern.user', function ($u) use ($name) {
+                    $u->where('name', 'LIKE', "%{$name}%")
+                      ->orWhere('username', 'LIKE', "%{$name}%");
+                })->orWhereHas('intern', function ($i) use ($name) {
+                    $i->where('nim', 'LIKE', "%{$name}%");
+                })->orWhereHas('detailSchedules.schedule.intern.user.profile', function ($p) use ($name) {
+                    $p->where('full_name', 'LIKE', "%{$name}%");
+                });
+            });
+        }
+
+        return $query->orderBy("date", "desc")->orderBy("id", "desc");
+    }
+
     public function getAllAutoEnd($perPage = 10, $currentPage = 1)
     {
-        return $this->model
-            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
-            ->where("is_auto_end", true)
-            ->orderBy("date", "desc")
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->buildAutoEndQuery()->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
 
     public function getAutoEndStatusByDate(string $date, $perPage = 10, $currentPage = 1)
     {
-        return $this->model
-            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
-            ->where("attendances.date", $date)
-            ->where("is_auto_end", true)
-            ->orderBy("date", "desc")
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->buildAutoEndQuery(date: $date)->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
 
     public function getAutoEndStatusByName(string $name, int $perPage = 10, int $currentPage = 1)
     {
-        return $this->model
-            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
-            ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
-            ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
-            ->join('interns', 'interns.id', '=', 'schedules.intern_id')
-            ->join('users', 'interns.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->where('profiles.full_name', 'LIKE', "%{$name}%")
-            ->where("is_auto_end", true)
-            ->orderBy("attendances.date", "desc")
-            ->select('attendances.*')->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->buildAutoEndQuery(name: $name)->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
     public function getAutoEndStatusByDateAndName(string $name, string $date, $perPage = 10, $currentPage = 1)
     {
-        return $this->model
-            ->with(['detailSchedules.office', 'detailSchedules.shift', 'detailSchedules.schedule.intern.user.profile'])
-            ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
-            ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
-            ->join('interns', 'interns.id', '=', 'schedules.intern_id')
-            ->join('users', 'interns.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->where('profiles.full_name', 'LIKE', "%{$name}%")
-            ->where("attendances.date", $date)
-            ->where("is_auto_end", true)
-            ->orderBy("attendances.date", "desc")
-            ->select('attendances.*')
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->buildAutoEndQuery(name: $name, date: $date)->paginate($perPage, ['*'], 'page', $currentPage);
     }
 
     public function getTotalCount(?string $name = null, ?string $date_start = null, ?string $date_end = null)
     {
-        if (is_null($date_start) || is_null($date_end)) {
-            return $this->model
-                ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
-                ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
-                ->join('interns', 'interns.id', '=', 'schedules.intern_id')
-                ->join('users', 'interns.user_id', '=', 'users.id')
-                ->join('profiles', 'users.id', '=', 'profiles.user_id')
-                ->where('profiles.full_name', 'LIKE', "%{$name}%")
-                ->where("is_auto_end", true)
-                ->count();
+        $query = $this->model->newQuery()->where("is_auto_end", true);
+
+        if (!empty($date_start) && !empty($date_end)) {
+            if ($date_start === $date_end) {
+                $query->whereDate('date', $date_start);
+            } else {
+                $query->whereBetween('date', [$date_start, $date_end]);
+            }
+        } elseif (!empty($date_start)) {
+            $query->whereDate('date', '>=', $date_start);
+        } elseif (!empty($date_end)) {
+            $query->whereDate('date', '<=', $date_end);
         }
 
-        if (is_null($date_start) && is_null($date_end)) {
-            return $this->model
-                ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
-                ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
-                ->join('interns', 'interns.id', '=', 'schedules.intern_id')
-                ->join('users', 'interns.user_id', '=', 'users.id')
-                ->join('profiles', 'users.id', '=', 'profiles.user_id')
-                // ->where('profiles.full_name', 'LIKE', "%{$name}%")
-                ->where("is_auto_end", true)
-                ->whereBetween('attendances.date', [$date_start, $date_end])
-                ->count();
+        if (!empty($name)) {
+            $query->where(function ($q) use ($name) {
+                if (is_numeric($name)) {
+                    $q->where('intern_id', $name)
+                      ->orWhere('id', $name);
+                }
+                $q->orWhereHas('intern.user.profile', function ($p) use ($name) {
+                    $p->where('full_name', 'LIKE', "%{$name}%");
+                })->orWhereHas('intern.user', function ($u) use ($name) {
+                    $u->where('name', 'LIKE', "%{$name}%")
+                      ->orWhere('username', 'LIKE', "%{$name}%");
+                })->orWhereHas('intern', function ($i) use ($name) {
+                    $i->where('nim', 'LIKE', "%{$name}%");
+                })->orWhereHas('detailSchedules.schedule.intern.user.profile', function ($p) use ($name) {
+                    $p->where('full_name', 'LIKE', "%{$name}%");
+                });
+            });
         }
-        return $this->model
-            ->join('detail_schedules', 'attendances.id', '=', 'detail_schedules.attendance_id')
-            ->join('schedules', 'schedules.id', '=', 'detail_schedules.schedule_id')
-            ->join('interns', 'interns.id', '=', 'schedules.intern_id')
-            ->join('users', 'interns.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->where('profiles.full_name', 'LIKE', "%{$name}%")
-            ->where("is_auto_end", true)
-            ->whereBetween('attendances.date', [$date_start, $date_end])
-            ->count();
+
+        return $query->count();
     }
 
     public function getAttendanceStillNotBack(string $date, int $shiftId)

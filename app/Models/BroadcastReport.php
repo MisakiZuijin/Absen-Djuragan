@@ -22,4 +22,19 @@ class BroadcastReport extends Model
     {
         return $this->belongsTo(User::class)->with('profile');
     }
+
+    public function chats(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(BroadcastReportChat::class, 'broadcast_report_id')->orderBy('created_at', 'asc')->orderBy('id', 'asc');
+    }
+
+    public function unreadAdminChatsCount(): int
+    {
+        return $this->chats()->where('is_from_admin', true)->where('is_read', false)->count();
+    }
+
+    public function unreadInternChatsCount(): int
+    {
+        return $this->chats()->where('is_from_admin', false)->where('is_read', false)->count();
+    }
 }

@@ -39,7 +39,8 @@ class SettingShiftController extends Controller
     {
         $this->shiftService->createShift($storeShiftRequest);
 
-        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan shift kerja baru: {$storeShiftRequest->input('name')}");
+        $shiftName = $storeShiftRequest->input('addNamaShift') ?? $storeShiftRequest->input('name');
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan shift kerja baru: {$shiftName}");
 
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil ditambahkan!');
     }
@@ -48,7 +49,8 @@ class SettingShiftController extends Controller
     {
         $this->shiftService->updateShift($updateShiftRequest, $id);
 
-        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data shift kerja: {$updateShiftRequest->input('name')}");
+        $shiftName = $updateShiftRequest->input('nama_Shift') ?? $updateShiftRequest->input('name');
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data shift kerja: {$shiftName}");
 
         return redirect()->route('admin.pengaturan.shift')->with('success', 'Shift berhasil diperbarui!');
     }

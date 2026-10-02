@@ -7,7 +7,7 @@
 <div class="w-full h-full flex flex-col md:flex-row gap-4 p-3 sm:p-4 md:p-6 lg:p-8 min-w-0">
 
     <!-- Left Side Buttons (Attendance Actions) -->
-    <div class="flex flex-col w-full md:w-64 lg:w-72 md:shrink-0 gap-4 min-w-0">
+    <div class="flex flex-col w-full md:w-64 lg:w-72 md:shrink-0 gap-4 min-w-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar">
 
         <!-- Pemanggilan Komponen Livewire (Tombol Izin akan ada di dalam sini) -->
         @livewire('attd-status-button', [
@@ -30,7 +30,7 @@
     </div>
 
     <!-- Right Side Content -->
-    <div class="flex flex-col w-full flex-1 min-w-0 gap-4">
+    <div class="flex flex-col w-full flex-1 min-w-0 gap-4 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar">
         @if(isset($currentHandRaise) && $currentHandRaise && $currentHandRaise->is_raised && !in_array($currentHandRaise->status, ['done', 'rejected']))
         @if($currentHandRaise->type === 'new_task' && $currentHandRaise->status === 'in_progress')
         <div class="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
@@ -41,18 +41,18 @@
                 <div>
                     <div class="text-xs font-bold text-purple-950 flex items-center gap-2">
                         <span>Tugas Baru Telah Diberikan Pembimbing!</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
                             Sedang Dikerjakan
                         </span>
                     </div>
-                    <p class="text-[11px] text-purple-700 mt-0.5">
+                    <p class="text-xs text-purple-700 mt-0.5">
                         Pembimbing telah menanggapi permintaan Anda dan memberikan instruksi tugas. Silakan cek detail tugas.
                     </p>
                 </div>
             </div>
             <a href="{{ route('user.tasks.index') }}" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 flex-shrink-0">
                 <span>Buka Halaman Tugas</span>
-                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
             </a>
         </div>
         @elseif($currentHandRaise->type === 'presentation' && $currentHandRaise->status === 'needs_revision')
@@ -64,11 +64,11 @@
                 <div>
                     <div class="text-xs font-bold text-orange-950 flex items-center gap-2">
                         <span>Catatan Perbaikan Projek Pra-Presentasi</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-200 text-orange-900">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-200 text-orange-900">
                             Perlu Perbaikan
                         </span>
                     </div>
-                    <p class="text-[11px] text-orange-800 mt-0.5 line-clamp-1">
+                    <p class="text-xs text-orange-800 mt-0.5 line-clamp-1">
                         {{ $currentHandRaise->admin_response ?: 'Mentor memberikan catatan revisi sebelum jadwal presentasi dimulai.' }}
                     </p>
                 </div>
@@ -76,7 +76,7 @@
             <div class="flex items-center gap-2 flex-shrink-0">
                 <a href="{{ route('user.tasks.index') }}" class="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5">
                     <span>Lihat di Halaman Tugas</span>
-                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
                 </a>
             </div>
         </div>
@@ -88,11 +88,11 @@
             <div>
                 <div class="text-xs font-bold text-emerald-950 flex items-center gap-2">
                     <span>Presentasi Dikonfirmasi: Sudah Presentasi</span>
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-200 text-emerald-900">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-200 text-emerald-900">
                         Sudah Presentasi
                     </span>
                 </div>
-                <p class="text-[11px] text-emerald-800 mt-0.5">
+                <p class="text-xs text-emerald-800 mt-0.5">
                     Presentasi projek Anda telah dikonfirmasi selesai oleh mentor.
                 </p>
             </div>
@@ -107,18 +107,18 @@
                 <div>
                     <div class="text-xs font-bold text-rose-950 flex items-center gap-2">
                         <span>Pengajuan Presentasi Ditolak Pembimbing</span>
-                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-200 text-rose-900">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-rose-200 text-rose-900">
                             Ditolak
                         </span>
                     </div>
-                    <p class="text-[11px] text-rose-800 mt-0.5">
+                    <p class="text-xs text-rose-800 mt-0.5">
                         {{ $currentHandRaise->admin_response ?: 'Pengajuan presentasi ditolak oleh pembimbing. Harap lengkapi materi sebelum mengajukan kembali.' }}
                     </p>
                 </div>
             </div>
             <button type="button" onclick="openRaiseHandModal()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-1.5 flex-shrink-0 cursor-pointer">
                 <span>Ajukan Ulang</span>
-                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                <i class="fa-solid fa-arrow-right text-xs"></i>
             </button>
         </div>
         @endif
@@ -133,14 +133,16 @@
         </div>
         @endif
 
+        {{-- SESI GANTI JAM CONTAINER (V2) --}}
+        @livewire('change-time-info-container', [
+        'session' => $activeChangeTimeSession
+        ])
+
+        {{-- ABSENSI REGULER CONTAINER --}}
         @livewire('attd-info-container', [
         'attdData' => isset($absenceHistory) ? $absenceHistory : null,
         'isWithoutBreak' => isset($shift) && is_object($shift) && isset($shift->break_time_in_minute) && (int) $shift->break_time_in_minute === 0 ? true : false,
-        'isAdjustable' => isset($all_adjustable) && sizeOf($all_adjustable) > 0,
-        ])
-
-        @livewire('adjst-info-container', [
-        'adjstData' => isset($all_adjustable) ? $all_adjustable : [],
+        'isAdjustable' => $isAdjustable,
         ])
 
         {{-- ... bagian lain yang tidak berubah ... --}}
@@ -186,11 +188,11 @@
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-gray-900 text-xs md:text-sm">Perhatian & Pesan Mentor</h3>
-                                    <p class="text-[10px] text-gray-500">Catatan & instruksi khusus dari pembimbing magang</p>
+                                    <p class="text-xs text-gray-500">Catatan & instruksi khusus dari pembimbing magang</p>
                                 </div>
                             </div>
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                                <i class="fa-solid fa-user-tie text-[9px]"></i> Mentor
+                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                                <i class="fa-solid fa-user-tie text-xs"></i> Mentor
                             </span>
                         </div>
 
@@ -208,11 +210,6 @@
                         </div>
                         @endif
                     </div>
-
-                    <div class="text-[10px] text-gray-400 flex items-center gap-1.5 mt-2 pt-1.5 border-t border-gray-100">
-                        <i class="fa-solid fa-circle-info text-[9px] shrink-0 text-amber-500"></i>
-                        <span>Catatan diperbarui secara berkala oleh pembimbing magang Anda.</span>
-                    </div>
                 </div>
             </div>
 
@@ -227,16 +224,16 @@
                                 </div>
                                 <div class="min-w-0">
                                     <h3 class="font-bold text-gray-900 text-xs md:text-sm truncate">Jam Kerja</h3>
-                                    <p class="text-[10px] text-gray-500 truncate">Status akumulasi</p>
+                                    <p class="text-xs text-gray-500 truncate">Status akumulasi</p>
                                 </div>
                             </div>
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 {{ $lack['isLess'] ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
+                            <span class="px-2 py-0.5 rounded-full text-xs font-bold shrink-0 {{ $lack['isLess'] ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200' }}">
                                 {{ $lack['isLess'] ? 'Kurang' : 'Aman' }}
                             </span>
                         </div>
 
                         <div class="text-center py-1.5 bg-slate-50 rounded-xl border border-slate-100 my-1">
-                            <div class="text-[10px] font-medium text-gray-500">
+                            <div class="text-xs font-medium text-gray-500">
                                 {{ $lack['isLess'] ? 'Hutang jam kerja:' : 'Total jam kerja:' }}
                             </div>
                             <div id="timer" class="text-lg font-bold font-mono tracking-tight mt-0.5 {{ $lack['isLess'] ? 'text-rose-600' : 'text-emerald-600' }}">
@@ -245,13 +242,21 @@
                         </div>
                     </div>
 
-                    <div class="pt-2 mt-1.5 border-t border-gray-100 flex items-center justify-between gap-2">
-                        <span class="text-[10px] text-gray-500">
-                            {{ $lack['isLess'] ? 'Wajib ganti jam' : 'Jam terpenuhi' }}
-                        </span>
-                        <a href="{{ route('user.attendance.change.view') }}" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition shadow-2xs shrink-0 {{ $lack['isLess'] ? 'bg-rose-600 hover:bg-rose-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white' }}">
+                    <div class="pt-2.5 mt-2 border-t border-gray-100 flex items-center gap-2">
+                        @if(!isset($activeRegistration) || !$activeRegistration)
+                        <button type="button" onclick="openChangeTimeModal();"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition shadow-2xs text-white cursor-pointer hover:opacity-90"
+                            style="background-color: #ea580c !important;"
+                            title="Daftar Ganti Jam">
+                            <i class="fa-solid fa-calendar-plus text-xs"></i>
+                            <span class="truncate">Daftar Ganti</span>
+                        </button>
+                        @endif
+                        <a href="{{ route('user.attendance.change.view') }}"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition shadow-2xs text-white text-center {{ $lack['isLess'] ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-600 hover:bg-emerald-700' }}"
+                            title="Lihat Detail Jam Kerja">
                             <span>Detail</span>
-                            <i class="fa-solid fa-arrow-right text-[9px]"></i>
+                            <i class="fa-solid fa-arrow-right text-xs"></i>
                         </a>
                     </div>
                 </div>
@@ -259,8 +264,11 @@
 
         </div>
 
+        <!-- Banner & Modal Chat Pra-Pendaftaran Ganti Jam (Livewire 5s Polling) -->
+        @livewire('change-time-registration-chat')
+
         <!-- Weekly Schedule (Full Width) -->
-        <div class="w-full flex flex-col">
+        <div id="weekly-schedule-container" class="w-full flex flex-col">
             <div class="bg-white border border-gray-200 rounded-2xl shadow-xs overflow-hidden flex-1 flex flex-col">
                 <!-- Schedule Header -->
                 <div class="px-4 py-3.5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2 bg-gradient-to-r from-gray-50/80 to-white">
@@ -274,13 +282,13 @@
                         </div>
                     </div>
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
-                        <i class="fa-regular fa-calendar-check text-[11px]"></i>
+                        <i class="fa-regular fa-calendar-check text-xs"></i>
                         <span>{{ count($schedules) }} Hari Kerja</span>
                     </span>
                 </div>
 
                 <!-- Table -->
-                <div class="overflow-x-auto overflow-y-auto max-h-80 flex-1">
+                <div class="overflow-x-auto overflow-y-auto max-h-[250px] flex-1">
                     <table class="min-w-full text-sm text-center border-collapse">
                         <thead class="sticky top-0 bg-slate-800 text-white z-10 text-xs uppercase tracking-wider font-semibold">
                             <tr>
@@ -313,16 +321,13 @@
                             };
 
                             $workTypeBadge = match(strtoupper($schedule->work_type ?? 'WFO')) {
-                                'WFH' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
-                                default => 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            'WFH' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
+                            default => 'bg-emerald-50 text-emerald-700 border-emerald-200'
                             };
                             @endphp
                             <tr class="{{ $rowBg }} hover:bg-blue-50/40 transition-colors">
                                 <td class="py-3 px-3.5 text-gray-700 whitespace-nowrap">
                                     {{ \Carbon\Carbon::parse($schedule->date)->format('d-m-Y') }}
-                                    @if($isToday)
-                                    <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900" title="Hari Ini">Hari Ini</span>
-                                    @endif
                                 </td>
                                 <td class="py-3 px-3.5 text-gray-800 whitespace-nowrap font-semibold">
                                     {{ \Carbon\Carbon::parse($schedule->date)->locale('id')->translatedFormat('l') }}
@@ -331,7 +336,7 @@
                                     {{ $schedule->shift->name ?? '-' }}
                                 </td>
                                 <td class="py-3 px-3.5 text-gray-600 whitespace-nowrap font-mono text-xs md:text-sm">
-                                    @if(isset($schedule->shift))
+                                    @if(isset($schedule->shift) && !empty($schedule->shift->start_time) && !empty($schedule->shift->end_time))
                                     {{ substr($schedule->shift->start_time, 0, 5) }} - {{ substr($schedule->shift->end_time, 0, 5) }}
                                     @else
                                     -
@@ -339,7 +344,15 @@
                                 </td>
                                 <td class="py-3 px-3.5 text-gray-600 whitespace-nowrap font-mono text-xs md:text-sm">
                                     @if(isset($schedule->shift))
-                                    {{ substr($schedule->shift->start_break_time, 0, 5) }} - {{ substr($schedule->shift->end_break_time, 0, 5) }}
+                                    @php
+                                    $effectiveStartBreak = $schedule->shift->getEffectiveStartBreakTime($schedule->date, $user);
+                                    $effectiveEndBreak = $schedule->shift->getEffectiveEndBreakTime($schedule->date, $user);
+                                    @endphp
+                                    @if(!empty($effectiveStartBreak) && !empty($effectiveEndBreak))
+                                    {{ substr($effectiveStartBreak, 0, 5) }} - {{ substr($effectiveEndBreak, 0, 5) }}
+                                    @else
+                                    -
+                                    @endif
                                     @else
                                     -
                                     @endif
@@ -385,7 +398,7 @@
             <div class="py-3 flex items-center justify-between gap-3">
                 <div class="min-w-0 flex-1">
                     <div class="text-xs sm:text-sm font-semibold text-gray-800 truncate">{{ $broadcast->title }}</div>
-                    <div class="text-[10px] text-gray-400 mt-0.5">{{ $broadcast->created_at->translatedFormat('d M Y H:i') }}</div>
+                    <div class="text-xs text-gray-400 mt-0.5">{{ $broadcast->created_at->translatedFormat('d M Y H:i') }}</div>
                 </div>
                 <button type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shrink-0 shadow-2xs transition" onclick="openModalBroadcastListbyId('{{ $broadcast->id }}')">
                     Detail
@@ -629,18 +642,12 @@
 
             <!-- TAB 3: PERATURAN KANTOR -->
             <div id="content-tab-rules" class="info-tab-content hidden space-y-4">
-                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-start space-x-3">
-                    <div class="text-indigo-600 text-xl mt-0.5"><i class="fas fa-building"></i></div>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-4 flex items-center space-x-3">
+                    <div class="text-indigo-600 text-xl"><i class="fas fa-building"></i></div>
                     <div>
                         <h4 class="font-bold text-indigo-900 text-sm">
                             Peraturan Penempatan: {{ $userOffice->name ?? 'Kantor Djuragan' }}
                         </h4>
-                        <p class="text-xs text-indigo-700 mt-0.5">
-                            <i class="fas fa-location-dot mr-1"></i> {{ $userOffice->address ?? 'Alamat kantor terdaftar' }}
-                            @if(isset($userOffice->capacity))
-                            &bull; Kapasitas: {{ $userOffice->capacity }} orang
-                            @endif
-                        </p>
                     </div>
                 </div>
 
@@ -738,7 +745,7 @@
 <div id="actionModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm flex justify-center items-center hidden z-50 p-3 sm:p-4">
     <div class="bg-white rounded-2xl overflow-hidden shadow-2xl transform transition-all w-full max-w-md mx-auto max-h-[90vh] flex flex-col">
         <div class="bg-slate-800 text-white px-4 sm:px-5 py-3 sm:py-3.5 flex justify-between items-center shrink-0">
-            <h3 class="text-base sm:text-lg leading-6 font-semibold">Keterangan Presensi</h3>
+            <h3 id="modalTitle" class="text-base sm:text-lg leading-6 font-semibold">Keterangan Presensi</h3>
             <button type="button" onclick="closeActionModal()" class="text-gray-300 hover:text-white text-2xl font-bold leading-none p-1">&times;</button>
         </div>
         <div id="modalContent" class="p-4 sm:p-5 flex-1 overflow-y-auto">
@@ -792,7 +799,7 @@
             </div>
             <div class="min-w-0">
                 <h2 class="text-base sm:text-lg font-bold text-slate-800 truncate">Form Izin Tidak Masuk</h2>
-                <p class="text-[11px] sm:text-xs text-slate-500 truncate">Pilih jenis izin sakit atau izin keperluan Anda.</p>
+                <p class="text-xs sm:text-sm text-slate-500 truncate">Pilih jenis izin sakit atau izin keperluan Anda.</p>
             </div>
         </div>
 
@@ -838,7 +845,7 @@
                         Jenis Keperluan <span class="text-rose-500">*</span>
                     </label>
                     <select id="keperluan_sub_select" onchange="document.getElementById('form_kategori_izin').value = this.value;"
-                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                         <option value="3" @selected((int) old('kategori-izin')===3)>📋 Keperluan Sekolah / Kampus (Ujian, Dispensasi, dsb)</option>
                         <option value="4" @selected((int) old('kategori-izin')===4)>📁 Keperluan Pribadi / Keluarga / Lainnya</option>
                     </select>
@@ -851,7 +858,7 @@
                     </label>
                     <textarea id="form_keterangan" name="keterangan" rows="3"
                         placeholder="Tuliskan keluhan atau diagnosis singkat sakit Anda..."
-                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>{{ old('keterangan') }}</textarea>
+                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required>{{ old('keterangan') }}</textarea>
                 </div>
 
                 <!-- Link GDrive -->
@@ -862,10 +869,10 @@
                     <input type="url" id="form_proof_url" name="link-google-drive"
                         placeholder="https://drive.google.com/file/d/..."
                         value="{{ old('link-google-drive') }}"
-                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required />
-                    <p id="proofHelpText" class="text-[10px] text-slate-400 mt-1">Pastikan akses link Google Drive diset ke 'Anyone with link / Siapa saja memiliki link'.</p>
+                        class="w-full border border-slate-300 rounded-xl p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" required />
+                    <p id="proofHelpText" class="text-xs text-slate-400 mt-1">Pastikan akses link Google Drive diset ke 'Anyone with link / Siapa saja memiliki link'.</p>
                     @error('link-google-drive')
-                    <p class="text-[10px] text-rose-500 mt-1">{{ $message }}</p>
+                    <p class="text-xs text-rose-500 mt-1">{{ $message }}</p>
                     @enderror
                 </div>
 
@@ -881,6 +888,116 @@
             </form>
         </div>
         <button class="absolute top-3.5 sm:top-4 right-3.5 sm:right-4 text-slate-400 hover:text-slate-600 transition p-1" onclick="closeModalIzin();">
+            <i class="fas fa-times text-base sm:text-lg"></i>
+        </button>
+    </div>
+</div>
+
+<!-- ==================================================================== -->
+<!-- POPUP MODAL: FORMULIR SESI GANTI JAM KERJA (PEMAGANG)                -->
+<!-- ==================================================================== -->
+<div id="changeTimeModal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[9999] p-3 sm:p-4" onclick="if(event.target === this) closeChangeTimeModal();">
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-2xl w-full max-w-lg mx-auto relative animate-fade-in max-h-[92vh] flex flex-col" onclick="event.stopPropagation();">
+        <!-- Modal Header -->
+        <div class="flex items-center gap-3 mb-3.5 sm:mb-4 shrink-0 pr-8 border-b border-gray-100 pb-3">
+            <div class="p-2 sm:p-2.5 bg-amber-100 text-amber-700 rounded-xl shrink-0">
+                <i class="fa-solid fa-calendar-plus text-base sm:text-lg"></i>
+            </div>
+            <div class="min-w-0">
+                <h2 class="text-base sm:text-lg font-bold text-slate-800 truncate">Pendaftaran Rencana Ganti Jam</h2>
+                <p class="text-xs text-slate-500 truncate">Pilih tanggal dan shift yang direncanakan untuk disetujui Admin.</p>
+            </div>
+        </div>
+
+        <form id="formDaftarGantiJam" action="{{ route('user.change-time.register') }}" method="POST" class="flex flex-col flex-1 overflow-hidden" onsubmit="event.preventDefault(); submitChangeTimeForm();">
+            @csrf
+
+            <!-- Scrollable Body -->
+            <div class="overflow-y-auto flex-1 px-1 py-1 space-y-4 text-xs no-scrollbar">
+
+                <!-- Note Otomatis dari Admin jika diset (Fitur B) -->
+                @if(!empty($changeTimeSetting?->intern_notice_text))
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2.5 text-amber-900">
+                    <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 shrink-0 text-xs"></i>
+                    <div class="text-xs text-amber-900 leading-relaxed">
+                        <span class="font-bold text-amber-950">Catatan:</span> {{ $changeTimeSetting->intern_notice_text }}
+                    </div>
+                </div>
+                @else
+                <!-- Info Box Ketentuan -->
+                <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-2.5 text-blue-900">
+                    <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 shrink-0 text-xs"></i>
+                    <div class="text-xs text-blue-900 leading-relaxed space-y-1">
+                        <p><strong>Ketentuan Ganti Jam:</strong> Pilih hari/tanggal dan shift yang Anda rencanakan. Admin dapat menyesuaikan jam/shift dan menyetujui pendaftaran Anda.</p>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Input 1: Hari / Tanggal Rencana (Wajib) -->
+                <div>
+                    <label for="reg_requested_date" class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1.5">
+                        Hari / Tanggal Rencana Ganti Jam <span class="text-rose-500">*</span>
+                    </label>
+                    <input type="date" id="reg_requested_date" name="requested_date" required
+                        min="{{ \Carbon\Carbon::tomorrow('Asia/Jakarta')->toDateString() }}" value="{{ \Carbon\Carbon::tomorrow('Asia/Jakarta')->toDateString() }}"
+                        class="w-full p-2.5 text-xs text-slate-800 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white">
+                </div>
+
+                <!-- Input 2: Pilihan Shift (Wajib) -->
+                <div>
+                    <label for="reg_shift_id" class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1.5">
+                        Shift yang Dipilih <span class="text-rose-500">*</span>
+                    </label>
+                    <select id="reg_shift_id" name="shift_id" required
+                        class="w-full p-2.5 text-xs text-slate-800 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white cursor-pointer">
+                        <option value="" disabled selected>-- Pilih Shift Kerja --</option>
+                        @if(isset($shiftsForChangeTime) && $shiftsForChangeTime->isNotEmpty())
+                        @foreach($shiftsForChangeTime as $sh)
+                        <option value="{{ $sh->id }}">
+                            {{ $sh->name }} ({{ substr($sh->start_time, 0, 5) }} - {{ substr($sh->end_time, 0, 5) }})
+                        </option>
+                        @endforeach
+                        @endif
+                    </select>
+                </div>
+
+                <!-- Input 3: Keterangan Ganti Jam -->
+                <div>
+                    <label for="change_time_notes" class="block font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-1.5">
+                        Keterangan Ganti Jam <span class="text-rose-500">*</span>
+                    </label>
+                    <textarea id="change_time_notes" name="reason" rows="3" required
+                        placeholder="Contoh: Mengganti kekurangan jam kerja minggu lalu..."
+                        class="w-full p-3 text-xs text-slate-800 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 bg-white leading-relaxed"></textarea>
+                    <p class="text-[10px] text-slate-400 mt-1">Admin dapat membalas via chat untuk menyesuaikan jam atau memberikan arahan.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="flex items-center justify-end gap-2 pt-3 sm:pt-4 border-t border-gray-100 mt-2 shrink-0">
+                <button type="button" onclick="closeChangeTimeModal();" class="px-4 py-2 border border-slate-300 text-slate-700 rounded-xl hover:bg-slate-100 text-xs font-semibold transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" id="btn-submit-change-time"
+                    class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+                    style="background-color: #ea580c !important;">
+                    <i class="fa-solid fa-paper-plane text-[11px] text-white"></i>
+                    <span class="text-white font-bold tracking-wide">Ajukan Pendaftaran Ganti Jam</span>
+                </button>
+                <div id="spinner-change-time"
+                    class="hidden items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold"
+                    style="background-color: #ea580c !important;">
+                    <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-white font-semibold">Memproses Pendaftaran...</span>
+                </div>
+            </div>
+        </form>
+
+        <!-- Close button top right -->
+        <button type="button" class="absolute top-3.5 sm:top-4 right-3.5 sm:right-4 text-slate-400 hover:text-slate-600 transition p-1 focus:outline-none" onclick="closeChangeTimeModal();">
             <i class="fas fa-times text-base sm:text-lg"></i>
         </button>
     </div>
@@ -948,21 +1065,21 @@
                 </div>
                 <div class="min-w-0">
                     <h2 class="text-base sm:text-lg font-bold truncate">Angkat Tangan / Butuh Bantuan</h2>
-                    <p class="text-[11px] sm:text-xs text-gray-300 truncate">Pilih kategori bantuan yang ingin diajukan ke mentor/admin</p>
+                    <p class="text-xs sm:text-sm text-gray-300 truncate">Pilih kategori bantuan yang ingin diajukan ke mentor/admin</p>
                 </div>
             </div>
             <button type="button" onclick="closeRaiseHandModal()" class="text-gray-300 hover:text-white text-2xl font-bold leading-none p-1 shrink-0">&times;</button>
         </div>
 
         <!-- Form Body -->
-        <form action="{{ route('intern.raisehand.toggle') }}" method="POST" class="flex flex-col flex-1 overflow-y-auto">
+        <form action="{{ route('intern.raisehand.toggle') }}" method="POST" class="flex flex-col flex-1 overflow-y-auto no-scrollbar">
             @csrf
             <div class="p-4 sm:p-6 space-y-3.5 sm:space-y-4 flex-1">
                 <!-- Mode Selection Tabs / Radio Cards -->
                 <div>
-                    <label class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                    <span class="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
                         Pilih Kategori Bantuan <span class="text-red-500">*</span>
-                    </label>
+                    </span>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <!-- Card 1: Tanya Jawab -->
                         <label class="raise-mode-card relative flex flex-col p-2.5 sm:p-3 rounded-xl border-2 cursor-pointer transition-all border-blue-600 bg-blue-50/50" id="card-mode-question">
@@ -971,7 +1088,7 @@
                                 <i class="fa-solid fa-comments text-blue-600 text-sm"></i>
                                 <span class="text-xs font-bold text-gray-900">Bertanya</span>
                             </div>
-                            <span class="text-[11px] text-gray-500 leading-tight">Konsultasi kendala teknis / materi</span>
+                            <span class="text-xs text-gray-500 leading-tight">Konsultasi kendala teknis / materi</span>
                         </label>
 
                         <!-- Card 2: Tugas Baru -->
@@ -981,7 +1098,7 @@
                                 <i class="fa-solid fa-list-check text-purple-600 text-sm"></i>
                                 <span class="text-xs font-bold text-gray-900">Tugas Baru</span>
                             </div>
-                            <span class="text-[11px] text-gray-500 leading-tight">Minta modul / tugas berikutnya</span>
+                            <span class="text-xs text-gray-500 leading-tight">Minta modul / tugas berikutnya</span>
                         </label>
 
                         <!-- Card 3: Presentasi -->
@@ -991,53 +1108,53 @@
                                 <i class="fa-solid fa-chalkboard-user text-amber-600 text-sm"></i>
                                 <span class="text-xs font-bold text-gray-900">Presentasi</span>
                             </div>
-                            <span class="text-[11px] text-gray-500 leading-tight">Jadwal uji hasil modul/project</span>
+                            <span class="text-xs text-gray-500 leading-tight">Jadwal uji hasil modul/project</span>
                         </label>
                     </div>
                 </div>
 
                 <!-- Panel 1: Mode Bertanya -->
                 <div id="panel-raise-question" class="space-y-3">
-                    <div class="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-800 flex items-start gap-2">
-                        <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 shrink-0"></i>
+                    <div class="text-xs text-gray-500 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-500 mt-0.5 shrink-0 text-xs"></i>
                         <span class="leading-relaxed">Jelaskan kendala atau pertanyaan Anda secara spesifik agar mentor dapat membantu dengan cepat.</span>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <label for="notes-question" class="block text-xs font-semibold text-gray-700 mb-1">
                             Detail Pertanyaan / Kendala <span class="text-red-500">*</span>
                         </label>
-                        <textarea name="notes" id="notes-question" rows="3" class="w-full text-xs p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Mengalami error koneksi database saat menjalankan migration Laravel..."></textarea>
+                        <textarea name="notes" id="notes-question" rows="3" class="w-full text-xs p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Contoh: Mengalami error koneksi database saat menjalankan migration Laravel..."></textarea>
                     </div>
                 </div>
 
                 <!-- Panel 2: Mode Tugas Baru -->
                 <div id="panel-raise-new_task" class="space-y-3 hidden">
-                    <div class="p-3 bg-purple-50 border border-purple-100 rounded-xl text-xs text-purple-800 flex items-start gap-2">
-                        <i class="fa-solid fa-circle-info text-purple-600 mt-0.5 shrink-0"></i>
+                    <div class="text-xs text-gray-500 flex items-start gap-2">
+                        <i class="fa-solid fa-circle-info text-purple-500 mt-0.5 shrink-0 text-xs"></i>
                         <span class="leading-relaxed">Gunakan opsi ini jika tugas Anda sebelumnya sudah selesai dan membutuhkan arahan pengerjaan tugas berikutnya.</span>
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <label for="notes-new_task" class="block text-xs font-semibold text-gray-700 mb-1">
                             Keterangan Tugas Selesai & Permintaan <span class="text-red-500">*</span>
                         </label>
-                        <textarea name="notes" id="notes-new_task" rows="3" disabled class="w-full text-xs p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Contoh: Modul desain UI/UX sudah selesai dan diserahkan ke repo/GDrive. Mohon arahan modul selanjutnya..."></textarea>
+                        <textarea name="notes" id="notes-new_task" rows="3" disabled class="w-full text-xs p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" placeholder="Contoh: Modul desain UI/UX sudah selesai dan diserahkan ke repo/GDrive. Mohon arahan modul selanjutnya..."></textarea>
                     </div>
                 </div>
 
                 <!-- Panel 3: Mode Presentasi -->
                 <div id="panel-raise-presentation" class="space-y-3 hidden">
-                    <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2">
-                        <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0"></i>
+                    <div class="text-xs text-gray-500 flex items-start gap-2">
+                        <i class="fa-solid fa-lightbulb text-amber-500 mt-0.5 shrink-0 text-xs"></i>
                         <span class="leading-relaxed">Mentor akan mereview materi presentasi Anda dan memberikan evaluasi performa setelah presentasi selesai.</span>
                     </div>
 
                     @if(isset($activeProjects) && $activeProjects->count() > 0)
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <label for="select-project-presentation" class="block text-xs font-semibold text-gray-700 mb-1">
                             Project yang Sedang Dikerjakan <span class="text-red-500">*</span>
                         </label>
                         <div class="relative">
-                            <select name="project_id" id="select-project-presentation" onchange="onPresentationProjectChange(this)" disabled class="w-full text-xs p-2.5 bg-white border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none pr-8">
+                            <select name="project_id" id="select-project-presentation" onchange="onPresentationProjectChange(this)" disabled class="w-full text-xs p-2.5 bg-white border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 appearance-none pr-8">
                                 @foreach($activeProjects as $actProject)
                                 @php
                                 $projTitle = $actProject->nameProject->name ?? ('Project #' . $actProject->id);
@@ -1052,32 +1169,32 @@
                                 <i class="fa-solid fa-chevron-down text-xs"></i>
                             </div>
                         </div>
-                        <p class="text-[11px] text-gray-500 mt-1">Otomatis diarahkan ke project aktif Anda agar tidak perlu mengisi manual secara keseluruhan.</p>
+                        <p class="text-xs text-gray-500 mt-1">Otomatis diarahkan ke project aktif Anda agar tidak perlu mengisi manual secara keseluruhan.</p>
                     </div>
                     @endif
 
                     <div>
-                        <label class="block text-xs font-semibold text-gray-700 mb-1">
+                        <label for="notes-presentation" class="block text-xs font-semibold text-gray-700 mb-1">
                             Judul / Materi Presentasi <span class="text-red-500">*</span>
                         </label>
                         <input type="text" name="notes" id="notes-presentation" disabled
                             value="{{ isset($activeProjects) && $activeProjects->count() > 0 ? ($activeProjects->first()->nameProject->name ?? '') : '' }}"
-                            class="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            class="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
                             placeholder="Contoh: Presentasi Modul Autentikasi dan API Resource">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">
+                            <label for="presentation_date_input" class="block text-xs font-semibold text-gray-700 mb-1">
                                 Tanggal Presentasi <span class="text-red-500">*</span>
                             </label>
-                            <input type="date" name="presentation_date" id="presentation_date_input" min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}" onchange="checkPresentationUrgency(this.value)" class="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            <input type="date" name="presentation_date" id="presentation_date_input" min="{{ date('Y-m-d') }}" value="{{ date('Y-m-d') }}" onchange="checkPresentationUrgency(this.value)" class="w-full text-xs p-2.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                         </div>
                         <div>
-                            <label class="block text-xs font-semibold text-gray-700 mb-1">
+                            <label for="presentation_mode_select" class="block text-xs font-semibold text-gray-700 mb-1">
                                 Mode Presentasi <span class="text-red-500">*</span>
                             </label>
-                            <select name="presentation_mode" id="presentation_mode_select" class="w-full text-xs p-2.5 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
+                            <select name="presentation_mode" id="presentation_mode_select" class="w-full text-xs p-2.5 border border-gray-300 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500">
                                 <option value="offline">🏢 Tatap Muka</option>
                                 <option value="online">💻 Online (GMeet)</option>
                             </select>
@@ -1086,7 +1203,7 @@
 
                     <!-- Schedule Notice Badge -->
                     <div id="urgency-notice-badge" class="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2.5">
-                        <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white shrink-0">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white shrink-0">
                             TERJADWAL
                         </span>
                         <span class="text-xs text-blue-800 font-medium">
@@ -1109,209 +1226,7 @@
     </div>
 </div>
 
-<!-- Modal Status Raise Hand Aktif (Lower Hand / Batalkan) -->
-<div id="lowerHandModal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[9999] p-3 sm:p-4">
-    <div class="bg-white rounded-2xl w-full max-w-md max-h-[90vh] shadow-2xl overflow-hidden flex flex-col animate-fadeIn">
-        <!-- Header -->
-        <div class="flex justify-between items-center px-4 sm:px-6 py-3.5 sm:py-4 border-b bg-emerald-800 text-white shrink-0">
-            <div class="flex items-center space-x-2.5">
-                <div class="w-8 h-8 rounded-lg bg-emerald-700 flex items-center justify-center text-emerald-200 shrink-0">
-                    <i class="fas fa-hand-paper animate-bounce text-sm"></i>
-                </div>
-                <div>
-                    <h2 class="text-sm sm:text-base font-bold">Status Bantuan Aktif</h2>
-                    <p class="text-[11px] sm:text-xs text-emerald-200">Permintaan Anda sedang menunggu respon</p>
-                </div>
-            </div>
-            <button type="button" onclick="closeLowerHandModal()" class="text-gray-300 hover:text-white text-2xl font-bold leading-none">&times;</button>
-        </div>
 
-        <!-- Body -->
-        <div class="p-4 sm:p-6 space-y-3.5 sm:space-y-4 overflow-y-auto flex-1">
-            @if(isset($currentHandRaise) && $currentHandRaise && $currentHandRaise->is_raised && !in_array($currentHandRaise->status, ['done', 'rejected']))
-            <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Kategori</span>
-                    @if($currentHandRaise->type === 'presentation')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                        <i class="fa-solid fa-chalkboard-user"></i> Presentasi
-                    </span>
-                    @elseif($currentHandRaise->type === 'new_task')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-100 text-purple-800">
-                        <i class="fa-solid fa-list-check"></i> Tugas Baru
-                    </span>
-                    @else
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
-                        <i class="fa-solid fa-comments"></i> Tanya Jawab
-                    </span>
-                    @endif
-                </div>
-
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</span>
-                    @if($currentHandRaise->status === 'pending')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
-                        <i class="fa-solid fa-hourglass-start text-amber-600"></i> Menunggu Konfirmasi Mentor
-                    </span>
-                    @elseif($currentHandRaise->status === 'rescheduled')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
-                        <i class="fa-solid fa-clock-rotate-left text-blue-600"></i> Jadwal Diubah oleh Mentor
-                    </span>
-                    @elseif($currentHandRaise->status === 'accepted')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <i class="fa-solid fa-calendar-check text-emerald-600"></i> Jadwal Diterima & Siap Presentasi
-                    </span>
-                    @elseif($currentHandRaise->status === 'in_progress')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span> Tugas Diberikan (Sedang Dikerjakan)
-                    </span>
-                    @elseif($currentHandRaise->status === 'needs_revision')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-200">
-                        <i class="fa-solid fa-triangle-exclamation text-orange-600"></i> Ada Catatan Revisi
-                    </span>
-                    @elseif($currentHandRaise->status === 'ready')
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <i class="fa-solid fa-circle-check text-emerald-600"></i> Selesai Valid
-                    </span>
-                    @else
-                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                        Menunggu Respon Mentor
-                    </span>
-                    @endif
-                </div>
-
-                @if($currentHandRaise->type === 'presentation')
-                @if($currentHandRaise->presentation_date)
-                <div class="flex items-center justify-between text-xs text-gray-600">
-                    <span class="font-medium">Tanggal Presentasi:</span>
-                    <span class="font-semibold text-gray-800">{{ $currentHandRaise->presentation_date->format('d M Y') }}</span>
-                </div>
-                @endif
-                <div class="flex items-center justify-between text-xs text-gray-600">
-                    <span class="font-medium">Waktu / Jam Pelaksanaan:</span>
-                    @if(!empty($currentHandRaise->scheduled_time))
-                    <span class="font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded text-xs">{{ substr($currentHandRaise->scheduled_time, 0, 5) }} WIB</span>
-                    @else
-                    <span class="text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded text-[11px] italic font-medium">Menunggu penetapan jam</span>
-                    @endif
-                </div>
-                @if($currentHandRaise->presentation_mode)
-                <div class="flex items-center justify-between text-xs text-gray-600">
-                    <span class="font-medium">Mode Presentasi:</span>
-                    <span class="font-semibold text-gray-800">{{ $currentHandRaise->presentation_mode === 'online' ? 'Online (Google Meet)' : 'Tatap Muka' }}</span>
-                </div>
-                @endif
-                @if($currentHandRaise->presentation_mode === 'online')
-                @php
-                $activeMeetUrl = $currentHandRaise->meet_url ?: ($user->intern?->division?->meet_url ?? null);
-                $isAccepted = in_array($currentHandRaise->status, ['accepted', 'in_progress', 'ready', 'needs_revision']);
-                @endphp
-                <div class="p-3.5 {{ $isAccepted ? 'bg-sky-50 border-sky-200' : 'bg-slate-50 border-slate-200' }} border rounded-xl space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-bold {{ $isAccepted ? 'text-sky-900' : 'text-slate-700' }} flex items-center gap-1.5">
-                            <i class="fa-solid fa-video {{ $isAccepted ? 'text-sky-600' : 'text-slate-400' }}"></i> Link Google Meet Presentasi
-                        </span>
-                        <span class="text-[10px] {{ $isAccepted ? 'bg-sky-200/70 text-sky-800' : 'bg-slate-200 text-slate-700' }} font-semibold px-2 py-0.5 rounded-full">Online</span>
-                    </div>
-                    @if($isAccepted)
-                        @if($activeMeetUrl)
-                        <div class="flex items-center gap-1.5">
-                            <input type="text" readonly value="{{ $activeMeetUrl }}"
-                                class="w-full text-xs p-2 bg-white border border-sky-200 rounded-lg text-sky-900 font-mono select-all">
-                            <button type="button" onclick="copyMeetLink('{{ $activeMeetUrl }}', this)"
-                                class="px-3 py-2 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-semibold shrink-0 transition flex items-center gap-1"
-                                title="Salin Link Google Meet">
-                                <i class="fa-regular fa-copy"></i>
-                                <span>Salin</span>
-                            </button>
-                            <a href="{{ $activeMeetUrl }}" target="_blank" rel="noopener noreferrer"
-                                class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shrink-0 transition flex items-center gap-1"
-                                title="Buka Google Meet">
-                                <i class="fa-solid fa-arrow-up-right-from-square"></i>
-                                <span>Buka</span>
-                            </a>
-                        </div>
-                        @else
-                        <p class="text-xs text-sky-800">Link Google Meet untuk divisi Anda belum diatur oleh admin. Harap hubungi admin/mentor.</p>
-                        @endif
-                    @else
-                        <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-lg text-[11px] text-amber-900 flex items-start gap-2">
-                            <i class="fa-solid fa-lock text-amber-600 mt-0.5 shrink-0"></i>
-                            <span>Link Google Meet akan aktif dan muncul setelah pengajuan jadwal Anda <strong>diterima / disetujui</strong> oleh mentor.</span>
-                        </div>
-                    @endif
-                </div>
-                @endif
-                @endif
-
-                @if($currentHandRaise->notes || $currentHandRaise->reason)
-                <div class="pt-2 border-t border-gray-200">
-                    <span class="text-xs font-semibold text-gray-500 block mb-1">Catatan / Keterangan Pengajuan:</span>
-                    <div class="text-xs text-gray-700 bg-white p-2.5 rounded-lg border border-gray-200 break-words break-all max-h-32 overflow-y-auto leading-relaxed">{!! nl2br(e(trim($currentHandRaise->notes ?? $currentHandRaise->reason))) !!}</div>
-                </div>
-                @endif
-
-                @if(!empty($currentHandRaise->admin_response))
-                <div class="pt-2 border-t border-gray-200">
-                    <span class="text-xs font-semibold block mb-1">
-                        @if($currentHandRaise->status === 'needs_revision')
-                        <span class="text-orange-800 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-triangle-exclamation"></i> Catatan Perbaikan Pra-Presentasi:
-                        </span>
-                        @elseif($currentHandRaise->status === 'rescheduled')
-                        <span class="text-blue-800 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-clock-rotate-left"></i> Catatan Reschedule dari Mentor:
-                        </span>
-                        @elseif($currentHandRaise->type === 'new_task')
-                        <span class="text-emerald-800 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-clipboard-check"></i> Instruksi Tugas dari Pembimbing:
-                        </span>
-                        @else
-                        <span class="text-blue-800 font-bold flex items-center gap-1">
-                            <i class="fa-solid fa-reply"></i> Catatan / Tanggapan Mentor:
-                        </span>
-                        @endif
-                    </span>
-                    <div class="text-xs text-gray-800 bg-white p-2.5 rounded-lg border border-gray-200 break-words break-all leading-relaxed max-h-48 overflow-y-auto font-medium">{!! nl2br(e(trim($currentHandRaise->admin_response))) !!}</div>
-                    @if($currentHandRaise->type === 'new_task')
-                    <div class="mt-2 text-right">
-                        <a href="{{ route('user.tasks.index') }}" class="inline-flex items-center gap-1 text-xs text-purple-700 hover:text-purple-900 font-bold underline">
-                            <span>Buka Detail di Halaman Tugas</span>
-                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
-                        </a>
-                    </div>
-                    @endif
-                </div>
-                @endif
-
-                <div class="text-[11px] text-gray-400 text-right">
-                    Diajukan: {{ $currentHandRaise->created_at?->diffForHumans() }}
-                </div>
-            </div>
-            @else
-            <p class="text-xs text-gray-500 text-center py-4">Tidak ada permintaan bantuan aktif saat ini.</p>
-            @endif
-
-            <p class="text-xs text-gray-500 leading-relaxed">
-                Jika Anda sudah selesai berkonsultasi atau ingin membatalkan bantuan, klik tombol <strong>Turunkan Tangan</strong> di bawah.
-            </p>
-        </div>
-
-        <!-- Footer -->
-        <div class="px-4 sm:px-6 py-3 bg-gray-50 border-t border-gray-200 flex justify-between items-center shrink-0">
-            <button type="button" onclick="closeLowerHandModal()" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl text-xs font-medium hover:bg-gray-100 transition">
-                Tutup
-            </button>
-            <form action="{{ route('intern.raisehand.toggle') }}" method="POST">
-                @csrf
-                <input type="hidden" name="action" value="lower">
-                <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                    <i class="fa-solid fa-hand-holding"></i> Turunkan Tangan
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
 
 <!-- Modal Popup Detail Pengajuan Presentasi (Muncul Otomatis Setelah Mengajukan Presentasi) -->
 <div id="onlineMeetModal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[99999] p-3 sm:p-4 transition-all duration-200">
@@ -1325,13 +1240,13 @@
                 <i class="fa-solid fa-chalkboard-user"></i>
             </div>
             <h3 class="text-sm sm:text-base font-bold tracking-tight">Pengajuan Presentasi Terkirim</h3>
-            <p class="text-[11px] sm:text-xs text-indigo-100 mt-0.5 font-medium">
+            <p class="text-xs sm:text-sm text-indigo-100 mt-0.5 font-medium">
                 Divisi: {{ session('presentation_detail.division_name') ?? (session('division_name') ?? ($user->intern?->division?->name ?? 'Divisi')) }}
             </p>
         </div>
 
         <!-- Body -->
-        <div class="p-4 sm:p-5 space-y-3 sm:space-y-3.5 overflow-y-auto flex-1">
+        <div class="p-4 sm:p-5 space-y-3 sm:space-y-3.5 overflow-y-auto flex-1 no-scrollbar">
             <!-- Ringkasan Pengajuan -->
             <div class="p-3.5 sm:p-4 bg-slate-50/90 border border-slate-200 rounded-2xl text-xs space-y-2.5">
                 <div class="flex items-center justify-between gap-3">
@@ -1344,21 +1259,21 @@
                 </div>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-slate-500 font-medium shrink-0">Waktu / Jam:</span>
-                    <span class="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-[11px]">
-                        <i class="fa-regular fa-clock text-amber-600 text-[10px]"></i>
+                    <span class="inline-flex items-center gap-1 font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-lg text-xs">
+                        <i class="fa-regular fa-clock text-amber-600 text-xs"></i>
                         <span>Menunggu konfirmasi mentor</span>
                     </span>
                 </div>
                 <div class="flex items-center justify-between gap-3">
                     <span class="text-slate-500 font-medium shrink-0">Mode Presentasi:</span>
-                    <span class="font-bold uppercase {{ (session('presentation_detail.mode') ?? (session('show_online_meet_modal') ? 'online' : 'offline')) === 'online' ? 'text-sky-700 bg-sky-50 border-sky-200' : 'text-slate-700 bg-slate-100 border-slate-200' }} border px-2 py-0.5 rounded-lg text-[11px]">
+                    <span class="font-bold uppercase {{ (session('presentation_detail.mode') ?? (session('show_online_meet_modal') ? 'online' : 'offline')) === 'online' ? 'text-sky-700 bg-sky-50 border-sky-200' : 'text-slate-700 bg-slate-100 border-slate-200' }} border px-2 py-0.5 rounded-lg text-xs">
                         {{ (session('presentation_detail.mode') ?? (session('show_online_meet_modal') ? 'online' : 'offline')) === 'online' ? '💻 Online (Google Meet)' : '🏢 Tatap Muka' }}
                     </span>
                 </div>
                 <div class="flex items-center justify-between pt-2.5 border-t border-slate-200 gap-3">
                     <span class="text-slate-500 font-medium shrink-0">Status Pengajuan:</span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300">
-                        <i class="fa-solid fa-hourglass-start text-amber-600 text-[9px]"></i>
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                        <i class="fa-solid fa-hourglass-start text-amber-600 text-xs"></i>
                         <span>Menunggu Respon Mentor</span>
                     </span>
                 </div>
@@ -1373,11 +1288,11 @@
             <div class="p-3.5 bg-amber-50/80 border border-amber-200 rounded-2xl text-xs space-y-1.5">
                 <div class="flex items-center gap-2 font-bold text-amber-950">
                     <div class="w-6 h-6 rounded-lg bg-amber-200/80 text-amber-800 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-lock text-[11px]"></i>
+                        <i class="fa-solid fa-lock text-xs"></i>
                     </div>
                     <span>Tautan Google Meet</span>
                 </div>
-                <p class="text-[11px] leading-relaxed text-amber-900 pl-8">
+                <p class="text-xs leading-relaxed text-amber-900 pl-8">
                     Link Google Meet akan <strong>otomatis aktif</strong> setelah pengajuan jadwal Anda disetujui oleh mentor. Pantau penetapan jam pada kartu Bantuan Aktif Anda.
                 </p>
             </div>
@@ -1386,11 +1301,11 @@
             <div class="p-3.5 bg-blue-50/80 border border-blue-200 rounded-2xl text-xs space-y-1.5">
                 <div class="flex items-center gap-2 font-bold text-blue-950">
                     <div class="w-6 h-6 rounded-lg bg-blue-200/80 text-blue-800 flex items-center justify-center shrink-0">
-                        <i class="fa-solid fa-circle-info text-[11px]"></i>
+                        <i class="fa-solid fa-circle-info text-xs"></i>
                     </div>
                     <span>Presentasi Tatap Muka</span>
                 </div>
-                <p class="text-[11px] leading-relaxed text-blue-900 pl-8">
+                <p class="text-xs leading-relaxed text-blue-900 pl-8">
                     Pengajuan presentasi tatap muka telah berhasil dikirim ke mentor. Harap menunggu konfirmasi penetapan jam presentasi langsung di kantor.
                 </p>
             </div>
@@ -1406,90 +1321,6 @@
         </div>
     </div>
 </div>
-
-@if(isset($currentHandRaise) && $currentHandRaise && $currentHandRaise->is_raised && !in_array($currentHandRaise->status, ['done', 'rejected']) && ($currentHandRaise->type === 'question' || is_null($currentHandRaise->type)) && ($currentHandRaise->status === 'responded' || !empty($currentHandRaise->admin_response)))
-<!-- Modal Popup Tanggapan Bantuan / Pertanyaan dari Mentor -->
-<div id="questionResponseModal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm hidden z-[99999] p-3 sm:p-4 transition-all duration-200">
-    <div class="bg-white rounded-2xl sm:rounded-3xl w-full max-w-xl shadow-2xl overflow-hidden flex flex-col border border-slate-100 max-h-[90vh] transform transition-all duration-200 animate-fadeIn">
-        <!-- Header -->
-        <div class="bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 text-white px-4 sm:px-6 py-3.5 sm:py-5 text-center relative shadow-sm shrink-0">
-            <button type="button" onclick="closeQuestionResponseModal()" class="absolute top-3 sm:top-4 right-3 sm:right-4 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white/90 hover:text-white flex items-center justify-center transition cursor-pointer" title="Tutup Sementara">
-                <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
-            <div class="w-11 h-11 sm:w-12 sm:h-12 mx-auto rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-lg sm:text-xl mb-2 sm:mb-2.5 shadow-inner border border-white/20">
-                <i class="fa-solid fa-comments"></i>
-            </div>
-            <h3 class="text-sm sm:text-lg font-bold tracking-tight">Tanggapan Bantuan dari Mentor</h3>
-            <p class="text-[11px] sm:text-xs text-blue-100 mt-0.5 font-medium">
-                Mentor telah memberikan solusi & arahan atas kendala Anda
-            </p>
-        </div>
-
-        <!-- Body Scrollable Area -->
-        <div class="p-4 sm:p-6 space-y-3.5 sm:space-y-4 overflow-y-auto flex-1">
-            <!-- Pertanyaan Pemagang -->
-            @if($currentHandRaise->notes || $currentHandRaise->reason)
-            <div class="p-3 sm:p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
-                <div class="flex items-center gap-1.5 font-bold text-slate-700">
-                    <i class="fa-regular fa-circle-question text-blue-600"></i>
-                    <span>Pertanyaan / Kendala Anda:</span>
-                </div>
-                <div class="text-slate-800 break-words break-all leading-relaxed pl-5 text-[11.5px] max-h-28 overflow-y-auto">{!! nl2br(e(trim($currentHandRaise->notes ?? $currentHandRaise->reason))) !!}</div>
-            </div>
-            @endif
-
-            <!-- Jawaban & Solusi Mentor (Card Rapi & Scrollable jika Panjang) -->
-            <div class="p-3.5 sm:p-4 bg-gradient-to-b from-blue-50/90 to-indigo-50/50 border-2 border-blue-200 rounded-2xl text-xs space-y-2.5">
-                <div class="flex items-center justify-between flex-wrap gap-2">
-                    <div class="flex items-center gap-1.5 font-bold text-blue-950 text-xs">
-                        <i class="fa-solid fa-reply text-blue-600 text-sm"></i>
-                        <span>Jawaban & Solusi Mentor:</span>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        @if($currentHandRaise->resolver)
-                        <span class="text-[10px] font-semibold bg-blue-200/80 text-blue-900 px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                            <i class="fa-solid fa-user-tie text-[9px]"></i>
-                            <span>{{ $currentHandRaise->resolver->name }}</span>
-                        </span>
-                        @endif
-                        <button type="button" onclick="copyMentorResponseText()" id="btnCopyMentorResp"
-                            class="text-[11px] font-semibold text-blue-700 hover:text-blue-900 bg-white border border-blue-200 hover:border-blue-300 px-2.5 py-0.5 rounded-lg transition flex items-center gap-1 cursor-pointer"
-                            title="Salin isi jawaban mentor">
-                            <i class="fa-regular fa-copy text-[10px]"></i>
-                            <span id="textCopyMentorResp">Salin</span>
-                        </button>
-                    </div>
-                </div>
-
-                <div id="mentorResponseContentBox" class="text-xs sm:text-[13px] leading-relaxed text-slate-800 bg-white p-3 sm:p-4 rounded-xl border border-blue-100 break-words break-all font-normal shadow-2xs max-h-60 sm:max-h-80 overflow-y-auto select-text">{!! nl2br(e(trim($currentHandRaise->admin_response))) !!}</div>
-            </div>
-
-            <!-- Hint Keterangan -->
-            <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-900 flex items-start gap-2">
-                <i class="fa-solid fa-lightbulb text-amber-600 mt-0.5 shrink-0"></i>
-                <span class="leading-relaxed">Jika arahan telah dipahami atau kendala Anda sudah terselesaikan, klik <strong>"Saya Sudah Paham & Selesaikan"</strong> untuk menurunkan tangan.</span>
-            </div>
-        </div>
-
-        <!-- Footer -->
-        <div class="px-4 sm:px-5 py-3 sm:py-3.5 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 shrink-0">
-            <button type="button" onclick="closeQuestionResponseModal()"
-                class="w-full sm:w-auto px-4 py-2 border border-slate-300 hover:bg-slate-100 text-slate-700 rounded-xl text-xs font-semibold transition cursor-pointer text-center">
-                Tutup Sementara
-            </button>
-            <form action="{{ route('intern.raisehand.toggle') }}" method="POST" class="w-full sm:w-auto m-0 p-0">
-                @csrf
-                <input type="hidden" name="action" value="lower">
-                <button type="submit"
-                    class="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-check text-xs"></i>
-                    <span>Saya Sudah Paham & Selesaikan</span>
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-@endif
 
 <script src="{{ asset('js/user/index.js') }}?v={{ time() }}"></script>
 <script>
@@ -1615,11 +1446,15 @@
     }
 
     function openLowerHandModal() {
-        $('#lowerHandModal').removeClass('hidden').addClass('flex');
+        if (typeof window.Livewire !== 'undefined') {
+            window.Livewire.dispatch('open-status-bantuan-modal');
+        }
     }
 
     function closeLowerHandModal() {
-        $('#lowerHandModal').addClass('hidden').removeClass('flex');
+        if (typeof window.Livewire !== 'undefined') {
+            window.Livewire.dispatch('close-status-bantuan-modal');
+        }
     }
 
     function openOnlineMeetModal() {
@@ -1630,61 +1465,7 @@
         $('#onlineMeetModal').addClass('hidden').removeClass('flex');
     }
 
-    function openQuestionResponseModal() {
-        $('#questionResponseModal').removeClass('hidden').addClass('flex');
-    }
 
-    function closeQuestionResponseModal() {
-        $('#questionResponseModal').addClass('hidden').removeClass('flex');
-        @if(isset($currentHandRaise) && $currentHandRaise)
-        sessionStorage.setItem('dismissed_response_{{ $currentHandRaise->id }}', '1');
-        @endif
-    }
-
-    function copyMentorResponseText() {
-        const box = document.getElementById('mentorResponseContentBox');
-        if (!box) return;
-        const text = box.innerText || box.textContent;
-        if (navigator.clipboard) {
-            navigator.clipboard.writeText(text).then(() => {
-                feedbackCopyMentorResponse();
-            }).catch(() => {
-                fallbackCopyText(text);
-                feedbackCopyMentorResponse();
-            });
-        } else {
-            fallbackCopyText(text);
-            feedbackCopyMentorResponse();
-        }
-    }
-
-    function fallbackCopyText(text) {
-        const temp = document.createElement('textarea');
-        temp.value = text;
-        document.body.appendChild(temp);
-        temp.select();
-        document.execCommand('copy');
-        document.body.removeChild(temp);
-    }
-
-    function feedbackCopyMentorResponse() {
-        const textEl = document.getElementById('textCopyMentorResp');
-        const btn = document.getElementById('btnCopyMentorResp');
-        if (textEl && btn) {
-            textEl.innerText = 'Tersalin!';
-            btn.classList.add('text-emerald-700', 'border-emerald-300', 'bg-emerald-50');
-            setTimeout(() => {
-                textEl.innerText = 'Salin';
-                btn.classList.remove('text-emerald-700', 'border-emerald-300', 'bg-emerald-50');
-            }, 1500);
-        }
-    }
-
-    $(document).on('click', '#questionResponseModal', function(e) {
-        if (e.target === this) {
-            closeQuestionResponseModal();
-        }
-    });
 
     function copyPopupMeetLink() {
         const input = document.getElementById('popupMeetUrlInput');
@@ -1761,12 +1542,6 @@
         if ("{{ (session('show_presentation_submitted_modal') || session('show_online_meet_modal')) ? '1' : '' }}" === "1") {
             openOnlineMeetModal();
         }
-
-        @if(isset($currentHandRaise) && $currentHandRaise && $currentHandRaise->is_raised && !in_array($currentHandRaise->status, ['done', 'rejected']) && ($currentHandRaise->type === 'question' || is_null($currentHandRaise->type)) && ($currentHandRaise->status === 'responded' || !empty($currentHandRaise->admin_response)))
-        if (!sessionStorage.getItem('dismissed_response_{{ $currentHandRaise->id }}')) {
-            openQuestionResponseModal();
-        }
-        @endif
     });
 
     function switchRaiseMode(mode) {
@@ -1823,7 +1598,7 @@
         badge.className = 'p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2.5';
         if (dateValue === today) {
             badge.innerHTML = `
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">
                         TERJADWAL
                     </span>
                     <span class="text-xs text-blue-800 font-medium">
@@ -1832,7 +1607,7 @@
                 `;
         } else {
             badge.innerHTML = `
-                    <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-blue-600 text-white">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-blue-600 text-white">
                         TERJADWAL
                     </span>
                     <span class="text-xs text-blue-800 font-medium">
@@ -1971,4 +1746,184 @@
         window.showModalIzin("{{ in_array((int) old('kategori-izin'), [3, 4], true) ? 'keperluan' : 'sakit' }}");
     }
 </script>
+
+@if(isset($autoEndPopup) && $autoEndPopup)
+<!-- Modal Notifikasi Pulang Otomatis (Muncul 1x Saat Lupa Absen Pulang) -->
+<div id="auto-end-popup-modal" class="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[999] p-4 animate-in fade-in duration-300">
+    <div class="bg-white rounded-3xl shadow-2xl p-6 sm:p-8 max-w-md w-full border border-amber-200 text-center transform transition-all duration-300 scale-100">
+        <!-- Icon -->
+        <div class="w-16 h-16 bg-gradient-to-tr from-amber-500 to-amber-400 text-white rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg shadow-amber-200">
+            <i class="fa-solid fa-clock-rotate-left"></i>
+        </div>
+
+        <!-- Title & Subtitle -->
+        <h3 class="text-xl sm:text-2xl font-black text-gray-900 mb-1">
+            Pemberitahuan Pulang Otomatis
+        </h3>
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 mb-4">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600"></i>
+            <span>Kamu Lupa Melakukan Presensi Pulang</span>
+        </div>
+
+        <!-- Body Message -->
+        <div class="text-xs sm:text-sm text-gray-600 leading-relaxed space-y-3 mb-4 text-left">
+            <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 space-y-1.5 text-xs">
+                <div class="flex justify-between items-center text-slate-700">
+                    <span class="text-slate-500 font-medium">Tanggal Presensi:</span>
+                    <span class="font-bold text-slate-900">{{ \Carbon\Carbon::parse($autoEndPopup->date)->translatedFormat('l, d F Y') }}</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-700">
+                    <span class="text-slate-500 font-medium">Jam Masuk:</span>
+                    <span class="font-semibold text-emerald-700">{{ $autoEndPopup->start_time ? \Carbon\Carbon::parse($autoEndPopup->start_time)->format('H:i') : '-' }}</span>
+                </div>
+                <div class="flex justify-between items-center text-slate-700">
+                    <span class="text-slate-500 font-medium">Dipulangkan Otomatis:</span>
+                    <span class="font-semibold text-red-600">{{ $autoEndPopup->end_time ? \Carbon\Carbon::parse($autoEndPopup->end_time)->format('H:i') : '-' }}</span>
+                </div>
+            </div>
+
+            <p class="text-gray-600 text-center text-xs">
+                Karena kamu belum melakukan presensi pulang hingga shift berakhir, sistem atau Admin telah menyelesaikan presensimu secara otomatis.
+            </p>
+
+            @if(!empty($autoEndPopup->auto_end_note))
+            <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-900">
+                <span class="font-bold block mb-1 flex items-center gap-1.5 text-blue-800">
+                    <i class="fa-solid fa-message text-blue-600"></i> Catatan dari Admin:
+                </span>
+                <span class="italic text-blue-950 block">"{{ $autoEndPopup->auto_end_note }}"</span>
+            </div>
+            @endif
+
+            <p class="text-xs text-gray-400 text-center">
+                Harap selalu ingat untuk melakukan presensi pulang sebelum meninggalkan area kantor atau mengakhiri jam kerja.
+            </p>
+        </div>
+
+        <!-- Action Button -->
+        <button type="button"
+            data-id="{{ $autoEndPopup->id }}"
+            onclick="dismissAutoEndPopupModal(this)"
+            id="btn-dismiss-auto-end"
+            class="w-full py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-blue-200 transition transform hover:scale-[1.01] active:scale-[0.99] text-xs sm:text-sm flex items-center justify-center gap-2">
+            <i class="fa-solid fa-check"></i>
+            <span>Saya Mengerti</span>
+        </button>
+    </div>
+</div>
+
+<script>
+    function dismissAutoEndPopupModal(attendanceIdOrBtn) {
+        const attendanceId = typeof attendanceIdOrBtn === 'object' && attendanceIdOrBtn !== null ?
+            attendanceIdOrBtn.dataset.id :
+            attendanceIdOrBtn;
+        const btn = document.getElementById('btn-dismiss-auto-end');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Menyimpan...';
+        }
+
+        $.ajax({
+            url: '{{ route("user.autoEnd.dismiss", ":id") }}'.replace(':id', attendanceId),
+            type: 'POST',
+            data: {
+                _token: '{{ csrf_token() }}'
+            },
+            success: function(response) {
+                const modal = document.getElementById('auto-end-popup-modal');
+                if (modal) {
+                    modal.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+                    setTimeout(() => modal.remove(), 300);
+                }
+            },
+            error: function(xhr) {
+                const modal = document.getElementById('auto-end-popup-modal');
+                if (modal) {
+                    modal.remove();
+                }
+            }
+        });
+    }
+</script>
+@endif
+<script>
+    function openChangeTimeModal() {
+        const modal = document.getElementById('changeTimeModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    function closeChangeTimeModal() {
+        const modal = document.getElementById('changeTimeModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    function submitChangeTimeForm() {
+        const form = document.getElementById('formDaftarGantiJam');
+        const dateInput = document.getElementById('reg_requested_date');
+        if (dateInput && dateInput.min && dateInput.value < dateInput.min) {
+            alert('Tanggal rencana ganti jam tidak dapat memilih hari ini atau tanggal lampau.');
+            dateInput.focus();
+            return;
+        }
+        const btn = document.getElementById('btn-submit-change-time');
+        const spinner = document.getElementById('spinner-change-time');
+        if (btn) btn.classList.add('hidden');
+        if (spinner) {
+            spinner.classList.remove('hidden');
+            spinner.classList.add('flex');
+        }
+        if (form) form.submit();
+    }
+
+    function openPraDaftarGantiJamModal() {
+        openChangeTimeModal();
+    }
+
+    function closePraDaftarGantiJamModal() {
+        closeChangeTimeModal();
+    }
+
+    // Sembunyikan / Tampilkan Jadwal Minggu Ini secara langsung saat ganti jam dimulai/selesai tanpa refresh
+    function toggleWeeklySchedule(hide) {
+        const el = document.getElementById('weekly-schedule-container');
+        if (el) {
+            if (hide) {
+                el.classList.add('hidden');
+            } else {
+                el.classList.remove('hidden');
+            }
+        }
+    }
+
+    window.addEventListener('attd-info-ajdst', function(event) {
+        const isAdj = event.detail?.isAdjustable ?? event.detail?.[0]?.isAdjustable ?? false;
+        toggleWeeklySchedule(isAdj);
+    });
+
+    window.addEventListener('change-time-refresh', function(event) {
+        const sessionData = event.detail?.sessionData ?? event.detail?.[0]?.sessionData;
+        if (sessionData) {
+            toggleWeeklySchedule(true);
+        }
+    });
+</script>
+
+<style>
+    .no-scrollbar::-webkit-scrollbar {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none !important;
+        scrollbar-width: none !important;
+    }
+</style>
 @endsection

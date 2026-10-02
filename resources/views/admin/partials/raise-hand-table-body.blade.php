@@ -256,18 +256,14 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                     <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <!-- Hint -->
                         <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                            @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']))
-                            <i class="fa-solid fa-info-circle text-amber-500 text-xs shrink-0"></i>
-                            <span>Konfirmasi tanggal dan jam sebelum memulai presentasi.</span>
-                            @elseif($handRaise->status === 'accepted')
-                            <i class="fa-solid fa-circle-check text-emerald-500 text-xs shrink-0"></i>
-                            <span>Jadwal disetujui. Lakukan review saat sesi presentasi selesai.</span>
-                            @elseif($handRaise->status === 'ready')
-                            <i class="fa-solid fa-circle-check text-emerald-600 text-xs shrink-0"></i>
-                            <span>Dinilai <strong class="text-emerald-700">Lulus Valid</strong>. Klik selesaikan untuk arsip nilai.</span>
-                            @elseif($handRaise->status === 'needs_revision')
-                            <i class="fa-solid fa-triangle-exclamation text-orange-500 text-xs shrink-0"></i>
-                            <span>Dinilai <strong class="text-orange-700">Perlu Perbaikan</strong> oleh pemagang.</span>
+                            @if(!$isAssistantAdmin)
+                                @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']))
+                                <i class="fa-solid fa-info-circle text-amber-500 text-xs shrink-0"></i>
+                                <span>Konfirmasi tanggal dan jam sebelum memulai presentasi.</span>
+                                @else
+                                <i class="fa-solid fa-circle-check text-emerald-500 text-xs shrink-0"></i>
+                                <span>Jadwal telah disetujui. Tindak lanjut penyelesaian atau revisi dilakukan oleh pemagang.</span>
+                                @endif
                             @endif
                         </div>
 
@@ -276,7 +272,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                             @if($isAssistantAdmin)
                             <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200" title="Uji presentasi dan penilaian dilakukan oleh Admin / Pembimbing Utama">
                                 <i class="fa-solid fa-lock text-amber-600 text-xs"></i>
-                                <span>Wewenang Mentor</span>
+                                <span>Hak Akses Admin</span>
                             </span>
                             @else
                                 @if(!in_array($handRaise->status, ['accepted', 'ready', 'needs_revision']))
@@ -290,81 +286,29 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     data-date="{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('Y-m-d') : date('Y-m-d') }}"
                                     data-time="{{ $handRaise->scheduled_time ? substr($handRaise->scheduled_time, 0, 5) : '' }}"
                                     data-notes="{{ addslashes($handRaise->admin_response ?? '') }}"
-                                    onclick="if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes); }"
+                                    data-status="{{ $handRaise->status ?? 'pending' }}"
+                                    onclick="if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes, this.dataset.status); }"
                                     title="Konfirmasi Jadwal Presentasi">
                                     <i class="fa-solid fa-calendar-check text-xs"></i>
-                                    <span>{{ $handRaise->status === 'rescheduled' ? 'Ubah Jadwal' : 'Konfirmasi Jadwal' }}</span>
+                                    <span>Konfirmasi Jadwal</span>
                                 </button>
                                 @else
-                                <div class="relative inline-block text-left dropdown-action-container">
-                                    <button type="button"
-                                        onclick="toggleRowDropdown(event, this)"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer select-none whitespace-nowrap">
-                                        <i class="fa-solid fa-sliders text-[10px] text-slate-300"></i>
-                                        <span>Aksi</span>
-                                        <i class="fa-solid fa-chevron-down text-[8px] text-slate-400 transition-transform duration-200"></i>
-                                    </button>
-
-                                    <div class="dropdown-menu-list hidden absolute right-0 mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-1.5 z-50 animate-fadeIn text-left">
-                                        <!-- 1. Review Presentasi -->
-                                        <button type="button"
-                                            class="btn-trigger-pre-review w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700 transition text-left cursor-pointer"
-                                            data-id="{{ $handRaise->id }}"
-                                            data-name="{{ $userName }}"
-                                            data-title="{{ $cleanNotes }}"
-                                            data-status="{{ $handRaise->status ?? 'pending' }}"
-                                            onclick="document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden')); if(window.openPrePresentationModal) { window.openPrePresentationModal(this.dataset.id, this.dataset.name, this.dataset.title, this.dataset.status); }">
-                                            <div class="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center shrink-0">
-                                                <i class="fa-solid fa-chalkboard-user text-xs"></i>
-                                            </div>
-                                            <div>
-                                                <div class="font-bold text-slate-900">Review Presentasi</div>
-                                                <div class="text-[10px] text-slate-500 font-normal">Tentukan kelulusan / revisi</div>
-                                            </div>
-                                        </button>
-
-                                        <!-- 2. Ubah Jadwal -->
-                                        <button type="button"
-                                            class="btn-trigger-approve-presentation w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-amber-50 hover:text-amber-800 transition text-left cursor-pointer"
-                                            data-id="{{ $handRaise->id }}"
-                                            data-name="{{ $userName }}"
-                                            data-shift="{{ $internShiftText ?? 'Belum Diatur' }}"
-                                            data-title="{{ $cleanNotes }}"
-                                            data-mode="{{ $handRaise->presentation_mode ?? 'offline' }}"
-                                            data-date="{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('Y-m-d') : date('Y-m-d') }}"
-                                            data-time="{{ $handRaise->scheduled_time ? substr($handRaise->scheduled_time, 0, 5) : '' }}"
-                                            data-notes="{{ addslashes($handRaise->admin_response ?? '') }}"
-                                            onclick="document.querySelectorAll('.dropdown-menu-list').forEach(m => m.classList.add('hidden')); if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes); }">
-                                            <div class="w-7 h-7 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                                                <i class="fa-solid fa-clock-rotate-left text-xs"></i>
-                                            </div>
-                                            <div>
-                                                <div class="font-bold text-slate-900">Ubah Jadwal</div>
-                                                <div class="text-[10px] text-slate-500 font-normal">Atur ulang jam & mode</div>
-                                            </div>
-                                        </button>
-
-                                        <div class="my-1 border-t border-slate-100"></div>
-
-                                        <!-- 3. Selesaikan Presentasi -->
-                                        <form method="POST" action="{{ route('admin.raiseHand.confirm', $handRaise->id) }}" class="m-0 p-0 block relative" data-status="{{ $handRaise->status ?? '' }}" onsubmit="return handleCompletePresentation(event, this.dataset.status, this);">
-                                            @csrf
-                                            <input type="hidden" name="action" value="complete_presentation">
-                                            <input type="hidden" name="tab" value="presentation">
-                                            <button type="submit"
-                                                onclick="return handleCompletePresentation(event, this.form.dataset.status, this);"
-                                                class="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition text-left cursor-pointer">
-                                                <div class="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                                                    <i class="fa-solid fa-check text-xs"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="font-bold text-slate-900">Selesaikan</div>
-                                                    <div class="text-[10px] text-slate-500 font-normal">Arsip nilai ke riwayat</div>
-                                                </div>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </div>
+                                <button type="button"
+                                    class="btn-trigger-approve-presentation inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                                    data-id="{{ $handRaise->id }}"
+                                    data-name="{{ $userName }}"
+                                    data-shift="{{ $internShiftText ?? 'Belum Diatur' }}"
+                                    data-title="{{ $cleanNotes }}"
+                                    data-mode="{{ $handRaise->presentation_mode ?? 'offline' }}"
+                                    data-date="{{ $handRaise->presentation_date ? $handRaise->presentation_date->format('Y-m-d') : date('Y-m-d') }}"
+                                    data-time="{{ $handRaise->scheduled_time ? substr($handRaise->scheduled_time, 0, 5) : '' }}"
+                                    data-notes="{{ addslashes($handRaise->admin_response ?? '') }}"
+                                    data-status="{{ $handRaise->status ?? 'accepted' }}"
+                                    onclick="if(window.openApprovePresentationModal) { window.openApprovePresentationModal(this.dataset.id, this.dataset.name, this.dataset.shift, this.dataset.title, this.dataset.mode, this.dataset.date, this.dataset.time, this.dataset.notes, this.dataset.status); }"
+                                    title="Ubah / Atur Ulang Jadwal Presentasi">
+                                    <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                                    <span>Ubah Jadwal</span>
+                                </button>
                                 @endif
                             @endif
                         </div>
@@ -372,10 +316,13 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                 </div>
                 @elseif($tab === 'question')
                 @php
+                $thread = $handRaise->conversation_thread;
+                $messagesCount = count($thread);
                 $isResponded = ($handRaise->status === 'responded') || !empty($handRaise->admin_response);
+                $isWaitingFollowUp = ($handRaise->status === 'pending') && ($messagesCount > 1);
                 @endphp
                 <!-- Item Card untuk Bertanya / Bantuan Kendala -->
-                <div class="raise-hand-card bg-white rounded-2xl border {{ $isResponded ? 'border-emerald-200 hover:border-emerald-300' : 'border-slate-200 hover:border-blue-300' }} shadow-2xs transition-all duration-150 p-4 sm:p-4.5 space-y-3"
+                <div class="raise-hand-card bg-white rounded-2xl border {{ $isWaitingFollowUp ? 'border-amber-300 hover:border-amber-400' : ($isResponded ? 'border-emerald-200 hover:border-emerald-300' : 'border-slate-200 hover:border-blue-300') }} shadow-2xs transition-all duration-150 p-4 sm:p-4.5 space-y-3"
                     data-name="{{ strtolower($userName) }}"
                     data-school="{{ strtolower($userSchool) }}"
                     data-phone="{{ $userPhone }}"
@@ -389,11 +336,13 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                         <div class="flex items-center gap-3 min-w-0">
                             <!-- Avatar -->
                             <div class="relative shrink-0">
-                                <div class="w-9 h-9 rounded-xl {{ $isResponded ? 'bg-emerald-600' : 'bg-blue-600' }} flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
+                                <div class="w-9 h-9 rounded-xl {{ $isWaitingFollowUp ? 'bg-amber-600' : ($isResponded ? 'bg-emerald-600' : 'bg-blue-600') }} flex items-center justify-center text-white font-extrabold text-xs shadow-xs">
                                     {{ $initial }}
                                 </div>
                                 @if($handRaise->is_raised)
-                                    @if($isResponded)
+                                    @if($isWaitingFollowUp)
+                                    <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full border-2 border-white shadow-xs animate-pulse"></div>
+                                    @elseif($isResponded)
                                     <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white shadow-xs"></div>
                                     @else
                                     <div class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-500 rounded-full border-2 border-white shadow-xs"></div>
@@ -433,8 +382,20 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                         </div>
 
                         <!-- Status Badge (Kanan) -->
-                        <div class="flex items-center shrink-0 self-start sm:self-center">
-                            @if($isResponded)
+                        <div class="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                            @if($messagesCount > 1)
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-700 border border-slate-200/80">
+                                <i class="fa-solid fa-comment-dots text-slate-500 text-[9px]"></i>
+                                <span>{{ $messagesCount }} Pesan</span>
+                            </span>
+                            @endif
+
+                            @if($isWaitingFollowUp)
+                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs whitespace-nowrap">
+                                <i class="fa-solid fa-comments text-amber-600 animate-pulse text-[10px]"></i>
+                                <span>Tanya Lagi</span>
+                            </span>
+                            @elseif($isResponded)
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300 shadow-2xs whitespace-nowrap">
                                 <i class="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
                                 <span>Sudah Ditanggapi</span>
@@ -459,71 +420,68 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                         </div>
                         @endif
 
-                        @if($isResponded && !empty($handRaise->admin_response))
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <!-- Detail Pertanyaan (Kiri) -->
-                            <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-800 space-y-1">
+                        <!-- Kotak Detail Pertanyaan / Kendala (Full Width - Riwayat ada di Popup Chat) -->
+                        <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-800 space-y-1">
+                            <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-1 text-[11px] font-bold text-blue-700 uppercase tracking-wider">
                                     <i class="fa-solid fa-circle-question text-[10px]"></i>
                                     <span>Detail Pertanyaan / Kendala:</span>
                                 </div>
-                                <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed break-words">{{ trim($handRaise->notes ?? $handRaise->reason ?? 'Tidak ada keterangan detail') }}</p>
-                            </div>
-
-                            <!-- Tanggapan Mentor (Kanan) -->
-                            <div class="p-3 bg-emerald-50/90 rounded-xl border border-emerald-200/90 text-xs text-slate-800 space-y-1">
-                                <div class="flex items-center gap-1 text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
-                                    <i class="fa-solid fa-reply text-[10px]"></i>
-                                    <span>Tanggapan / Solusi Anda:</span>
-                                </div>
-                                <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed italic break-words">"{{ trim($handRaise->admin_response) }}"</p>
-                            </div>
-                        </div>
-                        @else
-                        <!-- Kotak Detail Pertanyaan / Kendala (Full Width) -->
-                        <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100 text-xs text-slate-800 space-y-1">
-                            <div class="flex items-center gap-1 text-[11px] font-bold text-blue-700 uppercase tracking-wider">
-                                <i class="fa-solid fa-circle-question text-[10px]"></i>
-                                <span>Detail Pertanyaan / Kendala:</span>
+                                @if($messagesCount > 1)
+                                <span class="inline-flex items-center gap-1 text-[10px] text-blue-700 font-semibold">
+                                    <i class="fa-solid fa-comments text-blue-500 text-[10px]"></i>
+                                    <span>Percakapan di popup chat</span>
+                                </span>
+                                @endif
                             </div>
                             <p class="whitespace-pre-line text-slate-800 font-medium text-xs leading-relaxed break-words">{{ trim($handRaise->notes ?? $handRaise->reason ?? 'Tidak ada keterangan detail') }}</p>
                         </div>
-                        @endif
                     </div>
 
                     <!-- 3. Footer: Tombol Aksi -->
                     <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <!-- Hint -->
                         <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
-                            @if($isResponded)
-                            <i class="fa-solid fa-circle-info text-emerald-500 text-xs shrink-0"></i>
-                            <span>Tanggapan telah terkirim. Menunggu pemagang membaca atau Anda dapat menyelesaikannya.</span>
-                            @else
-                            <i class="fa-solid fa-info-circle text-blue-500 text-xs shrink-0"></i>
-                            <span>Bantu pemagang menyelesaikan kendala teknis atau berikan tanggapan solusi.</span>
+                            @if(!$isAssistantAdmin)
+                                @if($isWaitingFollowUp)
+                                <i class="fa-solid fa-comments text-amber-500 text-xs shrink-0"></i>
+                                <span>Pemagang bertanya lagi. Harap berikan balasan solusi lanjutan.</span>
+                                @elseif($isResponded)
+                                <i class="fa-solid fa-circle-info text-emerald-500 text-xs shrink-0"></i>
+                                <span>Tanggapan telah terkirim. Menunggu pemagang membaca atau Anda dapat menyelesaikannya.</span>
+                                @else
+                                <i class="fa-solid fa-info-circle text-blue-500 text-xs shrink-0"></i>
+                                <span>Bantu pemagang menyelesaikan kendala teknis atau berikan tanggapan solusi.</span>
+                                @endif
                             @endif
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            @if($isAssistantAdmin)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200" title="Bantuan teknis dan penyelesaian dilakukan oleh Admin / Pembimbing Utama">
+                                <i class="fa-solid fa-lock text-amber-600 text-xs"></i>
+                                <span>Hak Akses Admin</span>
+                            </span>
+                            @else
                             @php
-                            $questionConfirmRoute = $isAssistantAdmin
-                                ? route('assistant.raisehand.confirm', $handRaise->id)
-                                : route('admin.raiseHand.confirm', $handRaise->id);
+                            $questionConfirmRoute = route('admin.raiseHand.confirm', $handRaise->id);
                             @endphp
 
-                            <!-- Tombol Beri Tanggapan / Edit Tanggapan (Modal) -->
+                            <!-- Tombol Beri Tanggapan / Balas Pertanyaan / Buka Diskusi (Chat Modal) -->
                             <button type="button"
-                                class="btn-trigger-process inline-flex items-center gap-1.5 px-3.5 py-1.5 {{ $isResponded ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700' }} text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
+                                class="btn-trigger-process inline-flex items-center gap-1.5 px-3.5 py-1.5 {{ $isWaitingFollowUp ? 'bg-amber-600 hover:bg-amber-700' : ($isResponded ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700') }} text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
                                 data-id="{{ $handRaise->id }}"
                                 data-name="{{ $userName }}"
+                                data-school="{{ $userSchool }}"
                                 data-type="question"
                                 data-notes="{{ $cleanNotes }}"
                                 data-response="{{ $cleanResponse }}"
-                                onclick="if(window.openProcessModal) { window.openProcessModal(this.dataset.id, this.dataset.name, this.dataset.type, this.dataset.notes, this.dataset.response); }"
-                                title="{{ $isResponded ? 'Edit tanggapan/solusi' : 'Beri tanggapan/solusi ke pemagang' }}">
-                                <i class="fa-solid {{ $isResponded ? 'fa-pen-to-square' : 'fa-reply' }} text-xs"></i>
-                                <span>{{ $isResponded ? 'Edit Tanggapan' : 'Beri Tanggapan' }}</span>
+                                data-thread="{{ base64_encode(json_encode($thread)) }}"
+                                onclick="event.stopPropagation(); if(window.openChatQuestionModal) { window.openChatQuestionModal(this.dataset.id, this.dataset.name, this.dataset.school, this.dataset.notes, this.dataset.thread); } else if(window.openProcessModal) { window.openProcessModal(this.dataset.id, this.dataset.name, this.dataset.type, this.dataset.notes, this.dataset.response, this.dataset.thread); }"
+                                title="{{ $isWaitingFollowUp ? 'Balas pertanyaan lanjutan pemagang' : ($isResponded ? 'Buka ruang diskusi / edit tanggapan' : 'Beri tanggapan / solusi ke pemagang') }}">
+                                <i class="fa-solid {{ $isWaitingFollowUp ? 'fa-comments' : ($isResponded ? 'fa-comments' : 'fa-reply') }} text-xs"></i>
+                                <span>{{ $isWaitingFollowUp ? 'Balas Pertanyaan' : ($isResponded ? 'Buka Diskusi' : 'Beri Tanggapan') }}</span>
                             </button>
 
                             <!-- Tombol Langsung Selesai -->
@@ -538,6 +496,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     <span>Selesai</span>
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -627,28 +586,34 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                     <div class="pt-2.5 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                         <!-- Hint -->
                         <div class="text-[11px] text-slate-500 flex items-center gap-1.5">
+                            @if(!$isAssistantAdmin)
                             <i class="fa-solid fa-circle-info text-purple-500 text-xs shrink-0"></i>
                             <span>Tambahkan project/tugas di menu <strong>Setting Project</strong>, lalu klik Selesai untuk menyudahi permintaan ini.</span>
+                            @endif
                         </div>
 
                         <!-- Action Buttons -->
                         <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                            @if($isAssistantAdmin)
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200" title="Pemberian tugas baru dan penyelesaian dilakukan oleh Admin / Pembimbing Utama">
+                                <i class="fa-solid fa-lock text-amber-600 text-xs"></i>
+                                <span>Hak Akses Admin</span>
+                            </span>
+                            @else
                             @php
-                            $taskConfirmRoute = $isAssistantAdmin
-                                ? route('assistant.raisehand.confirm', $handRaise->id)
-                                : route('admin.raiseHand.confirm', $handRaise->id);
+                            $taskConfirmRoute = route('admin.raiseHand.confirm', $handRaise->id);
                             @endphp
 
-                            <!-- Link Shortcut ke Setting Project -->
-                            <a href="{{ route('admin.pengaturan.project') }}"
-                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 transition cursor-pointer whitespace-nowrap"
-                                title="Buka Halaman Setting Project">
+                            <!-- Link Shortcut ke Setting Project (Hanya untuk Admin) -->
+                            <a href="{{ route('admin.pengaturan.project', ['intern_id' => $handRaise->user?->intern?->id, 'action' => 'assign_task', 'raise_id' => $handRaise->id]) }}"
+                                class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 text-xs font-bold rounded-xl border border-purple-200 transition cursor-pointer whitespace-nowrap shadow-2xs"
+                                title="Langsung Berikan Project ke Pemagang Ini">
                                 <i class="fa-solid fa-folder-plus text-[11px] text-purple-600"></i>
-                                <span>Setting Project</span>
+                                <span>Beri Tugas Sekarang</span>
                             </a>
 
                             <!-- Tombol Selesai -->
-                            <form action="{{ $taskConfirmRoute }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Selesaikan permintaan tugas dari {{ addslashes($userName) }}? Pastikan tugas baru telah diberikan di menu Setting Project.');">
+                            <form action="{{ $taskConfirmRoute }}" method="POST" class="inline-block m-0 p-0" onsubmit="return confirm('Selesaikan permintaan tugas dari {{ addslashes($userName) }}?');">
                                 @csrf
                                 <input type="hidden" name="action" value="complete_task">
                                 <input type="hidden" name="tab" value="new_task">
@@ -659,6 +624,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                                     <span>Selesai</span>
                                 </button>
                             </form>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -837,50 +803,6 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                             </div>
                         </div>
                     </td>
-
-                    <!-- Tanggapan & Evaluasi -->
-                    <td class="py-3 px-3 align-top">
-                        @php
-                        $responseNote = $handRaise->admin_response ?? $handRaise->performance_notes;
-                        @endphp
-
-                        <div class="space-y-2">
-                            @if($handRaise->type === 'presentation' && $handRaise->performance_rating !== null)
-                            <div>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold {{ $handRaise->performance_rating >= 80 ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : ($handRaise->performance_rating >= 60 ? 'bg-amber-100 text-amber-800 border border-amber-200' : 'bg-red-100 text-red-800 border border-red-200') }}">
-                                    <i class="fa-solid fa-star text-amber-500 mr-1 text-[10px]"></i>
-                                    Nilai: {{ number_format($handRaise->performance_rating, 0) }} / 100
-                                </span>
-                            </div>
-                            @endif
-
-                            @if($responseNote)
-                            <div class="p-2.5 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-gray-800 space-y-1">
-                                <div class="text-[10px] font-bold text-emerald-800 flex items-center justify-between">
-                                    <span class="flex items-center gap-1">
-                                        <i class="fa-solid fa-reply"></i>
-                                        {{ $handRaise->type === 'presentation' ? 'Catatan Evaluasi:' : ($handRaise->type === 'new_task' ? 'Instruksi Tugas:' : 'Tanggapan Solusi:') }}
-                                    </span>
-                                    <button type="button"
-                                        class="btn-trigger-detail text-blue-600 hover:text-blue-800 font-bold underline text-[10px] cursor-pointer"
-                                        data-name="{{ $userName }}"
-                                        data-rating="{{ $handRaise->performance_rating !== null ? number_format($handRaise->performance_rating, 0) : '' }}"
-                                        data-response="{{ $cleanResponse }}"
-                                        data-title="{{ $cleanNotes }}"
-                                        onclick="if(window.viewEvaluationDetails) { window.viewEvaluationDetails(this.dataset.name, this.dataset.rating, this.dataset.response, this.dataset.title); }"
-                                        title="Lihat Selengkapnya">
-                                        Detail
-                                    </button>
-                                </div>
-                                <p class="text-[11px] text-gray-700 line-clamp-2 italic leading-relaxed break-words">"{{ $responseNote }}"</p>
-                            </div>
-                            @else
-                            <span class="text-xs text-gray-400 italic flex items-center gap-1">
-                                <i class="fa-solid fa-check text-emerald-500"></i> Telah diselesaikan
-                            </span>
-                            @endif
-                        </div>
-                    </td>
                 </tr>
                 @endif
 
@@ -923,7 +845,7 @@ if ($diffSec < 60) return max(1, $diffSec) . 's' ;
                 </div>
                 @else
                 <tr>
-                    <td colspan="5" class="text-center py-16 text-gray-500">
+                    <td colspan="4" class="text-center py-16 text-gray-500">
                         <div class="flex flex-col items-center justify-center">
                             <div class="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center mb-3 text-emerald-500 border border-emerald-100">
                                 <i class="fa-solid fa-circle-check text-2xl"></i>

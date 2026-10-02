@@ -79,6 +79,17 @@ class User extends Authenticatable
         return $this->hasOne(Intern::class, "user_id", "id");
     }
 
+    public function getGenderAttribute(): ?string
+    {
+        return $this->profile?->gender;
+    }
+
+    public function isMale(): bool
+    {
+        $gender = strtolower(trim($this->profile?->gender ?? ''));
+        return in_array($gender, ['l', 'laki-laki', 'male', 'pria', 'laki'], true);
+    }
+
     /**
      * Mendefinisikan relasi many-to-many ke model Intern.
      * Seorang User (misal: outsider/pembimbing) bisa terhubung dengan banyak Pemagang.

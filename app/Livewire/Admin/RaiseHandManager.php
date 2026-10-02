@@ -28,13 +28,12 @@ class RaiseHandManager extends Component
 
     public string $search = '';
 
-    public mixed $divisions = [];
-
     public function mount(): void
     {
-        $this->divisions = \App\Models\Division::orderBy('name')->get();
-
         $tab = request('tab');
+        if (auth()->check() && (int) auth()->user()->role_id === 6 && $tab === 'history') {
+            $tab = 'question';
+        }
         if ($tab && in_array($tab, ['question', 'new_task', 'presentation', 'history'])) {
             $this->activeTab = $tab;
         }
@@ -85,6 +84,12 @@ class RaiseHandManager extends Component
 
     public function switchTab(string $tab): void
     {
+        // Assistant Admin (role_id 6) tidak memiliki akses ke tab history
+        if (auth()->check() && (int) auth()->user()->role_id === 6 && $tab === 'history') {
+            $this->activeTab = 'question';
+            return;
+        }
+
         if (in_array($tab, ['question', 'new_task', 'presentation', 'history'])) {
             $this->activeTab = $tab;
             if ($tab === 'history') {
@@ -112,7 +117,8 @@ class RaiseHandManager extends Component
             'user.intern.schedules.shift',
             'user.intern.detailProject.project.nameProject',
             'project.nameProject',
-            'resolver.profile'
+            'resolver.profile',
+            'messages.user.profile'
         ];
 
         // 1. Live Counters across all categories in 1 single conditional aggregation query
@@ -137,7 +143,7 @@ class RaiseHandManager extends Component
         $countHistoryNewTask = (int) ($counts->count_history_new_task ?? 0);
         $countHistoryPresentation = (int) ($counts->count_history_presentation ?? 0);
 
-        $divisions = !empty($this->divisions) ? $this->divisions : \App\Models\Division::orderBy('name')->get();
+        $divisions = \App\Models\Division::orderBy('name')->get();
 
         // 2. Fetch items for the active tab with optional search & division filter
         $query = HandRaise::with($baseRelations);
@@ -263,6 +269,7 @@ class RaiseHandManager extends Component
             'suggestedUsers' => $suggestedUsers,
             'items' => $items,
             'activeTab' => $this->activeTab,
+            'pollInterval' => \App\Models\PopupSetting::getInterval('raise_hand_manager', 5),
         ]);
     }
 }

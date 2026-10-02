@@ -7,7 +7,7 @@ use Livewire\Component;
 
 class IzinToiletMonitor extends Component
 {
-    public $allInterns;
+    public mixed $allInterns = null;
 
     public function mount()
     {
@@ -20,6 +20,7 @@ class IzinToiletMonitor extends Component
             'user.profile',
             'school',
             'detailProject.project.nameProject',
+            'activePermitLog',
             'attendances' => function ($query) {
                 $query->whereDate('date', today());
             }
@@ -27,15 +28,8 @@ class IzinToiletMonitor extends Component
 
         // Urutkan intern berdasarkan status izin (yang sedang izin di atas)
         $this->allInterns = $interns->sort(function ($a, $b) {
-            $aIsOnPermit = $a->attendances
-                ->whereNotNull('permit_start')
-                ->whereNull('permit_back')
-                ->isNotEmpty();
-
-            $bIsOnPermit = $b->attendances
-                ->whereNotNull('permit_start')
-                ->whereNull('permit_back')
-                ->isNotEmpty();
+            $aIsOnPermit = $a->activePermitLog && $a->activePermitLog->type === 'toilet';
+            $bIsOnPermit = $b->activePermitLog && $b->activePermitLog->type === 'toilet';
 
             return $bIsOnPermit <=> $aIsOnPermit;
         });

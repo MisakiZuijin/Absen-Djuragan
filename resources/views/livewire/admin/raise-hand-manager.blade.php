@@ -1,9 +1,12 @@
-<div wire:poll.15s class="w-full min-w-0 max-w-none">
+<div @if(isset($pollInterval) && $pollInterval > 0) wire:poll.{{ $pollInterval }}s @endif class="w-full min-w-0 max-w-none">
+@php
+$isAssistantAdmin = auth()->check() && (int) auth()->user()->role_id === 6;
+@endphp
 
     <!-- =========================================================
          QUICK STATS CARDS
          ========================================================= -->
-    <div class="grid w-full min-w-0 grid-cols-1 gap-4 mb-6 sm:grid-cols-2 xl:grid-cols-4">
+    <div class="grid w-full min-w-0 grid-cols-1 gap-4 mb-6 {{ $isAssistantAdmin ? 'sm:grid-cols-3 xl:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-4' }}">
 
         <!-- 1. Bertanya -->
         <div
@@ -104,6 +107,7 @@
             </div>
         </div>
 
+        @if(!$isAssistantAdmin)
         <!-- 4. History Selesai -->
         <div
             wire:click="switchTab('history')"
@@ -123,7 +127,7 @@
                     </div>
 
                     <div class="mt-0.5 text-[11px] text-gray-400">
-                        Rekap tanggapan & nilai
+                        Rekap riwayat selesai
                     </div>
                 </div>
 
@@ -132,6 +136,7 @@
                 </div>
             </div>
         </div>
+        @endif
 
     </div>
 
@@ -145,7 +150,7 @@
 
         <!-- Tab Navigation -->
         <div class="w-full min-w-0 border-b border-gray-200 bg-gray-50/50 px-4 pt-3 rounded-t-2xl">
-            <div class="grid w-full min-w-0 grid-cols-1 gap-1 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="grid w-full min-w-0 grid-cols-1 gap-1 {{ $isAssistantAdmin ? 'sm:grid-cols-3 xl:grid-cols-3' : 'sm:grid-cols-2 xl:grid-cols-4' }}">
 
                 <!-- Tab 1 -->
                 <button
@@ -227,7 +232,7 @@
                     @endif
                 </button>
 
-
+                @if(!$isAssistantAdmin)
                 <!-- Tab 4 -->
                 <button
                     type="button"
@@ -251,6 +256,7 @@
                         {{ $countDone }}
                     </span>
                 </button>
+                @endif
 
             </div>
         </div>
@@ -458,20 +464,17 @@
                     <table class="w-full text-left border-collapse table-fixed min-w-[860px]">
                         <thead>
                             <tr class="bg-gray-50/90 border-b border-gray-200 text-[11px] font-bold uppercase tracking-wider text-gray-600">
-                                <th class="w-[4%] min-w-[38px] px-3 py-3 text-center">#</th>
-                                <th class="w-[24%] min-w-[200px] px-3 py-3">Peserta & Asal Sekolah</th>
+                                <th class="w-[5%] min-w-[38px] px-3 py-3 text-center">#</th>
+                                <th class="w-[27%] min-w-[200px] px-3 py-3">Peserta & Asal Sekolah</th>
                                 @if($historyTab === 'presentation')
-                                <th class="w-[36%] min-w-[260px] px-3 py-3">Materi & Jadwal Presentasi</th>
-                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Penguji</th>
-                                <th class="w-[20%] min-w-[180px] px-3 py-3">Nilai & Evaluasi Presentasi</th>
+                                <th class="w-[48%] min-w-[280px] px-3 py-3">Materi & Jadwal Presentasi</th>
+                                <th class="w-[20%] min-w-[160px] px-3 py-3">Waktu Selesai & Penguji</th>
                                 @elseif($historyTab === 'new_task')
-                                <th class="w-[36%] min-w-[260px] px-3 py-3">Permintaan / Laporan Tugas</th>
-                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Petugas</th>
-                                <th class="w-[20%] min-w-[180px] px-3 py-3">Instruksi Tugas yang Diberikan</th>
+                                <th class="w-[48%] min-w-[280px] px-3 py-3">Permintaan / Laporan Tugas</th>
+                                <th class="w-[20%] min-w-[160px] px-3 py-3">Waktu Selesai & Petugas</th>
                                 @else
-                                <th class="w-[36%] min-w-[260px] px-3 py-3">Pertanyaan / Kendala Siswa</th>
-                                <th class="w-[16%] min-w-[150px] px-3 py-3">Waktu Selesai & Petugas</th>
-                                <th class="w-[20%] min-w-[180px] px-3 py-3">Tanggapan & Solusi Mentor</th>
+                                <th class="w-[48%] min-w-[280px] px-3 py-3">Pertanyaan / Kendala Siswa</th>
+                                <th class="w-[20%] min-w-[160px] px-3 py-3">Waktu Selesai & Petugas</th>
                                 @endif
                             </tr>
                         </thead>

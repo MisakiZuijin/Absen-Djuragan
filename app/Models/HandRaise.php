@@ -23,6 +23,7 @@ class HandRaise extends Model
         'reason',
         'resolved_at',
         'resolved_by',
+        'notification_seen_at',
         'is_raised',
     ];
 
@@ -30,6 +31,7 @@ class HandRaise extends Model
         'is_raised' => 'boolean',
         'presentation_date' => 'date',
         'resolved_at' => 'datetime',
+        'notification_seen_at' => 'datetime',
         'performance_rating' => 'float',
     ];
 
@@ -56,6 +58,70 @@ class HandRaise extends Model
     public function resolver()
     {
         return $this->belongsTo(User::class, 'resolved_by');
+    }
+
+    public function messages(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(HandRaiseMessage::class, 'hand_raise_id')->orderBy('created_at', 'asc')->orderBy('id', 'asc');
+    }
+
+    /**
+     * Dapatkan thread percakapan terstruktur (semua pesan dari tabel hand_raise_messages, 
+     * atau fallback otomatis ke notes & admin_response jika tabel messages masih kosong).
+     */
+    public function getConversationThreadAttribute(): array
+    {
+        $hasLoaded = $this->relationLoaded('messages');
+        $messages = $hasLoaded ? $this->messages : $this->messages()->with('user.profile')->get();
+
+        if ($messages->isNotEmpty()) {
+            return $messages->map(function ($msg) {
+                $sender = $msg->user;
+                $senderName = $msg->is_from_admin
+                    ? ($sender?->profile?->full_name ?? $sender?->name ?? 'Mentor')
+                    : ($sender?->profile?->full_name ?? $sender?->name ?? 'Anda');
+                return [
+                    'id' => $msg->id,
+                    'message' => $msg->message,
+                    'is_from_admin' => $msg->is_from_admin,
+                    'sender_name' => $senderName,
+                    'user_name' => $senderName,
+                    'time' => $msg->created_at ? $msg->created_at->format('H:i') : '-',
+                    'date' => $msg->created_at ? $msg->created_at->format('d M Y') : '-',
+                ];
+            })->values()->toArray();
+        }
+
+        $thread = [];
+        $note = trim($this->notes ?? $this->reason ?? '');
+        if (!empty($note)) {
+            $internName = $this->user?->profile?->full_name ?? $this->user?->name ?? 'Pemagang';
+            $thread[] = [
+                'id' => 'initial-note',
+                'message' => $note,
+                'is_from_admin' => false,
+                'sender_name' => $internName,
+                'user_name' => $internName,
+                'time' => $this->created_at ? $this->created_at->format('H:i') : '-',
+                'date' => $this->created_at ? $this->created_at->format('d M Y') : '-',
+            ];
+        }
+
+        $resp = trim($this->admin_response ?? '');
+        if (!empty($resp)) {
+            $mentorName = $this->resolver?->profile?->full_name ?? $this->resolver?->name ?? 'Mentor';
+            $thread[] = [
+                'id' => 'initial-response',
+                'message' => $resp,
+                'is_from_admin' => true,
+                'sender_name' => $mentorName,
+                'user_name' => $mentorName,
+                'time' => $this->updated_at ? $this->updated_at->format('H:i') : '-',
+                'date' => $this->updated_at ? $this->updated_at->format('d M Y') : '-',
+            ];
+        }
+
+        return $thread;
     }
 
     /**

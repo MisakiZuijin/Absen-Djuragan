@@ -31,6 +31,10 @@ class OfflineAttendance extends Model
         'penalty_at',
         'recorded_by',
         'admin_user_id',
+        'approval_status',
+        'approved_by',
+        'approved_at',
+        'rejection_note',
     ];
 
     protected $casts = [
@@ -39,6 +43,7 @@ class OfflineAttendance extends Model
         'late_minutes' => 'integer',
         'penalty_minutes' => 'integer',
         'penalty_at' => 'datetime',
+        'approved_at' => 'datetime',
     ];
 
     /**

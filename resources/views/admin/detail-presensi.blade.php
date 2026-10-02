@@ -948,9 +948,9 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                 ${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance.back_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.back_time_message)}
                                             </td>
-                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${attendance.total_min_format}</td>
-                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${attendance.target_time >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
-                                                ${attendance.target_time_format}
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${attendance.total_min_format || '00:00'}</td>
+                                            <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${(attendance.target_time || 0) > 0 ? 'text-emerald-600' : ((attendance.target_time || 0) < 0 ? 'text-rose-600' : 'text-gray-700')}">
+                                                ${attendance.target_time_format || '00:00'}
                                                 ${(attendance.mandatory_replace_minutes || 0) > 0 ? '<span class="text-[10px] text-rose-500 block font-normal">+ ' + Math.floor(attendance.mandatory_replace_minutes / 60) + 'j ' + (attendance.mandatory_replace_minutes % 60) + 'm (wajib ganti)</span>' : ''}
                                             </td>
                                             ${attendanceType}
@@ -996,9 +996,9 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
                                                     ${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable.back_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.back_time_message)}
                                                 </td>
-                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${adjustable.total_min_format}</td>
-                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${adjustable.target_time >= 0 ? 'text-emerald-600' : 'text-rose-600'}">
-                                                    ${adjustable.target_time >= 0 ? '+' : '-'} ${adjustable.target_time}
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${adjustable.total_min_format || '00:00'}</td>
+                                                <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${adjustable.target_time > 0 ? 'text-emerald-600' : (adjustable.target_time < 0 ? 'text-rose-600' : 'text-gray-700')}">
+                                                    ${adjustable.target_time_format || '00:00'}
                                                 </td>
                                                 <td class="py-2 px-2.5 border-t border-gray-100 text-center align-middle">
                                                     ${statusIconsAdjustable}
@@ -1063,7 +1063,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                 let rejectLogItem = '';
                 if (hasLogActivity) {
                     approveLogItem = `
-                        <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="m-0">
+                        <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="m-0">
                             <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                             <input type="hidden" name="status" value="2">
                             <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left cursor-pointer ${status_id == 2 ? 'bg-emerald-50/70 font-semibold text-emerald-800' : ''}">
@@ -1073,7 +1073,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                         </form>
                     `;
                     rejectLogItem = `
-                        <form action="../../log-activity/update-status/${logActivityId}" method="POST" class="m-0">
+                        <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="m-0">
                             <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                             <input type="hidden" name="status" value="3">
                             <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left cursor-pointer ${status_id == 3 ? 'bg-rose-50/70 font-semibold text-rose-800' : ''}">
@@ -1100,7 +1100,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                 let resetAttdItem = '';
                 if (attdId) {
                     resetAttdItem = `
-                        <form onsubmit="return confirm('Apa kamu yakin ingin mereset presensi tanggal ${schedule?.date || ''}?');" action="../../attendance/reset/${attdId}" method="POST" class="m-0">
+                        <form onsubmit="return confirm('Apa kamu yakin ingin mereset presensi tanggal ${schedule?.date || ''}?');" action="/admin/attendance/reset/${attdId}" method="POST" class="m-0">
                             <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                             <input type="hidden" name="status" value="3">
                             <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors text-left cursor-pointer">
@@ -1132,7 +1132,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             </div>
                             <div class="py-1">
                                 <div class="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Kehadiran</div>
-                                <form onsubmit="return confirm('Apa kamu yakin ingin merubah status kehadiran tanggal ${schedule?.date || ''} menjadi ${isHadir ? 'Tidak Hadir' : 'Hadir'}?');" action="../../attendance/updatestatusattd/${schedule?.id || ''}" method="POST" class="m-0">
+                                <form onsubmit="return confirm('Apa kamu yakin ingin merubah status kehadiran tanggal ${schedule?.date || ''} menjadi ${isHadir ? 'Tidak Hadir' : 'Hadir'}?');" action="/admin/attendance/updatestatusattd/${schedule?.id || ''}" method="POST" class="m-0">
                                     <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                                     <input type="hidden" name="status" value="3">
                                     <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left cursor-pointer">
@@ -1143,7 +1143,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                 ${resetAttdItem}
                             </div>
                             <div class="py-1">
-                                <form onsubmit="return confirm('Apa kamu yakin ingin menghapus jadwal dan presensi tanggal ${schedule?.date || ''}?');" action="../../attendance/delete/${schedule?.id || ''}" method="POST" class="m-0">
+                                <form onsubmit="return confirm('Apa kamu yakin ingin menghapus jadwal dan presensi tanggal ${schedule?.date || ''}?');" action="/admin/attendance/delete/${schedule?.id || ''}" method="POST" class="m-0">
                                     <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                                     <input type="hidden" name="status" value="3">
                                     <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition-colors text-left cursor-pointer font-medium">
@@ -1171,7 +1171,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             <div class="dropdown-menu-list hidden absolute right-0 top-full mt-1.5 w-52 bg-white rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 text-left divide-y divide-gray-100">
                                 <div class="py-1">
                                     <div class="px-3 py-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Ganti Jam</div>
-                                    <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
+                                    <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
                                         <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                                         <input type="hidden" name="is_approved" value="1">
                                         <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors text-left cursor-pointer ${is_approved == 1 ? 'bg-emerald-50/70 font-semibold text-emerald-800' : ''}">
@@ -1179,7 +1179,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                             <span>Setujui Ganti Jam ${is_approved == 1 ? '(Disetujui)' : ''}</span>
                                         </button>
                                     </form>
-                                    <form action="../../adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
+                                    <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="m-0">
                                         <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                                         <input type="hidden" name="is_approved" value="2">
                                         <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-rose-50 hover:text-rose-700 transition-colors text-left cursor-pointer ${is_approved == 2 ? 'bg-rose-50/70 font-semibold text-rose-800' : ''}">
@@ -1189,15 +1189,16 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                     </form>
                                 </div>
                                 <div class="py-1">
-                                    <form action="../../adjustable-attendance/restore/${adjustableId}" method="POST" class="m-0">
+                                    <form action="/admin/adjustable-attendance/restore/${adjustableId}" method="POST" class="m-0">
                                         <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                                         <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors text-left cursor-pointer">
                                             <i class="fa-solid fa-rotate-left text-blue-600 w-4 text-center"></i>
                                             <span>Restore Ganti Jam</span>
                                         </button>
                                     </form>
-                                    <form action="../../adjustable-attendance/delete/${adjustableId}" method="POST" class="m-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
+                                    <form action="/admin/adjustable-attendance/delete/${adjustableId}" method="POST" class="m-0" onsubmit="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
                                         <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
+                                        <input type="hidden" name="_method" value="DELETE">
                                         <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-rose-600 hover:bg-rose-50 hover:text-rose-800 transition-colors text-left cursor-pointer font-medium">
                                             <i class="fa-solid fa-trash text-rose-600 w-4 text-center"></i>
                                             <span>Hapus Ganti Jam</span>

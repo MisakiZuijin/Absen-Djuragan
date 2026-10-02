@@ -227,11 +227,15 @@ class AdminController extends Controller
         $totalActualMinutesAll = 0;
         $disciplineScoresSum = 0;
 
+        $holidayDates = \App\Models\Holiday::pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->toArray();
+
         foreach ($interns as $intern) {
             $internDetailSchedules = $detailSchedules->get($intern->id, collect());
             $internOfflineList = $offlineAttendances->get($intern->id, collect());
 
-            $scheduledDays = $internDetailSchedules->count();
+            $scheduledDays = 0;
             $submittedDays = 0;
             $onTimeDays = 0;
             $lateDays = 0;
@@ -242,6 +246,19 @@ class AdminController extends Controller
             $targetWorkMinutes = 0;
 
             foreach ($internDetailSchedules as $ds) {
+                $dsDateStr = $ds->date ? (is_string($ds->date) ? $ds->date : Carbon::parse($ds->date)->format('Y-m-d')) : '';
+                $isSunday = Carbon::parse($dsDateStr)->isSunday();
+                $isHoliday = in_array($dsDateStr, $holidayDates, true);
+                $attd = $ds->attendance ?? $allAttendances->get($intern->id . '_' . $dsDateStr)?->first();
+                $hasCheckin = $attd && !empty($attd->start_time);
+
+                // Hari libur nasional & Minggu tanpa presensi masuk tidak dihitung ke target jam kerja & tidak berhutang
+                if (($isSunday || $isHoliday) && !$hasCheckin && (int)$ds->attd_status_id !== 3) {
+                    continue;
+                }
+
+                $scheduledDays++;
+
                 $shift = $ds->shift ?? $intern->shift;
                 $shiftMinutes = 435; // Default 7 jam 15 menit
                 if ($shift && $shift->start_time && $shift->end_time) {
@@ -251,8 +268,6 @@ class AdminController extends Controller
                 }
                 $targetWorkMinutes += $shiftMinutes;
 
-                $dsDateStr = $ds->date ? (is_string($ds->date) ? $ds->date : Carbon::parse($ds->date)->format('Y-m-d')) : '';
-                $attd = $ds->attendance ?? $allAttendances->get($intern->id . '_' . $dsDateStr)?->first();
                 $statusId = (int) $ds->attd_status_id;
 
                 // Seseorang dianggap HADIR jika:
@@ -574,17 +589,90 @@ class AdminController extends Controller
         ];
     }
 
-    public function tabelView()
+    public function tabelView(Request $request)
+    {
+        return $this->pulangOtomatisView($request);
+    }
+
+    public function pulangOtomatisView(Request $request)
     {
         $userData = $this->userService->getUserLoggedData();
-        $autoResult = $this->attendanceService->shortAutomaticAttendance();
+        $date = $request->query('date', Carbon::today()->toDateString());
+        $search = $request->query('search');
+        $tab = $request->query('tab', 'pending'); // 'pending' (belum pulang) or 'history' (riwayat pulang otomatis)
+
+        $pendingAttendances = $this->attendanceService->getPendingAutoEndAttendances($date, $search);
+        
+        $historySearch = $tab === 'history' ? $search : $request->query('history_search');
+        $historyDate = $request->query('history_date');
+
+        $autoResult = $this->attendanceService->shortAutomaticAttendance(
+            page: (int) $request->query('page', 1),
+            name: $historySearch,
+            date: $historyDate
+        );
         $totalToday = $this->attendanceService->getCountAttendanceToday();
+        $totalPendingToday = $this->attendanceService->countPendingAutoEndToday();
+
         $data = [
             "user" => $userData,
-            "auto_attd_data" => $autoResult->getData(),
-            "total_auto_end_today" =>  $totalToday->getData() ?? 0,
+            "selectedDate" => $date,
+            "pendingAttendances" => $pendingAttendances,
+            "auto_attd_data" => $autoResult->getData() ?? ['data' => [], 'meta' => ['current_page' => 1, 'total_page' => 1, 'total_data' => 0]],
+            "total_auto_end_today" => $totalToday->getData() ?? 0,
+            "total_pending_today" => $totalPendingToday,
+            "activeTab" => $tab,
         ];
+
         return view('admin.table-user')->with($data);
+    }
+
+    public function confirmPulangOtomatis(Request $request, int $id)
+    {
+        $note = $request->input('note');
+        $customEndTime = $request->input('end_time');
+
+        $result = $this->attendanceService->confirmAutoEndAttendance($id, $note, $customEndTime);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => $result->isSuccess(),
+                'message' => $result->getMessage(),
+                'data' => $result->getData()
+            ], $result->isSuccess() ? 200 : 422);
+        }
+
+        if ($result->isSuccess()) {
+            return redirect()->back()->with('status', $result->getMessage());
+        }
+        return redirect()->back()->with('error', $result->getMessage());
+    }
+
+    public function bulkConfirmPulangOtomatis(Request $request)
+    {
+        $ids = $request->input('attendance_ids', []);
+        $note = $request->input('note');
+
+        if (empty($ids) || !is_array($ids)) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Pilih setidaknya satu pemagang untuk dipulangkan.'], 422);
+            }
+            return redirect()->back()->with('error', 'Pilih setidaknya satu pemagang untuk dipulangkan.');
+        }
+
+        $result = $this->attendanceService->bulkConfirmAutoEndAttendance($ids, $note);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => $result->isSuccess(),
+                'message' => $result->getMessage()
+            ], $result->isSuccess() ? 200 : 422);
+        }
+
+        if ($result->isSuccess()) {
+            return redirect()->back()->with('status', $result->getMessage());
+        }
+        return redirect()->back()->with('error', $result->getMessage());
     }
 
     public function prensenceDetailView(int|string $intern_id)
@@ -642,7 +730,16 @@ class AdminController extends Controller
             $currentUser = auth()->user() ?? $this->userService->getUserLoggedData();
             $isSuperAdmin = $currentUser && ($currentUser->isSuperAdmin() || (int) $currentUser->role_id === 7);
 
-            $reportData = $this->getAttendanceReportData($startDate, $endDate, $divisionId, $schoolId, $internName, 'individual');
+            $request->merge([
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+                'division_id' => $divisionId,
+                'school_id' => $schoolId,
+                'search' => $internName,
+                'tab' => 'individual',
+            ]);
+
+            $reportData = $this->getSuperAdminReportData($request, $currentUser, $today->toDateString());
 
             $internValue = [];
             foreach ($reportData['individualPerformances'] as $perf) {

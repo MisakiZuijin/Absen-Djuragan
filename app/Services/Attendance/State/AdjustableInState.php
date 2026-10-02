@@ -58,6 +58,18 @@ class AdjustableInState implements AttendanceState {
         $scheduleId = $data->getScheduleId();
         $detailScheduleId = $data->getDetailSchedule();
 
+        // Validasi: Pemagang tidak boleh melakukan ganti jam jika sedang masuk/aktif dalam shift kerja hari ini
+        $activeShiftAttendance = \App\Models\Attendance::where('intern_id', $internId)
+            ->whereDate('date', $now)
+            ->whereNotNull('start_time')
+            ->whereNull('end_time')
+            ->first();
+
+        if ($activeShiftAttendance) {
+            DB::rollBack();
+            return new ActionResult(false, "Tidak dapat melakukan ganti jam karena Anda sedang aktif dalam shift kerja hari ini. Anda harus belum absen masuk shift kerja atau menyelesaikan shift kerja terlebih dahulu.", null);
+        }
+
         $existingDetailSchedule = null;
         if ($detailScheduleId) {
             $existingDetailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
@@ -79,8 +91,17 @@ class AdjustableInState implements AttendanceState {
             }
         }
 
+        $requestedShiftId = $data->getShiftId();
+        $requestedOfficeId = $data->getOfficeId();
+
         $isWfhSchedule = $existingDetailSchedule && strtolower($existingDetailSchedule->work_type ?? '') === 'wfh';
-        $shift = ($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow);
+
+        if ($requestedShiftId) {
+            $shift = $this->shiftRepository->find($requestedShiftId) ?: (($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow));
+        } else {
+            $shift = ($existingDetailSchedule && $existingDetailSchedule->shift) ? $existingDetailSchedule->shift : $this->shiftRepository->getByTimeRange($timeNow);
+        }
+
         $isGpsRequired = ($user && $user->is_gps_activate == 1) && (!$shift || $shift->is_gps_active == 1) && !$isWfhSchedule;
 
         $latitude = $data->getLatitude();
@@ -100,10 +121,12 @@ class AdjustableInState implements AttendanceState {
             );
         }
 
+        $targetOfficeId = $requestedOfficeId ?: ($mapsTrack->officeData?->id ?: 1);
+
         if (!$scheduleId) {
             $scheduleId = $this->createSchedule(new ScheduleDTO(
                 $internId,
-                $mapsTrack->officeData?->id,
+                $targetOfficeId,
                 $shift->id,
                 $now,
                 $now,
@@ -114,47 +137,40 @@ class AdjustableInState implements AttendanceState {
         if (!$detailScheduleId) {
             $newData = [
                 "schedule_id" => $scheduleId,
-                "office_id" => $mapsTrack->officeData?->id,
+                "shift_id" => $shift->id,
+                "office_id" => $targetOfficeId,
                 "date" => $now,
                 'work_type' =>  $isGpsRequired ? "wfo" : "wfh",
                 "isChangeSchedule" => true,
                 "isBackFirst" => true
             ];
             $detailScheduleId =  $this->detailScheduleRepository->create($newData)->id;
-        }
-
-        $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
-        $attendanceData = $detailSchedule->attendance;
-
-        $isBreakChangeTime = !is_null($attendanceData) && $attendanceData->start_time != null && $attendanceData->end_time == null;
-
-        if ($isBreakChangeTime && $detailSchedule->shift->start_break_time > $timeNow && $detailSchedule->is_break_first == false) {
-            return new ActionResult(false, "Belum waktunya istirahat", null);
-        }
-        if ($isBreakChangeTime && $detailSchedule->shift->end_break_time <= $timeNow  && $detailSchedule->is_break_first == false) {
-            if (is_null($attendanceData->permit_start)) {
-                return new ActionResult(true, "Waktu jam istirahatmu sudah terlewat", [
-                    "absenceHistory" => $attendanceData,
-                    "schedule_id" => $scheduleId,
-                    "detail_schedule_id" => $detailScheduleId,
-                    "stage" => AttendanceStatus::StartPermit
-                ]);
-            } else {
-                return new ActionResult(true, "Sekarang sudah waktunya pulang", [
-                    "absenceHistory" => $attendanceData,
-                    "schedule_id" => $scheduleId,
-                    "detail_schedule_id" => $detailScheduleId,
-                    "stage" => AttendanceStatus::AttendanceOut
-                ]);
+        } else {
+            // Hanya perbarui shift / office pada DetailSchedule jika jadwal tersebut adalah untuk HARI INI ($now)
+            // Jika jadwal yang dipilih adalah jadwal lampau (target hutang), pertahankan shift aslinya
+            if ($existingDetailSchedule && $existingDetailSchedule->date === $now) {
+                $updateData = [];
+                if ($requestedShiftId && $requestedShiftId != $existingDetailSchedule?->shift_id) {
+                    $updateData['shift_id'] = $requestedShiftId;
+                }
+                if ($requestedOfficeId && $requestedOfficeId != $existingDetailSchedule?->office_id) {
+                    $updateData['office_id'] = $requestedOfficeId;
+                }
+                if (!empty($updateData)) {
+                    $updateData['isChangeSchedule'] = true;
+                    $this->detailScheduleRepository->update($detailScheduleId, $updateData);
+                }
             }
         }
 
-        $originalStartTime = $detailSchedule->shift->start_time ?? $timeNow;
-        $originalEndTime = $detailSchedule->shift->end_time ?? $timeNow;
+        $detailSchedule = $this->detailScheduleRepository->find($detailScheduleId);
+
+        $originalStartTime = $shift->start_time ?? ($detailSchedule?->shift?->start_time ?? $timeNow);
+        $originalEndTime = $shift->end_time ?? ($detailSchedule?->shift?->end_time ?? $timeNow);
 
         $attData = [
             "intern_id" => $internId,
-            "date" =>  $now,
+            "date" => $now,
             "detail_schedule_id" => $detailScheduleId,
             "start_time" => $timeNow,
             "latitude_start" => $data->getLatitude(),

@@ -61,6 +61,7 @@
                             <th class="py-3.5 px-4 sm:px-6 text-center w-16">No</th>
                             <th class="py-3.5 px-4 sm:px-6">Nama Lokasi</th>
                             <th class="py-3.5 px-4 sm:px-6">Alamat</th>
+                            <th class="py-3.5 px-4 sm:px-6 text-center">Radius</th>
                             <th class="py-3.5 px-4 sm:px-6 text-center">Kapasitas</th>
                             <th class="py-3.5 px-4 sm:px-6 text-center w-36">Aksi</th>
                         </tr>
@@ -142,7 +143,7 @@
                 if (filteredOffices.length === 0) {
                     $('#office-table-body').append(`
                         <tr>
-                            <td colspan="5" class="py-8 text-center text-gray-400 text-xs">
+                            <td colspan="6" class="py-8 text-center text-gray-400 text-xs">
                                 <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
                                 Tidak ada data kantor ditemukan.
                             </td>
@@ -165,6 +166,11 @@
                             <td class="py-3.5 px-4 sm:px-6 text-center text-gray-500 font-mono text-xs">${start + index + 1}</td>
                             <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800 whitespace-nowrap">${office.name}</td>
                             <td class="py-3.5 px-4 sm:px-6 text-gray-600 text-xs max-w-sm truncate">${office.address || '-'}</td>
+                            <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-location-crosshairs text-[10px]"></i> ${office.radius || 25} m
+                                </span>
+                            </td>
                             <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                 <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white shadow-xs">
                                     <i class="fa-solid fa-users text-[10px]"></i> ${office.capacity || 0}

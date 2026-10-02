@@ -16,7 +16,7 @@ class RoleMiddleware
         $this->userService = $userService;
     }
 
-    public function handle(Request $request, Closure $next, ...$roleIds): Response
+    public function handle(Request $request, Closure $next, string|int ...$roleIds): Response
     {
         $user = $this->userService->getUserLoggedData();
 

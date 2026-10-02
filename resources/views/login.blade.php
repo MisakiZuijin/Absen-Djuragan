@@ -8,9 +8,10 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Absen Djuragan" />
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <title>Login</title>
+    <meta name="apple-mobile-web-app-title" content="{{ $appSetting->app_name ?? 'Absen Djuragan' }}" />
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
+    <title>Login | {{ $appSetting->app_name ?? 'Absen Djuragan' }}</title>
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -20,59 +21,77 @@
 
     <!-- Notification Box -->
     @if (session('success'))
-        <div class="floating-box hidden" id="notification-box">
-            <i class="fa-solid fa-check-circle"></i>
-            {{ session('success') ?? ($errors->first() ?? 'Gagal Login') }}
-        </div>
+    <div class="floating-box hidden" id="notification-box">
+        <i class="fa-solid fa-check-circle"></i>
+        {{ session('success') }}
+    </div>
+    @elseif (session('warning'))
+    <div class="floating-box hidden" id="notification-box">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+        {{ session('warning') }}
+    </div>
     @else
-        <div class="floating-box hidden" id="notification-box">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            {{ session('success') ?? ($errors->first() ?? 'Gagal Login') }}
-        </div>
+    <div class="floating-box hidden" id="notification-box">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        {{ session('error') ?? ((isset($errors) ? $errors->first() : null) ?? 'Gagal Login') }}
+    </div>
     @endif
 
-    <!-- Success Notification Handling -->
-    @if (session('success') || ($errors->any() && $errors->first() != null))
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                function showBox() {
-                    var box = document.getElementById('notification-box');
-                    box.classList.remove('hidden');
-                    box.classList.add('show');
+    <!-- Success & Error Notification Handling -->
+    @if (session('success') || session('warning') || session('error') || (isset($errors) && $errors->any() && $errors->first() != null))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            function showBox() {
+                var box = document.getElementById('notification-box');
+                if (!box) return;
+                box.classList.remove('hidden');
+                box.classList.add('show');
 
-                    // Add green background for success notification
-                    if ("{{ session('success') }}") {
-                        box.classList.add('bg-green-500'); // Adjust bg-green class to your specific need
-                    } else {
-                        box.classList.add('bg-red-500'); // Keep the red background for errors
-                    }
+                if ("{{ session('success') }}") {
+                    box.classList.add('bg-green-500');
+                } else if ("{{ session('warning') }}") {
+                    box.classList.add('bg-amber-500');
+                } else {
+                    box.classList.add('bg-red-500');
                 }
+            }
 
-                function hideBox() {
-                    var box = document.getElementById('notification-box');
-                    box.classList.remove('show');
-                    box.classList.add('hidden');
-                }
+            function hideBox() {
+                var box = document.getElementById('notification-box');
+                if (!box) return;
+                box.classList.remove('show');
+                box.classList.add('hidden');
+            }
 
-                showBox();
-                setTimeout(hideBox, 3000);
-            });
-        </script>
+            showBox();
+            setTimeout(hideBox, 4000);
+        });
+    </script>
     @endif
 
     <div class="relative grid grid-cols-1 md:grid-cols-2 h-full">
 
-        <!-- Left side with image -->
+        <!-- Left side with image / background -->
         <!-- Desktop Version -->
-        <div class="bg-gray-900 flex items-center justify-center rounded-br-[80px] hidden md:flex">
-            <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="w-[268px] h-[266.95px] object-contain">
+        <div class="relative bg-gray-900 flex items-center justify-center rounded-br-[80px] hidden md:flex overflow-hidden"
+            @if(!empty($appSetting->login_background_url)) style="background-image: url('{{ $appSetting->login_background_url }}'); background-size: cover; background-position: center;" @endif>
+            @if($appSetting->login_background_url)
+            <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px]"></div>
+            @endif
+            <div class="relative z-10 flex flex-col items-center">
+                <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="w-[268px] h-[266.95px] object-contain drop-shadow-xl">
+            </div>
             <div class="absolute inset-0 -z-10 md:bg-white"></div>
         </div>
 
         <!-- Mobile Version -->
         <div class="pt-10 bg-white md:hidden">
-            <div class="bg-gray-900 flex items-center justify-center mx-auto rounded-full w-[150px] h-[150px] mt-20">
-                <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="w-[100px] object-contain">
+            <div class="relative bg-gray-900 flex items-center justify-center mx-auto rounded-full w-[150px] h-[150px] mt-20 overflow-hidden shadow-lg"
+                @if(!empty($appSetting->login_background_url)) style="background-image: url('{{ $appSetting->login_background_url }}'); background-size: cover; background-position: center;" @endif>
+                @if($appSetting->login_background_url)
+                <div class="absolute inset-0 bg-slate-950/50"></div>
+                @endif
+                <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="relative z-10 w-[100px] object-contain drop-shadow">
             </div>
         </div>
 
@@ -140,4 +159,5 @@
     </div>
     <script src="{{ asset('js/index/login.js') }}"></script>
 </body>
+
 </html>

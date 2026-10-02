@@ -33,6 +33,21 @@ return new class extends Migration
             $table->timestamps();
             $table->unique(['broadcast_id', 'user_id']);
         });
+
+        if (!Schema::hasTable('broadcast_report_chats')) {
+            Schema::create('broadcast_report_chats', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('broadcast_report_id')->constrained('broadcast_reports')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->text('message');
+                $table->boolean('is_from_admin')->default(false);
+                $table->boolean('is_read')->default(false);
+                $table->timestamps();
+
+                $table->index(['broadcast_report_id', 'created_at'], 'idx_brc_report_created');
+                $table->index(['broadcast_report_id', 'is_from_admin', 'is_read'], 'idx_brc_report_admin_read');
+            });
+        }
     }
 
     /**
@@ -40,6 +55,7 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::dropIfExists('broadcast_report_chats');
         Schema::dropIfExists('broadcast_reports');
         Schema::dropIfExists('broadcast_office');
         Schema::dropIfExists('broadcast_shift');

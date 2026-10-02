@@ -26,6 +26,10 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2.5">
+                    <a href="{{ route('super-admin.admins.index') }}" class="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-2xl text-xs font-medium transition shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-user-shield text-indigo-400"></i>
+                        <span>Kelola Admin</span>
+                    </a>
                     <button type="button" onclick="openClearModal()" class="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-2xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer">
                         <i class="fa-solid fa-trash-can"></i>
                         <span>Bersihkan Log</span>
@@ -103,7 +107,7 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
                     <!-- Search Umum -->
                     <div class="lg:col-span-2">
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Pencarian Umum</label>
+                        <label for="filterSearchInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Pencarian Umum</label>
                         <div class="relative">
                             <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
                             <input type="text" name="search" id="filterSearchInput" value="{{ request('search') }}" placeholder="Cari aktivitas, user, role, modul, IP..." 
@@ -113,7 +117,7 @@
 
                     <!-- Filter Aksi -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Aksi</label>
+                        <label for="filterActionInput" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Aksi</label>
                         <select name="action" id="filterActionInput" class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                             <option value="">Semua Aksi</option>
                             @foreach($actions as $act)
@@ -124,7 +128,7 @@
 
                     <!-- Modul -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Modul</label>
+                        <label for="filterModuleSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Modul</label>
                         <select name="module" id="filterModuleSelect" class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                             <option value="">Semua Modul</option>
                             @foreach($modules as $mod)
@@ -135,7 +139,7 @@
 
                     <!-- Role -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Peran (Role)</label>
+                        <label for="filterRoleSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Peran (Role)</label>
                         <select name="role" id="filterRoleSelect" class="w-full py-2 px-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                             <option value="">Semua Role</option>
                             @foreach($roles as $r)
@@ -146,21 +150,21 @@
 
                     <!-- Dari Tanggal -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Dari Tanggal</label>
+                        <label for="filterDateStart" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Dari Tanggal</label>
                         <input type="date" name="date_start" id="filterDateStart" value="{{ request('date_start') }}"
                             class="w-full py-2 px-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                     </div>
 
                     <!-- Sampai Tanggal -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sampai Tanggal</label>
+                        <label for="filterDateEnd" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Sampai Tanggal</label>
                         <input type="date" name="date_end" id="filterDateEnd" value="{{ request('date_end') }}"
                             class="w-full py-2 px-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                     </div>
 
                     <!-- Per Page -->
                     <div>
-                        <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Tampilkan</label>
+                        <label for="filterPerPageSelect" class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Tampilkan</label>
                         <select name="per_page" id="filterPerPageSelect" class="w-full py-2 px-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                             <option value="25" {{ request('per_page', $perPage ?? 50) == 25 ? 'selected' : '' }}>25 / Hal</option>
                             <option value="50" {{ request('per_page', $perPage ?? 50) == 50 ? 'selected' : '' }}>50 / Hal (Default)</option>
@@ -362,8 +366,8 @@
             @method('DELETE')
 
             <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Hapus Log yang Lebih Tua Dari:</label>
-                <select name="days" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
+                <label for="purge_days" class="block text-xs font-semibold text-slate-700 mb-1">Hapus Log yang Lebih Tua Dari:</label>
+                <select name="days" id="purge_days" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition">
                     <option value="30">30 Hari yang lalu</option>
                     <option value="60">60 Hari yang lalu</option>
                     <option value="90" selected>90 Hari yang lalu (Disarankan)</option>

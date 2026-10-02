@@ -156,9 +156,323 @@ class AssistantAdminController extends Controller
 
     public function confirmHandRaise(Request $request, int $id)
     {
-        $handRaise = $this->assistantAdminService->confirmHandRaise($id, $request->input('admin_response'));
-        $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Peserta';
-        return back()->with('success', "Bantuan / pertanyaan untuk {$userName} berhasil diselesaikan.");
+        if (auth()->check() && (int) auth()->user()->role_id === 6) {
+            return redirect()->back()->with('error', 'Aksi ini hanya dapat dilakukan oleh Admin / Pembimbing Utama.');
+        }
+
+        try {
+            $handRaise = HandRaise::with('user.profile')->findOrFail($id);
+            $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Peserta';
+            $action = $request->input('action');
+
+            $targetTab = $request->input('tab');
+            if (!$targetTab || !in_array($targetTab, ['question', 'new_task', 'presentation', 'history'])) {
+                if ($action === 'complete_question' || $handRaise->type === 'question') {
+                    $targetTab = 'question';
+                } elseif (in_array($action, ['give_task', 'update_task', 'complete_task']) || $handRaise->type === 'new_task') {
+                    $targetTab = 'new_task';
+                } elseif (in_array($action, ['request_revision', 'ready_presentation', 'complete_presentation']) || $handRaise->type === 'presentation') {
+                    $targetTab = 'presentation';
+                } else {
+                    $targetTab = 'question';
+                }
+            }
+
+            $assistantUser = auth()->user();
+            $assistantName = $assistantUser->name ?? $assistantUser->username ?? 'Asisten Admin';
+
+            if ($action === 'respond_question') {
+                $adminResponse = trim($request->input('admin_response') ?? '');
+                if (empty($adminResponse)) {
+                    return redirect()->back()->with('error', 'Tanggapan / jawaban tidak boleh kosong.');
+                }
+
+                // Backfill initial question if not yet in messages table
+                if ($handRaise->messages()->count() === 0) {
+                    $initNote = trim($handRaise->notes ?? $handRaise->reason ?? '');
+                    if (!empty($initNote)) {
+                        \App\Models\HandRaiseMessage::create([
+                            'hand_raise_id' => $handRaise->id,
+                            'user_id' => $handRaise->user_id,
+                            'message' => $initNote,
+                            'is_from_admin' => false,
+                            'created_at' => $handRaise->created_at ?? now(),
+                        ]);
+                    }
+                }
+
+                // Record or update the assistant admin's response message
+                $lastAdminMsg = $handRaise->messages()->where('is_from_admin', true)->latest()->first();
+                if ($lastAdminMsg && $handRaise->status === 'responded') {
+                    $lastAdminMsg->update([
+                        'message' => $adminResponse,
+                        'user_id' => auth()->id(),
+                    ]);
+                } else {
+                    \App\Models\HandRaiseMessage::create([
+                        'hand_raise_id' => $handRaise->id,
+                        'user_id' => auth()->id(),
+                        'message' => $adminResponse,
+                        'is_from_admin' => true,
+                    ]);
+                }
+
+                $handRaise->update([
+                    'status' => 'responded',
+                    'admin_response' => $adminResponse,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                ActivityLogger::log(
+                    'RESPOND',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} mengirimkan tanggapan bantuan untuk pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'type' => 'question', 'action' => 'respond_question']
+                );
+
+                if ($request->ajax() || $request->wantsJson()) {
+                    $lastMsg = $handRaise->messages()->latest()->first();
+                    return response()->json([
+                        'success' => true,
+                        'message' => "Tanggapan berhasil dikirimkan ke {$userName}.",
+                        'note' => [
+                            'id' => $lastMsg?->id,
+                            'sender_name' => auth()->user()->profile?->full_name ?? auth()->user()->name ?? 'Mentor',
+                            'message' => $adminResponse,
+                            'is_from_admin' => true,
+                            'time' => now()->format('H:i'),
+                        ],
+                    ]);
+                }
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Tanggapan berhasil dikirimkan ke {$userName}. Pemagang akan melihat popup tanggapan di dashboard.");
+            }
+
+            if ($action === 'complete_question') {
+                $handRaise->update([
+                    'status' => 'done',
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menyelesaikan bantuan/pertanyaan untuk pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'type' => 'question', 'action' => 'complete_question']
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Bantuan/pertanyaan untuk {$userName} telah selesai.");
+            }
+
+            if ($action === 'complete_task') {
+                $handRaise->update([
+                    'status' => 'done',
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menyelesaikan sesi permintaan tugas pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'complete_task']
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Permintaan tugas baru untuk {$userName} telah diselesaikan.");
+            }
+
+            if ($action === 'accept_presentation') {
+                $pDate = $request->input('presentation_date') ?: ($handRaise->presentation_date?->toDateString() ?: today()->toDateString());
+                $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
+                $pNotes = $request->input('notes') ?: $request->input('admin_response');
+
+                $handRaise->update([
+                    'status' => 'accepted',
+                    'presentation_date' => $pDate,
+                    'scheduled_time' => $pTime,
+                    'admin_response' => $pNotes,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                $timeFormatted = $pTime ? date('H:i', strtotime($pTime)) : '-';
+                ActivityLogger::log(
+                    'APPROVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menerima jadwal presentasi pemagang {$userName} pada {$pDate} jam {$timeFormatted}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'accept_presentation', 'date' => $pDate, 'time' => $pTime]
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Jadwal presentasi untuk {$userName} berhasil DITERIMA. Jadwal: {$pDate} pukul {$timeFormatted} WIB.");
+            }
+
+            if ($action === 'reschedule_presentation') {
+                $pDate = $request->input('presentation_date') ?: ($handRaise->presentation_date?->toDateString() ?: today()->toDateString());
+                $pTime = $request->input('scheduled_time') ?: $request->input('presentation_time');
+                $pNotes = $request->input('notes') ?: $request->input('admin_response');
+
+                $handRaise->update([
+                    'status' => 'rescheduled',
+                    'presentation_date' => $pDate,
+                    'scheduled_time' => $pTime,
+                    'admin_response' => $pNotes,
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                $timeFormatted = $pTime ? date('H:i', strtotime($pTime)) : '-';
+                ActivityLogger::log(
+                    'UPDATE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menjadwalkan ulang presentasi pemagang {$userName} ke tanggal {$pDate} jam {$timeFormatted}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'reschedule_presentation', 'date' => $pDate, 'time' => $pTime]
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Jadwal presentasi untuk {$userName} berhasil DIJADWALKAN ULANG ke tanggal {$pDate} pukul {$timeFormatted} WIB.");
+            }
+
+            if ($action === 'reject_presentation') {
+                $pNotes = $request->input('notes') ?: $request->input('admin_response') ?: 'Pengajuan presentasi ditolak oleh pembimbing.';
+
+                $handRaise->update([
+                    'status' => 'rejected',
+                    'admin_response' => $pNotes,
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                \Illuminate\Support\Facades\Cache::forget('navbar_raise_hand_count');
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menolak pengajuan presentasi pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'reject_presentation', 'notes' => $pNotes]
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Pengajuan presentasi untuk {$userName} telah DITOLAK.");
+            }
+
+            if ($action === 'request_revision') {
+                $handRaise->update([
+                    'status' => 'needs_revision',
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                if ($handRaise->project) {
+                    $handRaise->project->update(['status' => 'progress']);
+                }
+
+                ActivityLogger::log(
+                    'UPDATE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menetapkan status Presentasi pemagang {$userName}: Ada Revisi",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'request_revision']
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Status presentasi {$userName} berhasil diatur: Ada Revisi.");
+            }
+
+            if ($action === 'ready_presentation') {
+                $handRaise->update([
+                    'status' => 'ready',
+                    'resolved_by' => auth()->id(),
+                    'is_raised' => true,
+                ]);
+
+                $project = $handRaise->project;
+                if (!$project && $handRaise->user && $handRaise->user->intern) {
+                    $project = $handRaise->user->intern->detailProject?->where('project.status', '!=', 'done')->last()?->project
+                        ?? $handRaise->user->intern->detailProject?->last()?->project;
+                    if ($project) {
+                        $handRaise->update(['project_id' => $project->id]);
+                    }
+                }
+
+                if ($project) {
+                    $project->update(['status' => 'done']);
+
+                    HandRaise::where('user_id', $handRaise->user_id)
+                        ->where('project_id', $project->id)
+                        ->where('type', 'new_task')
+                        ->update([
+                            'status' => 'done',
+                            'is_raised' => false,
+                            'resolved_at' => now(),
+                            'resolved_by' => auth()->id(),
+                        ]);
+                }
+
+                ActivityLogger::log(
+                    'APPROVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} mengesahkan Presentasi pemagang {$userName} Lulus Valid (Tanpa Revisi)",
+                    ['hand_raise_id' => $handRaise->id, 'action' => 'ready_presentation']
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Status presentasi {$userName} dikonfirmasi: Tanpa Revisi (Selesai Valid).");
+            }
+
+            if ($action === 'complete_presentation') {
+                $handRaise->update([
+                    'is_raised' => false,
+                    'resolved_at' => now(),
+                    'resolved_by' => auth()->id(),
+                ]);
+
+                $project = $handRaise->project;
+                if ($handRaise->status !== 'needs_revision' && $project) {
+                    $project->update(['status' => 'done']);
+                }
+
+                ActivityLogger::log(
+                    'RESOLVE',
+                    'Raise Hand',
+                    "Asisten Admin {$assistantName} menyelesaikan sesi presentasi pemagang {$userName}",
+                    ['hand_raise_id' => $handRaise->id, 'status' => $handRaise->status]
+                );
+
+                return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                    ->with('success', "Sesi presentasi {$userName} berhasil diselesaikan.");
+            }
+
+            // Fallback default: Mark done
+            $handRaise->update([
+                'status' => 'done',
+                'is_raised' => false,
+                'resolved_at' => now(),
+                'resolved_by' => auth()->id(),
+                'admin_response' => $request->input('admin_response') ?? $handRaise->admin_response,
+            ]);
+
+            ActivityLogger::log(
+                'RESOLVE',
+                'Raise Hand',
+                "Asisten Admin {$assistantName} menyelesaikan permintaan Raise Hand pemagang {$userName}",
+                ['hand_raise_id' => $handRaise->id]
+            );
+
+            return redirect()->route('assistant.raisehand.list', ['tab' => $targetTab])
+                ->with('success', "Permintaan bantuan untuk {$userName} berhasil diselesaikan.");
+        } catch (\Throwable $th) {
+            Log::error('Assistant Confirm Raise Hand error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+            return redirect()->route('assistant.raisehand.list')
+                ->with('error', 'Terjadi kesalahan saat memproses data: ' . $th->getMessage());
+        }
     }
 
     public function confirmRaiseHandForm(int $id)
@@ -176,6 +490,10 @@ class AssistantAdminController extends Controller
 
     public function confirmRaiseHandAction(Request $request, int $id)
     {
+        if (auth()->check() && (int) auth()->user()->role_id === 6) {
+            return redirect()->back()->with('error', 'Aksi ini hanya dapat dilakukan oleh Admin / Pembimbing Utama.');
+        }
+
         try {
             $handRaise = HandRaise::with('user.profile')->findOrFail($id);
             $userName = $handRaise->user->profile->full_name ?? $handRaise->user->name ?? 'Pemagang';

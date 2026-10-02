@@ -72,7 +72,8 @@ class SettingOfficeController extends Controller
     {
         $office = Office::with('coordinates')->findOrFail($id);
         $coordinates = $office->coordinates;
+        $radius = $office->radius;
 
-        return view('admin.edit-maps-location', compact('office', 'coordinates'));
+        return view('admin.edit-maps-location', compact('office', 'coordinates', 'radius'));
     }
 }

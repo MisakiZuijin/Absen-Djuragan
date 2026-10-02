@@ -4,17 +4,31 @@
 
 @section('contents')
     <!-- Main Content -->
-    <div class="min-h-screen bg-gray-50 py-4 sm:py-6" x-data="{ showModal: false, selectedSchedule: null }">
+    <div class="min-h-screen bg-gray-50 py-4 sm:py-6" x-data="{
+        showModal: false,
+        selectedSchedule: null,
+        formatTimeStr(val) {
+            if (!val) return '-';
+            const str = String(val).trim();
+            if (str.includes(' ')) {
+                const parts = str.split(' ');
+                return parts[1] ? parts[1].substring(0, 5) : parts[0].substring(0, 5);
+            }
+            return str.substring(0, 5);
+        }
+    }">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <!-- Header Section -->
             <div class="mb-6 sm:mb-8">
-                <div class="flex items-center mb-4">
-                    <a href="{{ route('user.home') }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-2xs border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
-                        <i class="fas fa-arrow-left"></i>
-                    </a>
-                    <div class="ml-3 sm:ml-4 min-w-0">
-                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Data Hari Mengganti Jam</h1>
-                        <p class="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">Kelola jadwal penggantian jam kerja Anda</p>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center">
+                        <a href="{{ route('user.home') }}" class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-white shadow-2xs border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition">
+                            <i class="fas fa-arrow-left"></i>
+                        </a>
+                        <div class="ml-3 sm:ml-4 min-w-0">
+                            <h1 class="text-xl sm:text-2xl font-bold text-gray-900 truncate">Data Hari Mengganti Jam</h1>
+                            <p class="text-xs sm:text-sm text-gray-600 mt-0.5 truncate">Kelola jadwal penggantian jam kerja Anda</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,7 +71,7 @@
                                         <div class="text-sm font-medium text-gray-900">{{ $schedule->keterangan }}</div>
                                         @if($schedule->permitReason && !empty($schedule->permitReason->description))
                                             <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
-                                                <i class="fa-solid fa-note-sticky text-amber-500 text-[10px]"></i>
+                                                <i class="fa-solid fa-note-sticky text-amber-500 text-xs"></i>
                                                 <span>Alasan: "{{ $schedule->permitReason->description }}"</span>
                                             </div>
                                         @endif
@@ -69,7 +83,7 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <button @click="selectedSchedule = {{ json_encode($schedule) }}; showModal = true" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs leading-4 font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition">
+                                        <button @click='selectedSchedule = @json($schedule); showModal = true' class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs leading-4 font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 shadow-sm transition">
                                             <i class="fas fa-eye mr-1.5"></i>
                                             Lihat Bukti
                                         </button>
@@ -112,8 +126,8 @@
                                     </h3>
                                     <div class="space-y-2 text-xs sm:text-sm">
                                         <p><strong>Shift:</strong> <span x-text="selectedSchedule?.shift?.name || '-'"></span></p>
-                                        <p><strong>Masuk:</strong> <span x-text="selectedSchedule?.shift?.start_time ? selectedSchedule.shift.start_time.substring(0, 5) : '-'"></span></p>
-                                        <p><strong>Pulang:</strong> <span x-text="selectedSchedule?.shift?.end_time ? selectedSchedule.shift.end_time.substring(0, 5) : '-'"></span></p>
+                                        <p><strong>Masuk:</strong> <span x-text="formatTimeStr(selectedSchedule?.shift?.start_time)"></span></p>
+                                        <p><strong>Pulang:</strong> <span x-text="formatTimeStr(selectedSchedule?.shift?.end_time)"></span></p>
                                         <p><strong>Durasi Shift:</strong> <span x-text="selectedSchedule?.shift ? `${Math.floor((selectedSchedule.shift.total_time_in_minute || 0) / 60)} Jam ${(selectedSchedule.shift.total_time_in_minute || 0) % 60} Menit` : '-'"></span></p>
                                     </div>
                                 </div>
@@ -124,8 +138,8 @@
                                     </h3>
                                     <template x-if="selectedSchedule?.attendance?.start_time">
                                         <div class="space-y-2 text-xs sm:text-sm">
-                                            <p><strong>Masuk:</strong> <span class="font-mono" x-text="selectedSchedule.attendance.start_time.substring(0, 8)"></span></p>
-                                            <p><strong>Pulang:</strong> <span class="font-mono" x-text="selectedSchedule.attendance.end_time ? selectedSchedule.attendance.end_time.substring(0, 8) : 'Belum Absen Pulang'"></span></p>
+                                            <p><strong>Masuk:</strong> <span class="font-mono" x-text="formatTimeStr(selectedSchedule.attendance.start_time)"></span></p>
+                                            <p><strong>Pulang:</strong> <span class="font-mono" x-text="selectedSchedule.attendance.end_time ? formatTimeStr(selectedSchedule.attendance.end_time) : 'Belum Absen Pulang'"></span></p>
                                             <hr class="my-2 border-red-200">
                                             <p><strong>Total Jam Kerja:</strong> <span x-text="`${Math.floor((selectedSchedule.attendance.total_min || 0) / 60)} Jam ${ (selectedSchedule.attendance.total_min || 0) % 60} Menit`"></span></p>
                                         </div>
@@ -160,7 +174,7 @@
                             </div>
                             
                             <div class="mt-4 sm:mt-6 bg-yellow-50 border border-yellow-200 rounded-xl p-3.5 sm:p-4 text-center">
-                                <p class="text-[11px] font-semibold text-yellow-800 uppercase tracking-wider">Kesimpulan Status</p>
+                                <p class="text-xs font-semibold text-yellow-800 uppercase tracking-wider">Kesimpulan Status</p>
                                 <p class="text-sm sm:text-base font-bold text-yellow-900 mt-1" x-text="selectedSchedule?.keterangan || ''"></p>
                             </div>
                         </div>

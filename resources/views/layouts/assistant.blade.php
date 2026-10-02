@@ -5,7 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Halaman @yield('title') | Admin</title>
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
+    <title>Halaman @yield('title') | {{ $appSetting->app_name ?? 'Admin' }}</title>
 
     {{-- Styles --}}
     @vite('resources/css/app.css')
@@ -80,7 +81,15 @@
     {{-- Scripts --}}
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="{{ asset('js/admin/raise-hand-notifications.js') }}"></script>
+    @php
+        $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
+        $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
+    @endphp
+    <script>
+        window.__raiseHandPollIntervalMs = {{ $raiseHandNotifInterval * 1000 }};
+        window.__raiseHandNotificationsEnabled = {{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? 'true' : 'false' }};
+    </script>
+    <script src="{{ asset('js/admin/raise-hand-notifications.js') }}?v={{ file_exists(public_path('js/admin/raise-hand-notifications.js')) ? filemtime(public_path('js/admin/raise-hand-notifications.js')) : '1.0' }}"></script>
     <script>
         if (typeof $ !== 'undefined') {
             $.ajaxSetup({

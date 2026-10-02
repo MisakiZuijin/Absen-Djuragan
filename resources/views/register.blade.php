@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
+    <title>Register | {{ $appSetting->app_name ?? 'Absen Djuragan' }}</title>
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="{{ asset('css/style.css') }}" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
@@ -16,42 +17,52 @@
 
     <div class="floating-box hidden" id="notification-box">
         <i class="fa-solid fa-triangle-exclamation"></i>
-        <span id="notification-message">{{ session('failed') ?? ($errors->first() ?? 'Gagal Register') }}</span>
+        <span id="notification-message">{{ session('failed') ?? ((isset($errors) ? $errors->first() : null) ?? 'Gagal Register') }}</span>
     </div>
 
-    @if (session('failed') || $errors->any())
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                var box = document.getElementById('notification-box');
-                var message = "{{ session('failed') ?? $errors->first() }}";
+    @if (session('failed') || (isset($errors) && $errors->any()))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var box = document.getElementById('notification-box');
+            var message = "{{ session('failed') ?? (isset($errors) ? $errors->first() : '') }}";
 
-                if (message) {
-                    document.getElementById('notification-message').innerText = message;
-                    box.classList.remove('hidden');
-                    box.classList.add('show');
+            if (message) {
+                document.getElementById('notification-message').innerText = message;
+                box.classList.remove('hidden');
+                box.classList.add('show');
 
-                    setTimeout(function() {
-                        box.classList.remove('show');
-                        box.classList.add('hidden');
-                    }, 3000);
-                }
-            });
-        </script>
+                setTimeout(function() {
+                    box.classList.remove('show');
+                    box.classList.add('hidden');
+                }, 3000);
+            }
+        });
+    </script>
     @endif
 
     <div class="grid grid-cols-1 md:grid-cols-2 h-full">
 
-        <!-- Left side with image -->
+        <!-- Left side with image / background -->
         <!-- Desktop Version -->
-        <div class="bg-gray-900 flex items-center justify-center rounded-br-[80px] hidden md:flex">
-            <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="w-[268px] h-[266.95px] object-contain">
+        <div class="relative bg-gray-900 flex items-center justify-center rounded-br-[80px] hidden md:flex overflow-hidden"
+            @if(!empty($appSetting->login_background_url)) style="background-image: url('{{ $appSetting->login_background_url }}'); background-size: cover; background-position: center;" @endif>
+            @if($appSetting->login_background_url)
+            <div class="absolute inset-0 bg-slate-950/60 backdrop-blur-[1px]"></div>
+            @endif
+            <div class="relative z-10 flex flex-col items-center">
+                <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="w-[268px] h-[266.95px] object-contain drop-shadow-xl">
+            </div>
             <div class="absolute inset-0 -z-10 bg-white"></div>
         </div>
 
         <!-- Mobile Version -->
         <div class="pt-10 bg-white md:hidden">
-            <div class="bg-gray-900 flex items-center justify-center mx-auto rounded-full w-[150px] h-[150px]">
-                <img src="{{ asset('img/logo.svg') }}" alt="Logo" class="w-[100px] object-contain">
+            <div class="relative bg-gray-900 flex items-center justify-center mx-auto rounded-full w-[150px] h-[150px] overflow-hidden shadow-lg"
+                @if(!empty($appSetting->login_background_url)) style="background-image: url('{{ $appSetting->login_background_url }}'); background-size: cover; background-position: center;" @endif>
+                @if($appSetting->login_background_url)
+                <div class="absolute inset-0 bg-slate-950/50"></div>
+                @endif
+                <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="relative z-10 w-[100px] object-contain drop-shadow">
             </div>
         </div>
 
@@ -67,7 +78,7 @@
                     @csrf
                     <!-- Nama Lengkap -->
                     <div class="mb-3">
-                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="nama">
+                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="full_name">
                             Nama Lengkap <span class="text-red-500">*</span>
                         </label>
                         <input
@@ -101,7 +112,7 @@
                     <!-- Tempat Tanggal Lahir - Responsive Grid Layout -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
                         <div>
-                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="tempat_lahir">
+                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="birth_place">
                                 Tempat Lahir <span class="text-red-500">*</span>
                             </label>
                             <input
@@ -110,7 +121,7 @@
                                 value="{{ old('birth_place') }}">
                         </div>
                         <div>
-                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="tanggal_lahir">
+                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="birth_date">
                                 Tanggal Lahir <span class="text-red-500">*</span>
                             </label>
                             <input
@@ -146,7 +157,7 @@
                         </div>
                         <!-- No Telp -->
                         <div>
-                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="no_telp">
+                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="phone">
                                 No Telp <span class="text-red-500">*</span>
                             </label>
                             <input
@@ -158,7 +169,7 @@
 
                     <!-- Asal Sekolah/Kampus -->
                     <div class="mb-3">
-                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="asal_sekolah">
+                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="school">
                             Asal Sekolah/Kampus <span class="text-red-500">*</span>
                         </label>
                         <select
@@ -166,10 +177,10 @@
                             id="school" name="school_origin_id">
                             <option value="" disabled selected>--Pilih asal sekolah/kampus--</option>
                             @foreach ($schoolList as $school)
-                                <option value="{{ $school->id }}"
-                                    {{ old('school_origin_id') == $school->id ? 'selected' : '' }}>
-                                    {{ $school->name }}
-                                </option>
+                            <option value="{{ $school->id }}"
+                                {{ old('school_origin_id') == $school->id ? 'selected' : '' }}>
+                                {{ $school->name }}
+                            </option>
                             @endforeach
                         </select>
                     </div>
@@ -230,4 +241,5 @@
         });
     </script>
 </body>
+
 </html>

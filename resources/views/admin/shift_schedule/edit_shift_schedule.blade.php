@@ -214,7 +214,7 @@
 
                 <div class="space-y-3 sm:space-y-4">
                     <div>
-                        <label for="selected_dates" class="block text-xs font-semibold text-gray-600 mb-1">Tanggal Terpilih</label>
+                        <span class="block text-xs font-semibold text-gray-600 mb-1">Tanggal Terpilih</span>
                         <div id="selected_dates"
                             class="p-2 block w-full border border-gray-200 bg-gray-50 rounded-xl overflow-x-auto whitespace-nowrap text-xs text-gray-700 min-h-[38px] flex items-center font-mono">
                             Belum ada tanggal dipilih

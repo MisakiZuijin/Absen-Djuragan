@@ -165,6 +165,40 @@
                     </div>
                 </div>
 
+                <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
+                <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
+                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" id="is_friday_break_active" name="is_friday_break_active" value="1"
+                            class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                            onchange="toggleFridayBreakInputs('add')">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">
+                                Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+                            </span>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
+                            </p>
+                        </div>
+                    </label>
+
+                    <div id="add_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
+                        <div>
+                            <label for="friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Mulai Istirahat Jumat
+                            </label>
+                            <input type="time" id="friday_start_break_time" name="friday_start_break_time" value="11:40"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                        </div>
+                        <div>
+                            <label for="friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Selesai Istirahat Jumat
+                            </label>
+                            <input type="time" id="friday_end_break_time" name="friday_end_break_time" value="12:40"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                        </div>
+                    </div>
+                </div>
+
                 <div class="mb-5">
                     <label for="add_is_gps_active" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
                         Validasi Lokasi GPS (Maps) <span class="text-red-500">*</span>
@@ -249,6 +283,40 @@
                         <input type="time" id="edit_end_break_time" name="edit_end_break_time"
                             class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                             required>
+                    </div>
+                </div>
+
+                <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
+                <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
+                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                        <input type="checkbox" id="edit_is_friday_break_active" name="edit_is_friday_break_active" value="1"
+                            class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                            onchange="toggleFridayBreakInputs('edit')">
+                        <div>
+                            <span class="text-xs font-bold text-slate-800">
+                                Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+                            </span>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
+                            </p>
+                        </div>
+                    </label>
+
+                    <div id="edit_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
+                        <div>
+                            <label for="edit_friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Mulai Istirahat Jumat
+                            </label>
+                            <input type="time" id="edit_friday_start_break_time" name="edit_friday_start_break_time"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                        </div>
+                        <div>
+                            <label for="edit_friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                                Selesai Istirahat Jumat
+                            </label>
+                            <input type="time" id="edit_friday_end_break_time" name="edit_friday_end_break_time"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                        </div>
                     </div>
                 </div>
 
@@ -358,6 +426,10 @@
                         ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-600 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-dot text-[10px]"></i> Aktif</span>'
                         : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-500 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-slash text-[10px]"></i> Bebas (WFH)</span>';
 
+                    const fridayBadge = (shift.is_friday_break_active == 1 || shift.is_friday_break_active === true)
+                        ? `<div class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold" title="Istirahat Khusus Jumat Laki-Laki: ${(shift.friday_start_break_time || '11:40').substring(0, 5)} - ${(shift.friday_end_break_time || '12:40').substring(0, 5)}"><i class="fa-solid fa-person text-amber-600"></i> Jumat (L): ${(shift.friday_start_break_time || '11:40').substring(0, 5)} - ${(shift.friday_end_break_time || '12:40').substring(0, 5)}</span></div>`
+                        : '';
+
                     const row = document.createElement('tr');
                     row.className = 'hover:bg-blue-50/30 transition-colors border-b border-gray-100';
                     row.innerHTML = `
@@ -365,11 +437,27 @@
                         <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800 whitespace-nowrap">${shift.name}</td>
                         <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-gray-700 whitespace-nowrap"><i class="fa-regular fa-clock text-gray-400 mr-1"></i>${(shift.start_time || '').substring(0, 5)}</td>
                         <td class="py-3.5 px-4 sm:px-6 font-mono text-xs text-gray-700 whitespace-nowrap"><i class="fa-regular fa-clock text-gray-400 mr-1"></i>${(shift.end_time || '').substring(0, 5)}</td>
-                        <td class="py-3.5 px-4 sm:px-6 text-xs text-gray-700 whitespace-nowrap"><span class="px-2 py-0.5 rounded bg-gray-100 font-medium">${shift.break_time_in_minute || 0} menit</span></td>
+                        <td class="py-3.5 px-4 sm:px-6 text-xs text-gray-700 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded bg-gray-100 font-medium">${shift.break_time_in_minute || 0} menit (${(shift.start_break_time || '').substring(0, 5)} - ${(shift.end_break_time || '').substring(0, 5)})</span>
+                            ${fridayBadge}
+                        </td>
                         <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">${gpsBadge}</td>
                         <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                             <div class="inline-flex items-center gap-1.5">
-                                <button class="editShiftModal px-2.5 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1" data-id="${shift.id}" data-nama="${shift.name}" data-mulai="${shift.start_time}" data-berakhir="${shift.end_time}" data-start-break="${shift.start_break_time}" data-end-break="${shift.end_break_time}" data-adt-start-break="${shift.adt_start_break_time}" data-adt-end-break="${shift.adt_end_break_time}" data-gps="${shift.is_gps_active !== undefined && shift.is_gps_active !== null ? shift.is_gps_active : 1}" title="Edit Shift">
+                                <button class="editShiftModal px-2.5 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                                    data-id="${shift.id}"
+                                    data-nama="${shift.name}"
+                                    data-mulai="${shift.start_time}"
+                                    data-berakhir="${shift.end_time}"
+                                    data-start-break="${shift.start_break_time}"
+                                    data-end-break="${shift.end_break_time}"
+                                    data-adt-start-break="${shift.adt_start_break_time}"
+                                    data-adt-end-break="${shift.adt_end_break_time}"
+                                    data-friday-active="${shift.is_friday_break_active == 1 || shift.is_friday_break_active === true ? 1 : 0}"
+                                    data-friday-start-break="${shift.friday_start_break_time || ''}"
+                                    data-friday-end-break="${shift.friday_end_break_time || ''}"
+                                    data-gps="${shift.is_gps_active !== undefined && shift.is_gps_active !== null ? shift.is_gps_active : 1}"
+                                    title="Edit Shift">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 <button class="deleteShiftModal px-2.5 py-1.5 bg-rose-600 text-white hover:bg-rose-700 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1" data-id="${shift.id}" title="Hapus Shift">
@@ -434,6 +522,9 @@
                         const startBreak = this.getAttribute('data-start-break');
                         const endBreak = this.getAttribute('data-end-break');
                         const gpsActive = this.getAttribute('data-gps');
+                        const isFridayActive = this.getAttribute('data-friday-active') == '1';
+                        const fridayStartBreak = this.getAttribute('data-friday-start-break');
+                        const fridayEndBreak = this.getAttribute('data-friday-end-break');
 
                         const convertTo24HourFormat = (time) => {
                             if (!time) return '';
@@ -459,6 +550,15 @@
                         $('#edit_end_break_time').val(convertTo24HourFormat(endBreak));
                         $('#edit_is_gps_active').val(gpsActive !== null && gpsActive !== undefined ? gpsActive : '1');
 
+                        $('#edit_is_friday_break_active').prop('checked', isFridayActive);
+                        $('#edit_friday_start_break_time').val(convertTo24HourFormat(fridayStartBreak) || '11:40');
+                        $('#edit_friday_end_break_time').val(convertTo24HourFormat(fridayEndBreak) || '12:40');
+                        if (isFridayActive) {
+                            $('#edit_friday_break_container').removeClass('hidden');
+                        } else {
+                            $('#edit_friday_break_container').addClass('hidden');
+                        }
+
                         var actionUrl = "{{ route('shifts.update', ':id') }}";
                         actionUrl = actionUrl.replace(':id', shiftId);
                         $('#topupForm').attr('action', actionUrl);
@@ -481,6 +581,24 @@
                 });
             };
 
+            window.toggleFridayBreakInputs = function(type) {
+                if (type === 'add') {
+                    const isChecked = $('#is_friday_break_active').is(':checked');
+                    if (isChecked) {
+                        $('#add_friday_break_container').removeClass('hidden');
+                    } else {
+                        $('#add_friday_break_container').addClass('hidden');
+                    }
+                } else if (type === 'edit') {
+                    const isChecked = $('#edit_is_friday_break_active').is(':checked');
+                    if (isChecked) {
+                        $('#edit_friday_break_container').removeClass('hidden');
+                    } else {
+                        $('#edit_friday_break_container').addClass('hidden');
+                    }
+                }
+            };
+
             prevPageButton.addEventListener('click', () => {
                 if (currentPage > 1) {
                     currentPage--;
@@ -498,6 +616,10 @@
             renderTable();
 
             $('#openAddShiftModal').on('click', function() {
+                $('#is_friday_break_active').prop('checked', false);
+                $('#add_friday_break_container').addClass('hidden');
+                $('#friday_start_break_time').val('11:40');
+                $('#friday_end_break_time').val('12:40');
                 $('#showAddShiftModal').removeClass('hidden');
             });
 

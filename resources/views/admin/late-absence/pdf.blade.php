@@ -54,12 +54,7 @@
                     <td>{{ $late->shift->name ?? '-' }} ({{ \Carbon\Carbon::parse($late->shift->start_time ?? '')->format('H:i') }})</td>
                     <td>{{ \Carbon\Carbon::parse($late->absen_time)->format('H:i:s') }}</td>
                     <td>{{ $late->late_minutes }} menit</td>
-                    <td class="
-                        @if($late->status == 'telat') status-telat
-                        @elseif($late->status == 'tepat_waktu') status-diterima
-                        @else status-ditambah
-                        @endif
-                    ">
+                    <td class="{{ $late->status == 'telat' ? 'status-telat' : ($late->status == 'tepat_waktu' ? 'status-diterima' : 'status-ditambah') }}">
                         @if($late->status == 'telat') Belum Ditinjau
                         @elseif($late->status == 'tepat_waktu') Alasan Diterima
                         @else Jam Ditambah

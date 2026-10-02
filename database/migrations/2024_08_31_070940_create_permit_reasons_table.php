@@ -12,7 +12,7 @@ return new class extends Migration {
         Schema::create('permit_reasons', function (Blueprint $table) {
             $table->id();
             $table->string("description");
-            $table->string("proof_url");
+            $table->string("proof_url")->nullable();
             $table->unsignedBigInteger("permit_category_id");
 
             $table->foreign("permit_category_id")->references("id")->on("permit_categories");
