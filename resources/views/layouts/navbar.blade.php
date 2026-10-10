@@ -23,7 +23,8 @@
             window.__unreadGantiJamChatUrl = "{{ route('admin.ganti-jam.unread-chats') }}";
         </script>
         @endif
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3 sm:gap-4">
+
             {{-- Notification Area untuk Admin & Super Admin --}}
             @if(in_array(auth()->user()->role_id, [1, 7]))
             <div class="flex items-center gap-1 mr-4">

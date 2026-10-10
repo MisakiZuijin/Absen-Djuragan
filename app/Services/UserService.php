@@ -18,6 +18,7 @@ use App\Models\PermitReason;
 use App\Models\DetailSchedule;
 use \Firebase\JWT\JWT;
 use \Firebase\JWT\Key;
+use Illuminate\Support\Facades\Log;
 
 use function Sentry\captureException;
 
@@ -60,60 +61,86 @@ class UserService
 
     public function createUser(array $data): ActionResult
     {
-        $userDataKeys = ['username', 'email', 'password', 'is_gps_available'];
-        $schoolId = $data["school_origin_id"];
-        $nim = $data['nim'];
-        unset($data["school_origin_id"]);
-        unset($data["nim"]);
-
-
-        $userData = array_intersect_key($data, array_flip($userDataKeys));
-        $profileData = array_diff_assoc($data, $userData);
-
-        // Pastikan gender ikut ke profileData
-        if (isset($data['gender'])) {
-            $profileData['gender'] = $data['gender'];
-        }
+        $schoolId = $data["school_origin_id"] ?? null;
+        $nim = $data['nim'] ?? null;
 
         $agent = new Agent();
-        $userData["role_id"] = 3;
-        $userData["os"] = $agent->platform();
-        $userData["browser"] = $agent->browser();
-
+        $isGps = isset($data["is_gps_available"]) ? (int) $data["is_gps_available"] : 1;
 
         $device_uid = bin2hex(random_bytes(8));
         $cookieLifetime = 10 * 365 * 24 * 60;
         $cookie = cookie('device_token', $device_uid, $cookieLifetime);
-        $userData["device"] = $device_uid;
 
-        $userData["is_gps_support"] = $userData["is_gps_available"];
-        $userData['is_gps_activate'] = $userData["is_gps_support"];
-        unset($userData["is_gps_available"]);
-
+        $userData = [
+            'username' => $data['username'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'role_id' => 3, // Intern
+            'os' => $agent->platform() ?: 'Windows',
+            'browser' => $agent->browser() ?: 'Chrome',
+            'device' => $device_uid,
+            'is_gps_support' => $isGps,
+            'is_gps_activate' => $isGps,
+            'is_active' => false,
+            'is_confirm' => false,
+        ];
 
         try {
-
-
             $userEmailExist = $this->userRepository->findByEmail($data['email']);
             $usernameExist = $this->userRepository->findByUsername($data['username']);
 
             if ($userEmailExist) return new ActionResult(false, "email sudah digunakan", null);
             if ($usernameExist) return new ActionResult(false, "username sudah digunakan", null);
 
-
             DB::beginTransaction();
 
             $userResult = $this->userRepository->store($userData);
-            $profileData['user_id'] = $userResult->id;
+
+            // Resolusi titik koordinat dan alamat dari link Google Maps domisili / kos
+            $homeLat = $data['home_latitude'] ?? null;
+            $homeLng = $data['home_longitude'] ?? null;
+            $resolvedAddress = null;
+            if (!empty($data['gmaps_url'])) {
+                $coords = \App\Helper\GmapsHelper::resolveCoordinates((string) $data['gmaps_url']);
+                if ($coords) {
+                    if ($homeLat === null || $homeLng === null) {
+                        $homeLat = $coords['lat'];
+                        $homeLng = $coords['lng'];
+                    }
+                    $resolvedAddress = $coords['address'] ?? null;
+                }
+            }
+
+            $effectiveAddress = !empty($data['address']) ? $data['address'] : ($resolvedAddress ?: ($data['gmaps_url'] ?? null));
+
+            $profileData = [
+                'user_id' => $userResult->id,
+                'full_name' => $data['full_name'],
+                'phone' => $data['phone'],
+                'birth_place' => $data['birth_place'],
+                'date_of_birth' => $data['date_of_birth'],
+                'gender' => $data['gender'] ?? null,
+                'religion' => $data['religion'] ?? null,
+                'address' => $effectiveAddress,
+            ];
+
             $profileResult = $this->profileRepository->store($profileData);
 
             $internData = [
                 "user_id" => $userResult->id,
                 "school_id" => $schoolId,
-                "NIM" => $nim,
+                "nim" => $nim,
+                "home_latitude" => $homeLat,
+                "home_longitude" => $homeLng,
+                "home_address_notes" => $effectiveAddress,
             ];
 
             $internResult = $this->internRepository->store($internData);
+
+            // Inisialisasi InternAccount untuk tautan platform/sosial media
+            if ($internResult && isset($internResult->id)) {
+                \App\Models\InternAccount::firstOrCreate(['intern_id' => $internResult->id]);
+            }
 
             DB::commit();
 
@@ -124,7 +151,9 @@ class UserService
                 "username" => $userResult->username,
                 "email" => $userResult->email,
                 "full_name" => $profileResult->full_name,
-                "address" => $profileResult->phone,
+                "address" => $profileResult->address,
+                "gender" => $profileResult->gender,
+                "religion" => $profileResult->religion,
                 "date_of_birth" => $profileResult->date_of_birth,
                 "birth_place" => $profileResult->birth_place,
                 "intern" => $internResult,
@@ -134,8 +163,9 @@ class UserService
             return new ActionResult(true, "register success", $result);
         } catch (\Exception $e) {
             DB::rollback();
+            Log::error('UserService createUser error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             captureException($e);
-            return new ActionResult(false, "register failed", null);
+            return new ActionResult(false, "Pendaftaran gagal: " . $e->getMessage(), null);
         }
     }
 

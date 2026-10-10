@@ -181,7 +181,7 @@
                         <!-- Dropzone Upload Gambar Baru -->
                         <div class="space-y-2">
                             <div class="relative border-2 border-dashed border-gray-300 hover:border-emerald-500 rounded-2xl p-5 text-center transition bg-white cursor-pointer group">
-                                <input type="file" name="on_time_image" id="input_on_time_image" accept="image/jpeg,image/png,image/jpg,image/gif"
+                                <input type="file" name="on_time_image" id="input_on_time_image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                     class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     onchange="handleNewFileSelected(this, 'on_time')">
                                 <div class="flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
@@ -189,7 +189,7 @@
                                         <i class="fa-solid fa-cloud-arrow-up"></i>
                                     </div>
                                     <p class="text-sm font-bold text-gray-700">Klik untuk memilih gambar atau seret file ke sini</p>
-                                    <p class="text-xs text-gray-400">Format: JPG, PNG, GIF (Maks. 2MB). Disarankan foto persegi (1:1).</p>
+                                    <p class="text-xs text-gray-400">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB). Disarankan foto persegi (1:1).</p>
                                 </div>
                             </div>
 
@@ -331,7 +331,7 @@
                         <!-- Dropzone Upload Gambar Baru -->
                         <div class="space-y-2">
                             <div class="relative border-2 border-dashed border-gray-300 hover:border-amber-500 rounded-2xl p-5 text-center transition bg-white cursor-pointer group">
-                                <input type="file" name="late_image" id="input_late_image" accept="image/jpeg,image/png,image/jpg,image/gif"
+                                <input type="file" name="late_image" id="input_late_image" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                     class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                                     onchange="handleNewFileSelected(this, 'late')">
                                 <div class="flex flex-col items-center justify-center space-y-1.5 pointer-events-none">
@@ -339,7 +339,7 @@
                                         <i class="fa-solid fa-cloud-arrow-up"></i>
                                     </div>
                                     <p class="text-sm font-bold text-gray-700">Klik untuk memilih gambar atau seret file ke sini</p>
-                                    <p class="text-xs text-gray-400">Format: JPG, PNG, GIF (Maks. 2MB). Disarankan foto persegi (1:1).</p>
+                                    <p class="text-xs text-gray-400">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB). Disarankan foto persegi (1:1).</p>
                                 </div>
                             </div>
 
@@ -457,6 +457,32 @@
     function handleNewFileSelected(input, type) {
         if (input.files && input.files[0]) {
             const file = input.files[0];
+            const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+            if (!allowedExts.includes(ext) && !allowedMimes.includes(file.type)) {
+                const alertMsg = 'Format file tidak diizinkan. Harap pilih foto berformat JPG, JPEG, PNG, atau WebP.';
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Format Tidak Sesuai', text: alertMsg, confirmButtonColor: '#3085d6' });
+                } else {
+                    alert(alertMsg);
+                }
+                input.value = '';
+                return;
+            }
+
+            if (file.size > 2 * 1024 * 1024) {
+                const sizeMsg = `Ukuran foto (${(file.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas maksimal 2MB.`;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Ukuran Terlalu Besar', text: sizeMsg, confirmButtonColor: '#3085d6' });
+                } else {
+                    alert(sizeMsg);
+                }
+                input.value = '';
+                return;
+            }
+
             const reader = new FileReader();
 
             reader.onload = function(e) {

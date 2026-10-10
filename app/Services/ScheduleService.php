@@ -84,124 +84,224 @@ class ScheduleService
         try {
             DB::beginTransaction();
 
-            $data = $request->validated();
-            $internId = $data['intern_id'];
+            $data = (!empty($request->validator)) ? $request->validated() : $request->all();
+            $internId = (int) $data['intern_id'];
 
-            $intern = $this->internRepository->getById($data['intern_id']);
+            $intern = $this->internRepository->getById($internId);
             if (!$intern) {
                 return new ActionResult(false, "intern not found", null);
             }
 
             $start_date = new DateTime($data['start_period']);
             $end_date = new DateTime($data['end_period']);
-            if ($end_date <= $start_date) return new ActionResult(false, 'end periode tidak boleh kurang dari start periode', null);
-
-            $existSchedul = $this->scheduleRepository->findByInternId($intern->id);
-            if (!is_null($existSchedul)) {
-                $existEndDate = new DateTime($existSchedul->end_period);
-                if ($start_date <= $existEndDate) return new ActionResult(false, 'periode yang sudah ada berakhir di tanggal ' . $existEndDate->format('Y-m-d'), null);
+            if ($end_date <= $start_date) {
+                return new ActionResult(false, 'End periode tidak boleh kurang dari atau sama dengan start periode', null);
             }
 
-            $shiftId = $data["shift_id"];
-            $shiftIdBasic = [2, 4];
-            unset($data["shift_id"]);
-            $category = $data["type"];
-            $data["type"] = $data["type"] == 1 ? "daily" : "weekly";
+            $shiftId = (int) $data["shift_id"];
+            $officeId = (int) ($data["office_id"] ?? 1);
+            $category = (int) $data["type"]; // 1 = Tetap (daily), 2 = Bergantian (weekly)
+            $typeString = $category == 1 ? "daily" : "weekly";
 
-            if ($existSchedul) {
-                $data['start_period'] = $existSchedul->start_period;
-                $result1 = $this->scheduleRepository->update($existSchedul->id, $data);
+            // Ambil seluruh ID shift yang aktif di kantor terkait (diurutkan berdasarkan start_time)
+            // Mengikuti shift yang disediakan kantor itu saja (Pagi -> Middle -> Siang)
+            $officeShiftCapacities = \App\Models\OfficeShiftCapacity::where('office_id', $officeId)
+                ->where('is_enabled', true)
+                ->where('max_capacity', '>', 0)
+                ->pluck('shift_id')
+                ->toArray();
+
+            if (!empty($officeShiftCapacities)) {
+                $rollingShiftIds = \App\Models\Shift::whereIn('id', $officeShiftCapacities)
+                    ->where('is_active', 1)
+                    ->orderBy('start_time', 'asc')
+                    ->pluck('id')
+                    ->toArray();
             } else {
-                $result1 = $this->scheduleRepository->create($data);
+                $rollingShiftIds = \App\Models\Shift::where('is_active', 1)
+                    ->orderBy('start_time', 'asc')
+                    ->pluck('id')
+                    ->toArray();
             }
 
-            $current_date = clone $start_date;
-            $currentShift = $shiftId;
-            $officeId = $data["office_id"] ?? 1;
+            if (empty($rollingShiftIds)) {
+                $rollingShiftIds = [$shiftId];
+            }
 
-            $attendancesToInsert = [];
-            $scheduleDatesMap = []; // date => shift_id
+            // Jika kantor hanya menyediakan 1 shift aktif (misal Kantor 2 yang hanya memiliki shift Middle),
+            // maka sistem shift otomatis dipaksa Tetap (daily) karena rotasi shift tidak dimungkinkan.
+            if (count($rollingShiftIds) <= 1) {
+                $category = 1;
+                $typeString = "daily";
+                $shiftId = $rollingShiftIds[0];
+            }
+
+            // Update atau buat master schedule untuk pemagang
+            $existSchedul = $this->scheduleRepository->findByInternId($intern->id);
+            if ($existSchedul) {
+                $existSchedul->update([
+                    'type' => $typeString,
+                    'start_period' => $start_date->format('Y-m-d'),
+                    'end_period' => $end_date->format('Y-m-d'),
+                    'office_id' => $officeId,
+                ]);
+                $scheduleRecord = $existSchedul;
+            } else {
+                $scheduleRecord = $this->scheduleRepository->create([
+                    'intern_id' => $internId,
+                    'type' => $typeString,
+                    'start_period' => $start_date->format('Y-m-d'),
+                    'end_period' => $end_date->format('Y-m-d'),
+                    'office_id' => $officeId,
+                ]);
+            }
+
+            // Sinkronkan shift_id pada data pemagang
+            if ($intern) {
+                $intern->shift_id = $shiftId;
+                $intern->save();
+            }
 
             // Ambil seluruh tanggal hari libur yang terdaftar
             $holidayDates = \App\Models\Holiday::pluck('date')
                 ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
                 ->toArray();
 
+            $current_date = clone $start_date;
+            $currentShift = $shiftId;
+            $currentWeek = $start_date->format('o-W');
+
+            $scheduleDatesMap = []; // dateStr => assignedShiftId
+
             while ($current_date <= $end_date) {
                 $dateStr = $current_date->format('Y-m-d');
+                $thisWeek = $current_date->format('o-W');
+
+                // Jika sistem bergantian (category == 2) dan berpindah minggu (berganti pada hari SENIN ISO),
+                // rotasi ke shift berikutnya. Jika kantor hanya ada 1 shift, tidak perlu dirotasi.
+                if ($category == 2 && count($rollingShiftIds) > 1 && $thisWeek !== $currentWeek) {
+                    $currentShift = $this->isNextShift($rollingShiftIds, $currentShift);
+                    $currentWeek = $thisWeek;
+                }
+
                 $isSunday = $current_date->format('N') == 7;
                 $isHoliday = in_array($dateStr, $holidayDates, true);
 
-                // Hari Minggu dan Hari Libur nasional tidak dibuatkan jadwal (libur)
+                // Hari Minggu dan Hari Libur nasional tidak dibuatkan jadwal kerja
                 if (!$isSunday && !$isHoliday) {
-                    $attendancesToInsert[] = [
-                        "date" => $dateStr,
-                        "intern_id" => $internId
-                    ];
-
-                    if ($current_date->format('N') == 1 && $category == 2) {
-                        $currentShift = $this->isNextShift($shiftIdBasic, $currentShift);
-                    }
-
                     $scheduleDatesMap[$dateStr] = $currentShift;
                 }
+
                 $current_date->modify('+1 day');
             }
 
-            if (!empty($attendancesToInsert)) {
-                // 1. Bulk insert attendances
-                \App\Models\Attendance::insert($attendancesToInsert);
+            if (!empty($scheduleDatesMap)) {
+                $datesToProcess = array_keys($scheduleDatesMap);
 
-                // 2. Fetch created attendance IDs for this period in 1 single query
-                $createdAttendances = \App\Models\Attendance::where('intern_id', $internId)
-                    ->whereBetween('date', [$start_date->format('Y-m-d'), $end_date->format('Y-m-d')])
-                    ->pluck('id', 'date');
+                // 1. Ambil absensi yang sudah ada untuk pemagang pada rentang tanggal ini
+                $existingAttendances = \App\Models\Attendance::where('intern_id', $internId)
+                    ->whereIn('date', $datesToProcess)
+                    ->get()
+                    ->keyBy(function ($item) {
+                        return \Carbon\Carbon::parse($item->date)->toDateString();
+                    });
 
-                // 3. Build detail schedules bulk insert data
-                $detailSchedulesToInsert = [];
-                foreach ($scheduleDatesMap as $dateStr => $assignedShiftId) {
-                    $attId = $createdAttendances->get($dateStr);
-                    if ($attId) {
-                        $detailSchedulesToInsert[] = [
-                            "attendance_id" => $attId,
-                            "schedule_id" => $result1->id,
-                            "shift_id" => $assignedShiftId,
-                            "office_id" => $officeId,
+                // 2. Buat absensi placeholder baru jika belum pernah ada
+                $attendancesToInsert = [];
+                foreach ($datesToProcess as $dateStr) {
+                    if (!$existingAttendances->has($dateStr)) {
+                        $attendancesToInsert[] = [
                             "date" => $dateStr,
-                            "isChangeSchedule" => 0
+                            "intern_id" => $internId
                         ];
                     }
                 }
 
-                // 4. Bulk insert detail schedules
+                if (!empty($attendancesToInsert)) {
+                    \App\Models\Attendance::insert($attendancesToInsert);
+
+                    $newAttendances = \App\Models\Attendance::where('intern_id', $internId)
+                        ->whereIn('date', array_column($attendancesToInsert, 'date'))
+                        ->get()
+                        ->keyBy(function ($item) {
+                            return \Carbon\Carbon::parse($item->date)->toDateString();
+                        });
+
+                    $allAttendances = $existingAttendances->union($newAttendances);
+                } else {
+                    $allAttendances = $existingAttendances;
+                }
+
+                // 3. Ambil detail schedule yang sudah ada untuk jadwal ini pada rentang tanggal ini
+                $existingDetailSchedules = \App\Models\DetailSchedule::where('schedule_id', $scheduleRecord->id)
+                    ->whereIn('date', $datesToProcess)
+                    ->get()
+                    ->keyBy(function ($item) {
+                        return \Carbon\Carbon::parse($item->date)->toDateString();
+                    });
+
+                $detailSchedulesToInsert = [];
+
+                foreach ($scheduleDatesMap as $dateStr => $assignedShiftId) {
+                    $attendance = $allAttendances->get($dateStr);
+                    $attId = $attendance?->id;
+
+                    if ($existingDetailSchedules->has($dateStr)) {
+                        $detail = $existingDetailSchedules->get($dateStr);
+                        // Perbarui shift dan kantor jika pemagang belum clock-in (start_time kosong)
+                        if (empty($attendance?->start_time)) {
+                            $detail->update([
+                                'shift_id' => $assignedShiftId,
+                                'office_id' => $officeId,
+                            ]);
+                        }
+                    } else {
+                        if ($attId) {
+                            $detailSchedulesToInsert[] = [
+                                "attendance_id" => $attId,
+                                "schedule_id" => $scheduleRecord->id,
+                                "shift_id" => $assignedShiftId,
+                                "office_id" => $officeId,
+                                "date" => $dateStr,
+                                "isChangeSchedule" => 0
+                            ];
+                        }
+                    }
+                }
+
+                // 4. Bulk insert detail schedules yang baru
                 if (!empty($detailSchedulesToInsert)) {
                     \App\Models\DetailSchedule::insert($detailSchedulesToInsert);
                 }
             }
+
             DB::commit();
 
-            return new ActionResult(true, "success added new schedule", $result1);
+            return new ActionResult(true, "Data jadwal berhasil diperbarui!", $scheduleRecord);
         } catch (\Throwable $th) {
             DB::rollBack();
             Log::error('createSchedule error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            return new ActionResult(false, "failed to added new schedule", null);
+            return new ActionResult(false, "Gagal membuat/memperbarui jadwal: " . $th->getMessage(), null);
         }
     }
 
 
-    private function isNextShift(array $indexShift, int $currentShift)
+    private function isNextShift(array $indexShift, int $currentShift): int
     {
+        if (empty($indexShift)) {
+            return $currentShift;
+        }
+
         $currentIndex = array_search($currentShift, $indexShift);
 
         if ($currentIndex === false) {
-            throw new Exception("Shift not found in array.");
+            return $indexShift[0];
         }
 
         $nextIndex = ($currentIndex + 1) % count($indexShift);
 
-        $nextShift = $indexShift[$nextIndex];
-        return $nextShift;
+        return $indexShift[$nextIndex];
     }
 
 

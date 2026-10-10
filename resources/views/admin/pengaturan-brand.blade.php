@@ -136,12 +136,22 @@
                         placeholder="Contoh: Djuragan Kreatif" required>
                 </div>
                 <div class="mb-4">
-                    <label for="addSlug" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Slug / Identifier
-                    </label>
-                    <input type="text" id="addSlug" name="slug"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="Kosongkan untuk generate otomatis">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="addSlug" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Slug / Identifier
+                        </label>
+                        <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md flex items-center gap-1 font-medium border border-gray-200">
+                            <i class="fa-solid fa-lock text-[9px] text-gray-400"></i> Otomatis dari nama brand
+                        </span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="addSlug" name="slug" readonly tabindex="-1"
+                            class="w-full pl-3.5 pr-9 py-2.5 text-sm bg-gray-100/90 text-gray-600 border border-gray-300 rounded-xl cursor-not-allowed select-none focus:outline-none transition font-mono"
+                            placeholder="Terisi otomatis saat nama brand diketik...">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-link text-xs"></i>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label for="addLogo" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -149,8 +159,8 @@
                     </label>
                     <input type="file" id="addLogo" name="logo"
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                        accept="image/*">
-                    <p class="text-[11px] text-gray-400 mt-1">Format: JPG, PNG, GIF, SVG, WEBP (Max 2MB)</p>
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    <p class="text-[11px] text-gray-400 mt-1">Format foto yang didukung: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
                 </div>
                 <div class="mb-4">
                     <label for="addDescription" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -202,11 +212,22 @@
                         required>
                 </div>
                 <div class="mb-4">
-                    <label for="editSlug" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Slug / Identifier
-                    </label>
-                    <input type="text" id="editSlug" name="slug"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <label for="editSlug" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Slug / Identifier
+                        </label>
+                        <span class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md flex items-center gap-1 font-medium border border-gray-200">
+                            <i class="fa-solid fa-lock text-[9px] text-gray-400"></i> Otomatis dari nama brand
+                        </span>
+                    </div>
+                    <div class="relative">
+                        <input type="text" id="editSlug" name="slug" readonly tabindex="-1"
+                            class="w-full pl-3.5 pr-9 py-2.5 text-sm bg-gray-100/90 text-gray-600 border border-gray-300 rounded-xl cursor-not-allowed select-none focus:outline-none transition font-mono"
+                            placeholder="Terisi otomatis dari nama brand...">
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400">
+                            <i class="fa-solid fa-link text-xs"></i>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label for="editLogo" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
@@ -214,7 +235,8 @@
                     </label>
                     <input type="file" id="editLogo" name="logo"
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                        accept="image/*">
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    <p class="text-[11px] text-gray-400 mt-1">Format foto yang didukung: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
                     <div id="currentLogoPreview" class="mt-2 hidden flex items-center space-x-2">
                         <span class="text-xs text-gray-500">Logo saat ini:</span>
                         <img id="currentLogoImg" src="" alt="Logo" class="w-8 h-8 rounded object-contain border p-0.5 bg-gray-50">
@@ -431,8 +453,31 @@
                 }
             });
 
+            // Helper fungsi slugify otomatis dari nama brand
+            function slugify(text) {
+                return (text || '')
+                    .toString()
+                    .toLowerCase()
+                    .trim()
+                    .replace(/&/g, '-and-')
+                    .replace(/[\s\W-]+/g, '-')
+                    .replace(/^-+|-+$/g, '');
+            }
+
+            // Auto slug real-time saat mengetik Nama Brand (Tambah Brand)
+            $('#addName').on('input', function() {
+                $('#addSlug').val(slugify($(this).val()));
+            });
+
+            // Auto slug real-time saat mengetik Nama Brand (Edit Brand)
+            $('#editName').on('input', function() {
+                $('#editSlug').val(slugify($(this).val()));
+            });
+
             // Modal Handlers
             $('#addBrandButton').on('click', function() {
+                $('#addBrandForm')[0].reset();
+                $('#addSlug').val('');
                 $('#addBrandModal').removeClass('hidden');
             });
 
@@ -459,7 +504,7 @@
                 let actionUrl = "{{ route('brands.update', ':id') }}".replace(':id', brandId);
                 $('#editBrandForm').attr('action', actionUrl);
                 $('#editName').val(name);
-                $('#editSlug').val(slug);
+                $('#editSlug').val(slug || slugify(name));
                 $('#editDescription').val(description);
                 $('#editIsActive').prop('checked', active == 1);
 
@@ -490,6 +535,42 @@
                 let actionUrl = "{{ route('brands.toggleStatus', ':id') }}".replace(':id', brandId);
                 $('#toggleStatusForm').attr('action', actionUrl);
                 $('#toggleStatusForm').submit();
+            });
+
+            function validateBrandLogoFile(input) {
+                if (input.files && input.files[0]) {
+                    const file = input.files[0];
+                    const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+                    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+                    const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+                    if (!allowedExts.includes(ext) && !allowedMimes.includes(file.type)) {
+                        const alertMsg = 'Format file tidak diizinkan. Harap unggah foto dengan format JPG, JPEG, PNG, atau WebP.';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Format Tidak Sesuai', text: alertMsg, confirmButtonColor: '#3085d6' });
+                        } else {
+                            alert(alertMsg);
+                        }
+                        input.value = '';
+                        return false;
+                    }
+
+                    if (file.size > 2 * 1024 * 1024) {
+                        const sizeMsg = `Ukuran foto (${(file.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas maksimal 2MB.`;
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Ukuran Terlalu Besar', text: sizeMsg, confirmButtonColor: '#3085d6' });
+                        } else {
+                            alert(sizeMsg);
+                        }
+                        input.value = '';
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            $('#addLogo, #editLogo').on('change', function() {
+                validateBrandLogoFile(this);
             });
 
             const message = document.getElementById('success-message');

@@ -32,8 +32,9 @@ class BroadcastController extends Controller
             ->paginate(10);
         $divisions = Division::select('id', 'name')->orderBy('name')->get();
         $users = User::select('id', 'username')->whereHas('intern')->with('profile:id,user_id,full_name')->get();
+        $totalDivisions = $divisions->count();
 
-        return view('admin.pengaturan-broadcast', compact('broadcastlist', 'divisions', 'users'));
+        return view('admin.pengaturan-broadcast', compact('broadcastlist', 'divisions', 'users', 'totalDivisions'));
     }
 
     /**
@@ -48,7 +49,11 @@ class BroadcastController extends Controller
             'divisions' => 'nullable|required_if:broadcast_type,division|array',
             'users' => 'nullable|required_if:broadcast_type,specific|array',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048'
+        ], [
+            'images.*.image' => 'File lampiran harus berupa gambar/foto.',
+            'images.*.mimes' => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'images.*.max' => 'Ukuran foto maksimal adalah 2MB per file.',
         ]);
 
         DB::beginTransaction();
@@ -61,7 +66,13 @@ class BroadcastController extends Controller
             ]);
 
             if ($request->broadcast_type === 'division') {
-                $broadcast->divisions()->sync($request->divisions ?? []);
+                $rawDivisions = $request->input('divisions', []);
+                if (in_array('all', $rawDivisions) || in_array('all_divisions', $rawDivisions)) {
+                    $divisionIds = Division::pluck('id')->toArray();
+                } else {
+                    $divisionIds = array_filter($rawDivisions, fn($id) => is_numeric($id));
+                }
+                $broadcast->divisions()->sync($divisionIds);
             } elseif ($request->broadcast_type === 'specific') {
                 $broadcast->users()->sync($request->users ?? []);
             }
@@ -99,8 +110,12 @@ class BroadcastController extends Controller
             'divisions' => 'nullable|required_if:broadcast_type,division|array',
             'users' => 'nullable|required_if:broadcast_type,specific|array',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
             'deleted_images' => 'nullable|string'
+        ], [
+            'images.*.image' => 'File lampiran harus berupa gambar/foto.',
+            'images.*.mimes' => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'images.*.max' => 'Ukuran foto maksimal adalah 2MB per file.',
         ]);
 
         DB::beginTransaction();
@@ -108,7 +123,13 @@ class BroadcastController extends Controller
             $broadcast->update($request->only('title', 'message', 'broadcast_type'));
 
             if ($request->broadcast_type === 'division') {
-                $broadcast->divisions()->sync($request->input('divisions', []));
+                $rawDivisions = $request->input('divisions', []);
+                if (in_array('all', $rawDivisions) || in_array('all_divisions', $rawDivisions)) {
+                    $divisionIds = Division::pluck('id')->toArray();
+                } else {
+                    $divisionIds = array_filter($rawDivisions, fn($id) => is_numeric($id));
+                }
+                $broadcast->divisions()->sync($divisionIds);
                 $broadcast->users()->sync([]);
             } elseif ($request->broadcast_type === 'specific') {
                 $broadcast->users()->sync($request->input('users', []));

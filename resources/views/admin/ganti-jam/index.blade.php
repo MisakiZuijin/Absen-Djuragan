@@ -55,18 +55,16 @@
     @endif
 
     <!-- Tab Navigasi: Pendaftaran Ganti Jam vs Sesi Ganti Jam & Pelunasan -->
-    <div class="p-1 sm:p-1.5 rounded-2xl flex flex-col sm:inline-flex sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 shadow-2xs w-full sm:w-auto" style="background-color: #e2e8f0 !important; border: 1px solid #cbd5e1 !important;">
+    <div class="p-1 sm:p-1.5 rounded-2xl flex flex-col sm:inline-flex sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 shadow-2xs w-full sm:w-auto bg-slate-200 border border-slate-300">
         <!-- Tab 1: Pendaftaran Ganti Jam -->
         <a href="{{ route('admin.ganti-jam.index', array_filter(['tab' => 'registrations', 'date_from' => $dateFrom, 'date_to' => $dateTo])) }}"
-            class="flex items-center justify-between sm:justify-start gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-left sm:text-center"
-            style="{{ $tab === 'registrations' ? 'background-color: #ea580c !important; color: #ffffff !important; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3) !important;' : 'background-color: #ffffff !important; color: #334155 !important; border: 1px solid #cbd5e1 !important;' }}">
+            class="flex items-center justify-between sm:justify-start gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-left sm:text-center {{ $tab === 'registrations' ? 'bg-[#ea580c] text-white shadow-[0_4px_6px_-1px_rgba(234,88,12,0.3)]' : 'bg-white text-slate-700 border border-slate-300' }}">
             <div class="flex items-center gap-2">
-                <i class="fa-solid fa-clipboard-list" style="{{ $tab === 'registrations' ? 'color: #ffffff !important;' : 'color: #ea580c !important;' }}"></i>
+                <i class="fa-solid fa-clipboard-list {{ $tab === 'registrations' ? 'text-white' : 'text-[#ea580c]' }}"></i>
                 <span>Pendaftaran Ganti Jam</span>
             </div>
             @if($regPendingCount > 0)
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black shrink-0"
-                style="{{ $tab === 'registrations' ? 'background-color: #ffffff !important; color: #ea580c !important;' : 'background-color: #ea580c !important; color: #ffffff !important;' }}">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 {{ $tab === 'registrations' ? 'bg-white text-[#ea580c]' : 'bg-[#ea580c] text-white' }}">
                 {{ $regPendingCount }} Menunggu ACC
             </span>
             @endif
@@ -74,15 +72,13 @@
 
         <!-- Tab 2: Sesi Ganti Jam & Pelunasan -->
         <a href="{{ route('admin.ganti-jam.index', array_filter(['tab' => 'sessions', 'date_from' => $dateFrom, 'date_to' => $dateTo])) }}"
-            class="flex items-center justify-between sm:justify-start gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-left sm:text-center"
-            style="{{ $tab !== 'registrations' ? 'background-color: #ea580c !important; color: #ffffff !important; box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.3) !important;' : 'background-color: #ffffff !important; color: #334155 !important; border: 1px solid #cbd5e1 !important;' }}">
+            class="flex items-center justify-between sm:justify-start gap-2.5 px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-left sm:text-center {{ $tab !== 'registrations' ? 'bg-[#ea580c] text-white shadow-[0_4px_6px_-1px_rgba(234,88,12,0.3)]' : 'bg-white text-slate-700 border border-slate-300' }}">
             <div class="flex items-center gap-2">
-                <i class="fa-solid fa-stopwatch" style="{{ $tab !== 'registrations' ? 'color: #ffffff !important;' : 'color: #ea580c !important;' }}"></i>
+                <i class="fa-solid fa-stopwatch {{ $tab !== 'registrations' ? 'text-white' : 'text-[#ea580c]' }}"></i>
                 <span>Sesi Ganti Jam & Pelunasan</span>
             </div>
             @if($pendingCount > 0)
-            <span class="px-2 py-0.5 rounded-full text-[10px] font-black shrink-0"
-                style="{{ $tab !== 'registrations' ? 'background-color: #ffffff !important; color: #ea580c !important;' : 'background-color: #ea580c !important; color: #ffffff !important;' }}">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 {{ $tab !== 'registrations' ? 'bg-white text-[#ea580c]' : 'bg-[#ea580c] text-white' }}">
                 {{ $pendingCount }} Menunggu ACC
             </span>
             @endif
@@ -94,11 +90,11 @@
     <!-- TAB 1: PRA-PENDAFTARAN GANTI JAM (LIVEWIRE 10 DETIK AUTO-REFRESH)         -->
     <!-- ========================================================================= -->
     @livewire('admin.change-time-registration-manager', [
-        'dateFrom' => $dateFrom,
-        'dateTo' => $dateTo,
-        'divisionId' => (string) ($divisionId ?? ''),
-        'search' => (string) ($search ?? ''),
-        'regStatus' => (string) ($regStatus ?? 'pending'),
+    'dateFrom' => $dateFrom,
+    'dateTo' => $dateTo,
+    'divisionId' => (string) ($divisionId ?? ''),
+    'search' => (string) ($search ?? ''),
+    'regStatus' => (string) ($regStatus ?? 'pending'),
     ])
 
     @else
@@ -271,13 +267,13 @@
                     $sessionNotes = $session->notes ?? collect();
                     $sessionUnreadCount = $sessionNotes->where('is_from_admin', false)->where('is_read', false)->count();
                     $sessionNotesJson = $sessionNotes->map(function ($note) {
-                        return [
-                            'id' => $note->id,
-                            'message' => $note->message,
-                            'is_from_admin' => (bool) $note->is_from_admin,
-                            'sender_name' => $note->user?->profile?->full_name ?? $note->user?->username ?? ($note->is_from_admin ? 'Admin' : 'Pemagang'),
-                            'time' => $note->created_at ? $note->created_at->locale('id')->isoFormat('D MMM, HH:mm') : '-',
-                        ];
+                    return [
+                    'id' => $note->id,
+                    'message' => $note->message,
+                    'is_from_admin' => (bool) $note->is_from_admin,
+                    'sender_name' => $note->user?->profile?->full_name ?? $note->user?->username ?? ($note->is_from_admin ? 'Admin' : 'Pemagang'),
+                    'time' => $note->created_at ? $note->created_at->locale('id')->isoFormat('D MMM, HH:mm') : '-',
+                    ];
                     })->values()->toArray();
                     @endphp
                     <tr class="hover:bg-slate-50/80 transition">
@@ -297,29 +293,29 @@
                             {{-- Status Approval Pendaftaran --}}
                             <div class="mt-1.5 flex items-center gap-1 flex-wrap">
                                 @if($matchedReg && in_array($matchedReg->status, ['approved', 'completed']))
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs" 
-                                          title="Pendaftaran ganti jam telah disetujui admin{{ $matchedReg->shift ? ' (' . $matchedReg->shift->name . ')' : '' }}">
-                                        <i class="fa-solid fa-circle-check text-emerald-600 text-[9px]"></i>
-                                        <span>Pendaftaran Disetujui</span>
-                                    </span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-2xs"
+                                    title="Pendaftaran ganti jam telah disetujui admin{{ $matchedReg->shift ? ' (' . $matchedReg->shift->name . ')' : '' }}">
+                                    <i class="fa-solid fa-circle-check text-emerald-600 text-[9px]"></i>
+                                    <span>Pendaftaran Disetujui</span>
+                                </span>
                                 @elseif($matchedReg && $matchedReg->status === 'pending')
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs" 
-                                          title="Pemagang telah mendaftar namun belum disetujui admin saat sesi dimulai">
-                                        <i class="fa-solid fa-clock text-amber-600 text-[9px]"></i>
-                                        <span>Pendaftaran Belum Disetujui</span>
-                                    </span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs"
+                                    title="Pemagang telah mendaftar namun belum disetujui admin saat sesi dimulai">
+                                    <i class="fa-solid fa-clock text-amber-600 text-[9px]"></i>
+                                    <span>Pendaftaran Belum Disetujui</span>
+                                </span>
                                 @elseif($matchedReg && $matchedReg->status === 'rejected')
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs" 
-                                          title="Pendaftaran ganti jam pernah ditolak admin">
-                                        <i class="fa-solid fa-circle-xmark text-rose-600 text-[9px]"></i>
-                                        <span>Pendaftaran Ditolak</span>
-                                    </span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-rose-50 text-rose-800 border border-rose-200 shadow-2xs"
+                                    title="Pendaftaran ganti jam pernah ditolak admin">
+                                    <i class="fa-solid fa-circle-xmark text-rose-600 text-[9px]"></i>
+                                    <span>Pendaftaran Ditolak</span>
+                                </span>
                                 @else
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs" 
-                                          title="Pemagang memulai sesi ganti jam langsung tanpa pengajuan pendaftaran">
-                                        <i class="fa-solid fa-triangle-exclamation text-amber-500 text-[9px]"></i>
-                                        <span>Tanpa Pendaftaran</span>
-                                    </span>
+                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200 shadow-2xs"
+                                    title="Pemagang memulai sesi ganti jam langsung tanpa pengajuan pendaftaran">
+                                    <i class="fa-solid fa-triangle-exclamation text-amber-500 text-[9px]"></i>
+                                    <span>Tanpa Pendaftaran</span>
+                                </span>
                                 @endif
                             </div>
                         </td>
@@ -405,16 +401,16 @@
                             @php
                             $workMins = (int) $session->total_work_minutes;
                             if ($session->status === 'active' && !empty($session->start_time) && empty($session->end_time)) {
-                                $sessionDateStr = \Carbon\Carbon::parse($session->session_date)->format('Y-m-d');
-                                $startDateTime = \Carbon\Carbon::parse($sessionDateStr . ' ' . $session->start_time, 'Asia/Jakarta');
-                                $now = \Carbon\Carbon::now('Asia/Jakarta');
-                                $gross = max(0, $now->diffInMinutes($startDateTime));
-                                $breakMins = (int) $session->total_break_minutes;
-                                if (!empty($session->break_time) && empty($session->back_time)) {
-                                    $breakStart = \Carbon\Carbon::parse($sessionDateStr . ' ' . $session->break_time, 'Asia/Jakarta');
-                                    $breakMins = max(0, $now->diffInMinutes($breakStart));
-                                }
-                                $workMins = max(0, $gross - $breakMins);
+                            $sessionDateStr = \Carbon\Carbon::parse($session->session_date)->format('Y-m-d');
+                            $startDateTime = \Carbon\Carbon::parse($sessionDateStr . ' ' . $session->start_time, 'Asia/Jakarta');
+                            $now = \Carbon\Carbon::now('Asia/Jakarta');
+                            $gross = max(0, $now->diffInMinutes($startDateTime));
+                            $breakMins = (int) $session->total_break_minutes;
+                            if (!empty($session->break_time) && empty($session->back_time)) {
+                            $breakStart = \Carbon\Carbon::parse($sessionDateStr . ' ' . $session->break_time, 'Asia/Jakarta');
+                            $breakMins = max(0, $now->diffInMinutes($breakStart));
+                            }
+                            $workMins = max(0, $gross - $breakMins);
                             }
                             // Maksimal akumulasi ganti jam dibatasi 7 jam 15 menit (435 menit)
                             $workMins = min(435, $workMins);
@@ -606,7 +602,7 @@
                     <textarea id="chat_reg_input" name="message" rows="1" required
                         placeholder="Contoh: Kamu berencana ganti jam di kantor mana dan shift jam berapa?..."
                         class="w-full px-2.5 py-1.5 sm:p-2.5 border border-slate-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none text-[11px] sm:text-xs transition leading-normal sm:leading-relaxed resize-none min-h-[36px] sm:min-h-[50px]"></textarea>
-                    
+
                     <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
                         <button type="button" onclick="closeChatRegModal()" class="w-full sm:w-auto px-3.5 py-1.5 sm:py-2 border border-slate-300 text-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-100 text-[11px] sm:text-xs font-semibold transition cursor-pointer text-center">
                             Tutup
@@ -677,7 +673,7 @@
                     <textarea id="chat_session_input" name="message" rows="1" required
                         placeholder="Tulis pesan atau pertanyaan untuk pemagang yang sedang ganti jam..."
                         class="w-full px-2.5 py-1.5 sm:p-2.5 border border-slate-300 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-orange-500 focus:outline-none text-[11px] sm:text-xs transition leading-normal sm:leading-relaxed resize-none min-h-[36px] sm:min-h-[50px]"></textarea>
-                    
+
                     <div class="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-slate-100">
                         <button type="button" onclick="closeChatSessionModal()" class="w-full sm:w-auto px-3.5 py-1.5 sm:py-2 border border-slate-300 text-slate-600 rounded-lg sm:rounded-xl hover:bg-slate-100 text-[11px] sm:text-xs font-semibold transition cursor-pointer text-center">
                             Tutup
@@ -1202,8 +1198,8 @@
 
         // Auto mark as read if has unread
         if (hasUnread) {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                || document.querySelector('input[name="_token"]')?.value;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                document.querySelector('input[name="_token"]')?.value;
             fetch(`/admin/ganti-jam/registrations/${id}/mark-read`, {
                 method: 'POST',
                 headers: {
@@ -1311,8 +1307,8 @@
 
         // Auto mark as read if has unread
         if (hasUnread) {
-            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                || document.querySelector('input[name="_token"]')?.value;
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                document.querySelector('input[name="_token"]')?.value;
             fetch(`/admin/persetujuan-ganti-jam/${id}/mark-read`, {
                 method: 'POST',
                 headers: {
@@ -1368,8 +1364,8 @@
 
                 try {
                     const formData = new FormData(this);
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                        || document.querySelector('input[name="_token"]')?.value;
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                        document.querySelector('input[name="_token"]')?.value;
 
                     const res = await fetch(this.action, {
                         method: 'POST',
@@ -1431,8 +1427,8 @@
 
                 try {
                     const formData = new FormData(this);
-                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-                        || document.querySelector('input[name="_token"]')?.value;
+                    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                        document.querySelector('input[name="_token"]')?.value;
 
                     const res = await fetch(this.action, {
                         method: 'POST',
@@ -1483,7 +1479,10 @@
             const chatObserver = new MutationObserver(() => {
                 sessionMsgContainer.scrollTop = sessionMsgContainer.scrollHeight;
             });
-            chatObserver.observe(sessionMsgContainer, { childList: true, subtree: true });
+            chatObserver.observe(sessionMsgContainer, {
+                childList: true,
+                subtree: true
+            });
         }
 
         const regMsgContainer = document.getElementById('chat-reg-messages');
@@ -1491,7 +1490,10 @@
             const chatObserver = new MutationObserver(() => {
                 regMsgContainer.scrollTop = regMsgContainer.scrollHeight;
             });
-            chatObserver.observe(regMsgContainer, { childList: true, subtree: true });
+            chatObserver.observe(regMsgContainer, {
+                childList: true,
+                subtree: true
+            });
         }
     });
 

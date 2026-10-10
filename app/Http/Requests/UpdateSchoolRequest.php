@@ -18,7 +18,8 @@ class UpdateSchoolRequest extends FormRequest {
         return [
             'namaSekolah' => 'required|string|max:255',
             'alamatSekolah' => 'required|string',
-            'schoolType' => 'required|integer'
+            'schoolType' => 'required|integer',
+            'is_remote_school' => 'nullable|boolean',
         ];
     }
 }

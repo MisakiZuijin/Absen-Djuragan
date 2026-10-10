@@ -156,11 +156,29 @@ class SettingProjectController extends Controller
         $result = $this->projectService->createProject($request);
 
         if (!$result->isSuccess()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result->getMessage(),
+                ], 422);
+            }
             return redirect()->route('admin.pengaturan.project')->with('error', $result->getMessage());
         }
 
-        $projectName = $result->getData()?->name ?? 'Project Baru';
+        $project = $result->getData();
+        $projectName = $project?->name ?? 'Project Baru';
         \App\Helper\ActivityLogger::log('CREATE', 'Project Management', "Admin menambahkan master nama project: {$projectName}");
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Nama project '{$projectName}' berhasil ditambahkan!",
+                'data' => [
+                    'id' => $project?->id,
+                    'name' => $projectName,
+                ],
+            ]);
+        }
 
         return redirect()->route('admin.pengaturan.project')->with('success', "Nama project '{$projectName}' berhasil ditambahkan!");
     }

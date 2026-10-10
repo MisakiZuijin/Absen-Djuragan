@@ -29,13 +29,13 @@ class UpdateAttendanceStatus extends Command
      */
     public function handle(\App\Services\AttendanceService $attendanceService)
     {
-        Log::info('Scheduler is running: Checking for missed attendances...');
-
         try {
-            $attendanceService->markMissedSchedulesAsAlpha();
-            $message = "Successfully checked and marked missed schedules as Alpha.";
-            $this->info($message);
-            Log::info($message);
+            $updatedCount = $attendanceService->markMissedSchedulesAsAlpha();
+            if ($updatedCount > 0) {
+                $message = "UpdateAttendanceStatus: {$updatedCount} jadwal terlewat berhasil ditandai sebagai Alpha.";
+                $this->info($message);
+                Log::info($message);
+            }
             return 0;
         } catch (\Exception $e) {
             $this->error('An error occurred: ' . $e->getMessage());

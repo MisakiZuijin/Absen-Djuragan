@@ -272,6 +272,22 @@
                 </div>
             </div>
 
+            <!-- Bagian Lanjutan: Penempatan Divisi & Meja Terpusat -->
+            <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/80 space-y-2">
+                <div class="flex items-center gap-2 pb-1.5 border-b border-slate-200/60">
+                    <span class="w-6 h-6 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">4</span>
+                    <h2 class="font-bold text-slate-800 text-xs uppercase tracking-wider">Penempatan Divisi & Shift Kantor</h2>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Izin divisi yang beroperasi serta shift aktif untuk kantor ini dikelola secara terpusat di menu <strong>Pusat Otomatisasi Jadwal (Tab 1 &amp; Tab 2)</strong> untuk mencegah inkonsistensi data alokasi.
+                </p>
+                <a href="{{ route('admin.automation-rules.index') }}#tab-matriks-divisi" target="_blank"
+                    class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 pt-1">
+                    <span>Buka Matriks Divisi di Pusat Otomatisasi (Tab 1)</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+            </div>
+
             <!-- Sticky Footer Action Buttons -->
             <div class="pt-2 pb-3 flex items-center justify-end gap-2.5">
                 <a href="{{ route('admin.pengaturan.kantor') }}"

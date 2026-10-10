@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use App\Models\Projects;
 use App\Models\DetailProjects;
 use App\Models\Division;
+use App\Models\DivisionScheduleRule;
 use Exception;
 use function Sentry\captureException;
 
@@ -90,8 +91,21 @@ class DivisionService
                 $file->move(public_path('img'), $filename);
                 $data['icon'] = $filename;
             }
-
             $result = $this->divisionRepository->create($data);
+
+            if ($result) {
+                // Inisialisasi default valid rule di DivisionScheduleRule agar siap dipakai di Pusat Otomatisasi
+                $allShiftIds = \App\Models\Shift::pluck('id')->toArray();
+                DivisionScheduleRule::firstOrCreate(
+                    ['division_id' => $result->id],
+                    [
+                        'allowed_shift_ids' => $allShiftIds,
+                        'shift_distribution_mode' => 'weekly_rotation',
+                        'allow_hybrid_balancing' => true,
+                        'allow_split_shift' => true,
+                    ]
+                );
+            }
 
             return new ActionResult(true, "Division created successfully", $data);
         } catch (\Throwable $th) {
@@ -120,7 +134,7 @@ class DivisionService
             return new ActionResult(true, "Division updated successfully", $data);
         } catch (\Throwable $th) {
             captureException($th); // Error tracking
-            return new ActionResult(false, "Failed to create division, something went wrong", null);
+            return new ActionResult(false, "Failed to update division, something went wrong", null);
         }
     }
 

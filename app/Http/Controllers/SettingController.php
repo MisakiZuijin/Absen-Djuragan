@@ -191,8 +191,15 @@ class SettingController extends Controller
         $request->validate([
             'on_time_message' => 'required|string|max:500',
             'late_message' => 'required|string|max:500',
-            'on_time_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
-            'late_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'on_time_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+            'late_image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
+        ], [
+            'on_time_image.image' => 'File foto kehadiran tepat waktu harus berupa gambar/foto.',
+            'on_time_image.mimes' => 'Format foto kehadiran tepat waktu harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'on_time_image.max' => 'Ukuran foto kehadiran tepat waktu maksimal adalah 2MB.',
+            'late_image.image' => 'File foto kehadiran terlambat harus berupa gambar/foto.',
+            'late_image.mimes' => 'Format foto kehadiran terlambat harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'late_image.max' => 'Ukuran foto kehadiran terlambat maksimal adalah 2MB.',
         ]);
 
         // [FIX] Pastikan folder upload ada — move() gagal (500) jika folder belum ada

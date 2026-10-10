@@ -24,8 +24,28 @@ class Intern extends Model
         "shift_id",
         "nim",
         "start_date",
-        "end_date"
+        "end_date",
+        "home_latitude",
+        "home_longitude",
+        "home_address_notes",
+        "work_placement_type",
+        "hybrid_group",
+        "locked_office_id",
+        "blacklisted_office_id",
+        "hr_placement_notes",
     ];
+
+    /**
+     * Dapatkan grup hybrid yang efektif ('A' atau 'B') secara stabil
+     */
+    public function getEffectiveHybridGroupAttribute(): string
+    {
+        $group = strtolower((string) ($this->hybrid_group ?? 'auto'));
+        if (in_array($group, ['a', 'b'], true)) {
+            return strtoupper($group);
+        }
+        return ((int) $this->id % 2 === 0) ? 'A' : 'B';
+    }
 
 
     public function shift(): BelongsTo
@@ -37,6 +57,11 @@ class Intern extends Model
         return $this->belongsTo(User::class, "user_id", 'id');
     }
 
+    public function piketSchedules(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PiketSchedule::class, 'intern_id');
+    }
+
     public function getGenderAttribute(): ?string
     {
         return $this->user?->profile?->gender;
@@ -45,6 +70,31 @@ class Intern extends Model
     public function isMale(): bool
     {
         return $this->user ? $this->user->isMale() : false;
+    }
+
+    public function getReligionAttribute(): ?string
+    {
+        return $this->user?->profile?->religion;
+    }
+
+    public function isMuslim(): bool
+    {
+        return $this->user ? $this->user->isMuslim() : false;
+    }
+
+    public function isMuslimMale(): bool
+    {
+        return $this->user ? $this->user->isMuslimMale() : false;
+    }
+
+    public function getNIMAttribute(): ?string
+    {
+        return $this->attributes['nim'] ?? null;
+    }
+
+    public function setNIMAttribute($value): void
+    {
+        $this->attributes['nim'] = $value;
     }
 
     public function division(): BelongsTo
@@ -268,5 +318,20 @@ class Intern extends Model
     public function offlineAttendances(): HasMany
     {
         return $this->hasMany(OfflineAttendance::class, 'intern_id');
+    }
+
+    public function lockedOffice(): BelongsTo
+    {
+        return $this->belongsTo(Office::class, 'locked_office_id');
+    }
+
+    public function blacklistedOffice(): BelongsTo
+    {
+        return $this->belongsTo(Office::class, 'blacklisted_office_id');
+    }
+
+    public function conflictRules(): HasMany
+    {
+        return $this->hasMany(InternConflictRule::class, 'intern_id_1');
     }
 }

@@ -17,7 +17,7 @@ class InternRepositoryIMPL implements InternRepository
 
     public function store(array $data)
     {
-        $this->model->create($data);
+        return $this->model->create($data);
     }
 
     public function update(int $id, array $data)
@@ -34,7 +34,14 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getBySchoolId(int $schoolId)
     {
-        return $this->model->where("school_id", $schoolId)->get();
+        return $this->model->with([
+            'user.profile',
+            'division',
+            'shift',
+            'lockedOffice',
+            'schedules.office',
+            'whatsappNumber',
+        ])->where("school_id", $schoolId)->get();
     }
 
     public function getByProfileId(int $profile_id)
@@ -44,7 +51,7 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getAll()
     {
-        return $this->model->with(['user.profile', 'brand'])->get();
+        return $this->model->with(['user.profile', 'brand', 'school'])->get();
     }
 
     public function getAllWithPaggination(int $pagination, int $currentPage)
@@ -81,12 +88,20 @@ class InternRepositoryIMPL implements InternRepository
 
     public function getWithoutDivision()
     {
-        return $this->model->with(['user.profile', 'brand'])->where("division_id", null)->get();
+        return $this->model->with(['user.profile', 'brand', 'school', 'division'])
+            ->where(function ($query) {
+                $query->whereNull('division_id')
+                    ->orWhereHas('user', function ($uq) {
+                        $uq->where('is_active', false);
+                    });
+            })
+            ->latest('id')
+            ->get();
     }
 
     public function getByDivisionId(int $id)
     {
-        return $this->model->with(['user.profile', 'brand'])->where("division_id", $id)->get();
+        return $this->model->with(['user.profile', 'brand', 'school'])->where("division_id", $id)->get();
     }
 
     public function getMultiByNamePagination(string $name, int $pagnt, int $currentPage)

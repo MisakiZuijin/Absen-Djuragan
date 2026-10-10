@@ -39,13 +39,24 @@ class SettingBrandController extends Controller
      */
     public function storeBrand(Request $request): RedirectResponse
     {
+        $messages = [
+            'slug.unique' => 'Nama brand ini menghasilkan identifier/slug yang sudah digunakan. Harap gunakan nama brand yang berbeda.',
+            'logo.image' => 'File logo harus berupa gambar/foto.',
+            'logo.mimes' => 'Format foto logo harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'logo.max' => 'Ukuran file logo maksimal adalah 2MB.',
+        ];
+
+        // Slug selalu di-generate otomatis langsung dari nama brand
+        $generatedSlug = Str::slug($request->input('name', '')) ?: ('brand-' . time());
+        $request->merge(['slug' => $generatedSlug]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:brands,slug',
+            'slug' => 'required|string|max:255|unique:brands,slug',
             'description' => 'nullable|string|max:1000',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'nullable|boolean',
-        ]);
+        ], $messages);
 
         $logoName = null;
         if ($request->hasFile('logo')) {
@@ -56,7 +67,7 @@ class SettingBrandController extends Controller
 
         $brand = Brand::create([
             'name' => $validated['name'],
-            'slug' => !empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['name']),
+            'slug' => $validated['slug'],
             'logo' => $logoName,
             'description' => $validated['description'] ?? null,
             'is_active' => $request->has('is_active') ? (bool) $request->input('is_active') : true,
@@ -74,17 +85,28 @@ class SettingBrandController extends Controller
     {
         $brand = Brand::findOrFail($id);
 
+        $messages = [
+            'slug.unique' => 'Nama brand ini menghasilkan identifier/slug yang sudah digunakan oleh brand lain. Harap gunakan nama yang berbeda.',
+            'logo.image' => 'File logo harus berupa gambar/foto.',
+            'logo.mimes' => 'Format foto logo harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'logo.max' => 'Ukuran file logo maksimal adalah 2MB.',
+        ];
+
+        // Slug selalu di-generate otomatis langsung dari nama brand
+        $generatedSlug = Str::slug($request->input('name', '')) ?: ('brand-' . time());
+        $request->merge(['slug' => $generatedSlug]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'slug' => 'nullable|string|max:255|unique:brands,slug,' . $id,
+            'slug' => 'required|string|max:255|unique:brands,slug,' . $id,
             'description' => 'nullable|string|max:1000',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'nullable|boolean',
-        ]);
+        ], $messages);
 
         $data = [
             'name' => $validated['name'],
-            'slug' => !empty($validated['slug']) ? Str::slug($validated['slug']) : Str::slug($validated['name']),
+            'slug' => $validated['slug'],
             'description' => $validated['description'] ?? null,
             'is_active' => $request->has('is_active') ? (bool) $request->input('is_active') : $brand->is_active,
         ];

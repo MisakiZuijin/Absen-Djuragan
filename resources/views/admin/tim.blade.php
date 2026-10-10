@@ -63,7 +63,7 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fa fa-search text-gray-400 text-xs"></i>
                                 </div>
-                                <input type="text" id="searchInput" placeholder="Cari anggota atau NIP..."
+                                <input type="text" id="searchInput" placeholder="Cari anggota, NIP, atau sekolah..."
                                     class="w-full pl-8 pr-4 py-1.5 text-xs border border-gray-300 rounded-full text-gray-800 focus:outline-none focus:ring-1 focus:ring-gray-500 bg-white">
                             </div>
                         </div>
@@ -137,13 +137,21 @@
                                             class="text-white cursor-pointer">{{ $team->user->profile->NIP ?? 'NIP Empty' }}</label>
                                     </div>
                                     <p class="text-gray-700 px-3 pt-3 font-medium">{{ $team->user->profile->full_name }}</p>
-                                    @if($team->brand)
-                                        <div class="px-3 pb-2">
+                                    @if($team->school)
+                                        <p class="text-xs text-gray-500 px-3 pb-1 font-normal team-school-name">{{ $team->school->name }}</p>
+                                    @endif
+                                    <div class="px-3 pb-2 flex flex-wrap items-center gap-1.5">
+                                        @if($team->brand)
                                             <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
                                                 <i class="fa-solid fa-tag mr-1 text-[9px]"></i> {{ $team->brand->name }}
                                             </span>
-                                        </div>
-                                    @endif
+                                        @endif
+                                        @if($team->user && !$team->user->is_active)
+                                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-amber-50 text-amber-700 border border-amber-200" title="Akun belum aktif (menunggu aktivasi admin)">
+                                                <i class="fa-solid fa-circle-exclamation mr-1 text-[9px]"></i> Belum Aktif
+                                            </span>
+                                        @endif
+                                    </div>
                     
                                     <!-- Sunting dan Hapus di bawah kanan -->
                                     <div class="flex justify-end space-x-1 mt-auto mb-2 mr-2">
@@ -192,11 +200,13 @@
                     teamCards.forEach(function(card) {
                         let nameElement = card.querySelector('.text-gray-700');
                         let NIPElement = card.querySelector('.text-white');
+                        let schoolElement = card.querySelector('.team-school-name');
 
                         let name = nameElement ? nameElement.innerText.toLowerCase() : '';
                         let NIP = NIPElement ? NIPElement.innerText.toLowerCase() : '';
+                        let school = schoolElement ? schoolElement.innerText.toLowerCase() : '';
 
-                        if (name.includes(filter) || NIP.includes(filter)) {
+                        if (name.includes(filter) || NIP.includes(filter) || school.includes(filter)) {
                             card.style.display = '';
                         } else {
                             card.style.display = 'none';

@@ -55,6 +55,7 @@ class ScheduledBroadcastController extends Controller
             'users' => $users,
             'shifts' => $shifts,
             'offices' => $offices,
+            'totalDivisions' => $divisions->count(),
         ]);
     }
 
@@ -74,15 +75,15 @@ class ScheduledBroadcastController extends Controller
             'users' => 'nullable|required_if:broadcast_type,specific|array',
             'offices' => 'nullable|required_if:broadcast_type,office|array',
             'images' => 'nullable|array',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
             'scheduled_at.required' => 'Waktu jadwal pengiriman wajib diisi.',
             'scheduled_at.date' => 'Format jadwal pengiriman tidak valid.',
             'shifts.required' => 'Target shift kerja wajib dipilih.',
             'shifts.min' => 'Pilih minimal satu shift kerja.',
-            'images.*.image' => 'Berkas lampiran harus berupa gambar.',
-            'images.*.mimes' => 'Format gambar harus JPG, PNG, GIF, atau WebP.',
-            'images.*.max' => 'Ukuran setiap gambar maksimal 2MB.',
+            'images.*.image' => 'Berkas lampiran harus berupa foto/gambar.',
+            'images.*.mimes' => 'Format foto harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'images.*.max' => 'Ukuran setiap foto maksimal 2MB.',
         ]);
 
         DB::beginTransaction();
@@ -105,7 +106,16 @@ class ScheduledBroadcastController extends Controller
             $broadcast->shifts()->sync($validated['shifts'] ?? []);
 
             $type = $validated['broadcast_type'];
-            $broadcast->divisions()->sync($type === 'division' ? ($validated['divisions'] ?? []) : []);
+            $divisionIds = [];
+            if ($type === 'division') {
+                $rawDivisions = $validated['divisions'] ?? [];
+                if (in_array('all', $rawDivisions) || in_array('all_divisions', $rawDivisions)) {
+                    $divisionIds = Division::pluck('id')->toArray();
+                } else {
+                    $divisionIds = array_filter($rawDivisions, fn($id) => is_numeric($id));
+                }
+            }
+            $broadcast->divisions()->sync($divisionIds);
             $broadcast->users()->sync($type === 'specific' ? ($validated['users'] ?? []) : []);
             $broadcast->offices()->sync($type === 'office' ? ($validated['offices'] ?? []) : []);
 

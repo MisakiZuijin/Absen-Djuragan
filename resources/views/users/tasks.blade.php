@@ -18,6 +18,12 @@ str_contains($userDivName, 'content') ||
 str_contains($userDivName, 'talent') ||
 str_contains($userDivName, 'presenter');
 $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
+
+// Checklist Platform yang diaktifkan oleh Admin untuk Pemagang ini
+$hasTaskLinkPlatform = $internAccount ? $internAccount->hasTaskLinkPlatform() : false;
+$enabledTaskPlatforms = $internAccount ? $internAccount->getEnabledTaskPlatformNames() : [];
+$taskPlatformLabel = !empty($enabledTaskPlatforms) ? implode(' / ', $enabledTaskPlatforms) : 'Tugas';
+$userGdriveUrl = $internAccount?->gdrive_url ?? '';
 @endphp
 
 <div class="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
@@ -335,39 +341,73 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
                     $taskWorkUrl = $task->project?->repository_url ?? '';
                     $projId = $task->project?->id;
                     $projName = $task->project?->nameProject->name ?? 'Tugas Pembimbing';
-                    $isUiMode = $isUserUiUx || str_contains(strtolower($taskWorkUrl), 'figma');
                     @endphp
                     @if($projId)
-                    <div class="p-3 bg-white rounded-xl border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-7 h-7 rounded-lg {{ $isUiMode ? 'bg-purple-600' : 'bg-gray-900' }} text-white flex items-center justify-center flex-shrink-0 text-sm">
-                                <i class="{{ $isUiMode ? 'fa-brands fa-figma' : 'fa-brands fa-github' }}"></i>
+                        @if($hasTaskLinkPlatform)
+                            {{-- Case 1: Ada checklist platform (Git, Figma, atau Sosmed) --}}
+                            @php
+                            $hasGitOnly = in_array('Git', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+                            $hasFigmaOnly = in_array('Figma', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+                            $hasSosmedOnly = in_array('Media Sosial', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+
+                            $linkBoxIcon = $hasGitOnly ? 'fa-brands fa-github' : ($hasFigmaOnly ? 'fa-brands fa-figma' : ($hasSosmedOnly ? 'fa-solid fa-share-nodes' : 'fa-solid fa-link'));
+                            $linkBoxBg = $hasGitOnly ? 'bg-gray-900' : ($hasFigmaOnly ? 'bg-purple-600' : ($hasSosmedOnly ? 'bg-pink-600' : 'bg-indigo-600'));
+                            $linkBoxTitle = $hasGitOnly ? 'Hasil Karya / Git Repository:' : ($hasFigmaOnly ? 'Project / File Figma:' : ($hasSosmedOnly ? 'Tautan Konten / Medsos:' : "Hasil Karya ({$taskPlatformLabel}):"));
+                            @endphp
+                            <div class="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+                                <div class="flex items-center gap-2 min-w-0">
+                                    <div class="w-7 h-7 rounded-lg {{ $linkBoxBg }} text-white flex items-center justify-center flex-shrink-0 text-sm">
+                                        <i class="{{ $linkBoxIcon }}"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-800 text-xs">{{ $linkBoxTitle }}</div>
+                                        @if(!empty($taskWorkUrl))
+                                        <a href="{{ $taskWorkUrl }}" target="_blank" rel="noopener noreferrer"
+                                            class="text-indigo-600 hover:text-indigo-800 hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
+                                            title="{{ $taskWorkUrl }}">
+                                            <span class="truncate">{{ $taskWorkUrl }}</span>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
+                                        </a>
+                                        @else
+                                        <span class="text-gray-400 text-xs">Belum ditautkan link hasil karya ({{ $taskPlatformLabel }})</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <button type="button"
+                                    data-project-id="{{ $projId }}"
+                                    data-project-name="{{ $projName }}"
+                                    data-current-url="{{ $taskWorkUrl }}"
+                                    data-platforms="{{ $taskPlatformLabel }}"
+                                    onclick="openGitRepoModal(this)"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-800 text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0 cursor-pointer">
+                                    <i class="fa-solid fa-link text-indigo-600 text-xs"></i>
+                                    <span>{{ !empty($taskWorkUrl) ? 'Ubah Tautan' : '+ Tautkan Hasil Karya' }}</span>
+                                </button>
                             </div>
-                            <div class="min-w-0">
-                                <div class="font-bold text-gray-800 text-xs">{{ $isUiMode ? 'Project Figma Tugas:' : 'Hasil Karya / Repo Tugas:' }}</div>
-                                @if(!empty($taskWorkUrl))
-                                <a href="{{ $taskWorkUrl }}" target="_blank" rel="noopener noreferrer"
-                                    class="{{ $isUiMode ? 'text-purple-600 hover:text-purple-800' : 'text-indigo-600 hover:text-indigo-800' }} hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
-                                    title="{{ $taskWorkUrl }}">
-                                    <span class="truncate">{{ $taskWorkUrl }}</span>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
+                        @elseif(!empty($taskWorkUrl) || !empty($userGdriveUrl))
+                            {{-- Case 2: Tidak ada checklist Git/Figma/Sosmed, otomatis gunakan Google Drive tanpa tombol isi link --}}
+                            <div class="p-3 bg-white rounded-xl border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+                                <div class="flex items-center gap-2.5 min-w-0">
+                                    <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                                        <i class="fa-brands fa-google-drive"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-800 text-xs">Folder Tugas (Google Drive):</div>
+                                        <a href="{{ $taskWorkUrl ?: $userGdriveUrl }}" target="_blank" rel="noopener noreferrer"
+                                            class="text-indigo-600 hover:text-indigo-800 hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
+                                            title="{{ $taskWorkUrl ?: $userGdriveUrl }}">
+                                            <span class="truncate">{{ $taskWorkUrl ?: $userGdriveUrl }}</span>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <a href="{{ $taskWorkUrl ?: $userGdriveUrl }}" target="_blank" rel="noopener noreferrer"
+                                    class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0 cursor-pointer">
+                                    <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                    <span>Buka Folder Drive</span>
                                 </a>
-                                @else
-                                <span class="text-gray-400 text-xs">Belum ditautkan link repo/hasil karya</span>
-                                @endif
                             </div>
-                        </div>
-                        <button type="button"
-                            data-project-id="{{ $projId }}"
-                            data-project-name="{{ $projName }}"
-                            data-current-url="{{ $taskWorkUrl }}"
-                            data-mode="{{ $isUiMode ? 'uiux' : 'programmer' }}"
-                            onclick="openGitRepoModal(this)"
-                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 {{ $isUiMode ? 'bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800' : 'bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-800' }} text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0">
-                            <i class="fa-solid fa-link {{ $isUiMode ? 'text-purple-600' : 'text-indigo-600' }} text-xs"></i>
-                            <span>{{ !empty($taskWorkUrl) ? 'Ubah Tautan' : '+ Tautkan Hasil Karya' }}</span>
-                        </button>
-                    </div>
+                        @endif
                     @endif
                 </div>
 
@@ -492,38 +532,73 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
                     {{-- WIDGET LINK PROJECT / HASIL KARYA TUGAS --}}
                     @php
                     $projWorkUrl = $project->repository_url ?? '';
-                    $isUiModeProj = $isUserUiUx || str_contains(strtolower($projWorkUrl), 'figma');
+                    $projName = $project->nameProject->name ?? 'Project';
                     @endphp
-                    <div class="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <div class="w-7 h-7 rounded-lg {{ $isUiModeProj ? 'bg-purple-600' : 'bg-gray-900' }} text-white flex items-center justify-center flex-shrink-0 text-sm">
-                                <i class="{{ $isUiModeProj ? 'fa-brands fa-figma' : 'fa-brands fa-github' }}"></i>
+                    @if($hasTaskLinkPlatform)
+                        {{-- Case 1: Ada checklist platform (Git, Figma, atau Sosmed) --}}
+                        @php
+                        $hasGitOnly = in_array('Git', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+                        $hasFigmaOnly = in_array('Figma', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+                        $hasSosmedOnly = in_array('Media Sosial', $enabledTaskPlatforms) && count($enabledTaskPlatforms) === 1;
+
+                        $linkBoxIcon = $hasGitOnly ? 'fa-brands fa-github' : ($hasFigmaOnly ? 'fa-brands fa-figma' : ($hasSosmedOnly ? 'fa-solid fa-share-nodes' : 'fa-solid fa-link'));
+                        $linkBoxBg = $hasGitOnly ? 'bg-gray-900' : ($hasFigmaOnly ? 'bg-purple-600' : ($hasSosmedOnly ? 'bg-pink-600' : 'bg-indigo-600'));
+                        $linkBoxTitle = $hasGitOnly ? 'Hasil Karya / Git Repository:' : ($hasFigmaOnly ? 'Project / File Figma:' : ($hasSosmedOnly ? 'Tautan Konten / Medsos:' : "Hasil Karya ({$taskPlatformLabel}):"));
+                        @endphp
+                        <div class="p-3 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <div class="w-7 h-7 rounded-lg {{ $linkBoxBg }} text-white flex items-center justify-center flex-shrink-0 text-sm">
+                                    <i class="{{ $linkBoxIcon }}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-gray-800 text-xs">{{ $linkBoxTitle }}</div>
+                                    @if(!empty($projWorkUrl))
+                                    <a href="{{ $projWorkUrl }}" target="_blank" rel="noopener noreferrer"
+                                        class="text-indigo-600 hover:text-indigo-800 hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
+                                        title="{{ $projWorkUrl }}">
+                                        <span class="truncate">{{ $projWorkUrl }}</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
+                                    </a>
+                                    @else
+                                    <span class="text-gray-400 text-xs">Belum ditautkan link hasil karya ({{ $taskPlatformLabel }})</span>
+                                    @endif
+                                </div>
                             </div>
-                            <div class="min-w-0">
-                                <div class="font-bold text-gray-800 text-xs">{{ $isUiModeProj ? 'Project Figma:' : 'Hasil Karya / Git Repository:' }}</div>
-                                @if(!empty($projWorkUrl))
-                                <a href="{{ $projWorkUrl }}" target="_blank" rel="noopener noreferrer"
-                                    class="{{ $isUiModeProj ? 'text-purple-600 hover:text-purple-800' : 'text-indigo-600 hover:text-indigo-800' }} hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
-                                    title="{{ $projWorkUrl }}">
-                                    <span class="truncate">{{ $projWorkUrl }}</span>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
-                                </a>
-                                @else
-                                <span class="text-gray-400 text-xs">Belum ditautkan link hasil karya/repo</span>
-                                @endif
-                            </div>
+                            <button type="button"
+                                data-project-id="{{ $project->id }}"
+                                data-project-name="{{ $projName }}"
+                                data-current-url="{{ $projWorkUrl }}"
+                                data-platforms="{{ $taskPlatformLabel }}"
+                                onclick="openGitRepoModal(this)"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-800 text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0 cursor-pointer">
+                                <i class="fa-solid fa-link text-indigo-600 text-xs"></i>
+                                <span>{{ !empty($projWorkUrl) ? 'Ubah Tautan' : '+ Tautkan Hasil Karya' }}</span>
+                            </button>
                         </div>
-                        <button type="button"
-                            data-project-id="{{ $project->id }}"
-                            data-project-name="{{ $project->nameProject->name ?? 'Project' }}"
-                            data-current-url="{{ $projWorkUrl }}"
-                            data-mode="{{ $isUiModeProj ? 'uiux' : 'programmer' }}"
-                            onclick="openGitRepoModal(this)"
-                            class="w-full sm:w-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 {{ $isUiModeProj ? 'bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-800' : 'bg-gray-50 hover:bg-gray-100 border border-gray-300 text-gray-800' }} text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0">
-                            <i class="fa-solid fa-link {{ $isUiModeProj ? 'text-purple-600' : 'text-indigo-600' }} text-xs"></i>
-                            <span>{{ !empty($projWorkUrl) ? 'Ubah Tautan' : '+ Tautkan Hasil Karya' }}</span>
-                        </button>
-                    </div>
+                    @elseif(!empty($projWorkUrl) || !empty($userGdriveUrl))
+                        {{-- Case 2: Tidak ada checklist Git/Figma/Sosmed, otomatis gunakan Google Drive tanpa tombol isi link --}}
+                        <div class="p-3 bg-white rounded-xl border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs shadow-2xs">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                                    <i class="fa-brands fa-google-drive"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="font-bold text-gray-800 text-xs">Folder Tugas (Google Drive):</div>
+                                    <a href="{{ $projWorkUrl ?: $userGdriveUrl }}" target="_blank" rel="noopener noreferrer"
+                                        class="text-indigo-600 hover:text-indigo-800 hover:underline text-xs font-medium flex items-center gap-1 truncate max-w-full sm:max-w-xs"
+                                        title="{{ $projWorkUrl ?: $userGdriveUrl }}">
+                                        <span class="truncate">{{ $projWorkUrl ?: $userGdriveUrl }}</span>
+                                        <i class="fa-solid fa-arrow-up-right-from-square text-xs flex-shrink-0"></i>
+                                    </a>
+                                </div>
+                            </div>
+                            <a href="{{ $projWorkUrl ?: $userGdriveUrl }}" target="_blank" rel="noopener noreferrer"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 text-xs font-bold rounded-lg transition shadow-xs flex-shrink-0 cursor-pointer">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
+                                <span>Buka Folder Drive</span>
+                            </a>
+                        </div>
+                    @endif
                 </div>
 
             </div>
@@ -630,37 +705,28 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
                         {{ $project->description ?: 'Tidak ada deskripsi detail pada penugasan ini.' }}
                     </div>
 
-                    @if($isUserProg && !empty($project->repository_url))
+                    @if(!empty($project->repository_url))
+                    @php
+                    $pUrl = $project->repository_url;
+                    $isGdrive = str_contains($pUrl, 'drive.google.com');
+                    $isGit = str_contains($pUrl, 'github.com') || str_contains($pUrl, 'gitlab');
+                    $isFigma = str_contains($pUrl, 'figma.com');
+                    $isSosmed = str_contains($pUrl, 'instagram.com') || str_contains($pUrl, 'tiktok.com') || str_contains($pUrl, 'youtube.com');
+
+                    $linkIcon = $isGdrive ? 'fa-brands fa-google-drive text-amber-500' : ($isGit ? 'fa-brands fa-github text-gray-800' : ($isFigma ? 'fa-brands fa-figma text-purple-600' : ($isSosmed ? 'fa-solid fa-share-nodes text-pink-500' : 'fa-solid fa-link text-indigo-600')));
+                    $btnLabel = $isGdrive ? 'Buka Drive' : ($isGit ? 'Buka Repo' : ($isFigma ? 'Buka Figma' : 'Buka Tautan'));
+                    @endphp
                     <div class="p-2.5 bg-white rounded-xl border border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
                         <div class="flex items-center gap-2 truncate min-w-0">
-                            <i class="fa-brands fa-github text-gray-800 flex-shrink-0"></i>
-                            <span class="font-medium text-gray-700 truncate text-xs">{{ $project->repository_url }}</span>
+                            <i class="{{ $linkIcon }} flex-shrink-0 text-sm"></i>
+                            <span class="font-medium text-gray-700 truncate text-xs">{{ $pUrl }}</span>
                         </div>
-                        <a href="{{ $project->repository_url }}" target="_blank" rel="noopener noreferrer"
+                        <a href="{{ $pUrl }}" target="_blank" rel="noopener noreferrer"
                             class="w-full sm:w-auto justify-center px-2.5 py-1.5 sm:py-1 bg-gray-900 hover:bg-black text-white rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0">
-                            <span>Buka Repo</span>
+                            <span>{{ $btnLabel }}</span>
                             <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
                         </a>
                     </div>
-                    @elseif($isUserUiUx)
-                    @php
-                    $completedFigma = (!empty($project->repository_url) && str_contains($project->repository_url, 'figma'))
-                    ? $project->repository_url
-                    : null;
-                    @endphp
-                    @if(!empty($completedFigma))
-                    <div class="p-2.5 bg-white rounded-xl border border-purple-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                        <div class="flex items-center gap-2 truncate min-w-0">
-                            <i class="fa-brands fa-figma text-purple-600 flex-shrink-0"></i>
-                            <span class="font-medium text-purple-900 truncate text-xs">{{ $completedFigma }}</span>
-                        </div>
-                        <a href="{{ $completedFigma }}" target="_blank" rel="noopener noreferrer"
-                            class="w-full sm:w-auto justify-center px-2.5 py-1.5 sm:py-1 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-bold flex items-center gap-1 flex-shrink-0">
-                            <span>Buka Figma</span>
-                            <i class="fa-solid fa-arrow-up-right-from-square text-xs"></i>
-                        </a>
-                    </div>
-                    @endif
                     @endif
                 </div>
 
@@ -750,6 +816,7 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
                                 <input type="password" id="user_gmail_password" name="gmail_password"
                                     value="{{ old('gmail_password', $internAccount?->gmail_password) }}"
                                     placeholder="{{ $internAccount?->gmail_password ? '•••••••• (Isi untuk mengganti)' : 'Masukkan password akun kantor' }}"
+                                    autocomplete="new-password"
                                     class="w-full p-2.5 pr-10 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-mono">
                                 <button type="button" onclick="toggleTaskPasswordVisibility('user_gmail_password', this)"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -757,9 +824,7 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
                                     <i class="fa-regular fa-eye text-xs"></i>
                                 </button>
                             </div>
-                            <p class="text-[11px] text-gray-500 mt-1">
-                                <i class="fa-solid fa-lock text-slate-400 mr-1"></i> Disimpan dengan enkripsi dua arah (AES-256). Dapat diisi atau disunting oleh pemagang dan admin.
-                            </p>
+
                         </div>
                     </div>
                     @endif
@@ -879,7 +944,7 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
 </div>
 
 <!-- ==================================================================== -->
-<!-- [MODAL 2] TAUTKAN LINK KARYA PROJECT (GIT REPO / FIGMA) -->
+<!-- [MODAL 2] TAUTKAN LINK KARYA PROJECT / TUGAS -->
 <!-- ==================================================================== -->
 <div id="gitRepoModal" class="fixed inset-0 bg-gray-900/70 backdrop-blur-sm flex justify-center items-center hidden z-[9999] p-3 sm:p-4" onclick="if(event.target === this) closeGitRepoModal();">
     <div class="bg-white rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl w-full max-w-lg transform transition-all flex flex-col animate-fadeIn">
@@ -887,14 +952,14 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
         <div id="repoModalHeader" class="bg-gray-900 text-white px-4 sm:px-6 py-3.5 sm:py-5 flex justify-between items-center border-b border-gray-800">
             <div class="flex items-center space-x-3">
                 <div id="repoModalIconWrapper" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gray-800 text-white flex items-center justify-center text-lg sm:text-xl shadow-sm border border-gray-700 flex-shrink-0">
-                    <i id="repoModalIcon" class="fa-brands fa-github"></i>
+                    <i id="repoModalIcon" class="fa-solid fa-link"></i>
                 </div>
                 <div>
-                    <h3 id="repoModalTitle" class="text-sm sm:text-base font-bold text-white">Tautkan Git Repository</h3>
-                    <p id="repoModalSubtitle" class="text-xs sm:text-sm text-gray-400 mt-0.5">Khusus Divisi Programmer & Developer</p>
+                    <h3 id="repoModalTitle" class="text-sm sm:text-base font-bold text-white">Tautkan Hasil Karya / Link Tugas</h3>
+                    <p id="repoModalSubtitle" class="text-xs sm:text-sm text-gray-400 mt-0.5">Ketentuan: <span id="repoModalPlatforms">{{ $taskPlatformLabel }}</span></p>
                 </div>
             </div>
-            <button type="button" onclick="closeGitRepoModal()" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 flex items-center justify-center transition">
+            <button type="button" onclick="closeGitRepoModal()" class="w-8 h-8 rounded-full bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 flex items-center justify-center transition cursor-pointer">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -906,7 +971,7 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
             @csrf
             <div class="p-4 sm:p-6 space-y-4 text-xs">
                 <div>
-                    <span class="text-gray-500 font-medium block mb-1">Nama Project:</span>
+                    <span class="text-gray-500 font-medium block mb-1">Nama Project / Tugas:</span>
                     <div id="gitRepoProjectName" class="font-bold text-gray-900 text-xs sm:text-sm bg-gray-50 p-3 rounded-xl border border-gray-200">
                         -
                     </div>
@@ -914,30 +979,30 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
 
                 <div class="space-y-1.5">
                     <label id="repoModalLabel" for="git_repository_url" class="block font-bold text-gray-800">
-                        URL Repository Git <span class="text-red-500">*</span>
+                        URL Tautan Tugas <span class="text-red-500">*</span>
                     </label>
                     <div class="relative">
                         <input type="url" name="repository_url" id="git_repository_url" required
-                            placeholder="https://github.com/username/nama-project"
+                            placeholder="https://... (masukkan link tugas)"
                             class="w-full p-2.5 sm:p-3 pl-10 border border-gray-300 rounded-xl text-xs text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-medium">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                            <i id="repoModalInputIcon" class="fa-brands fa-github text-sm"></i>
+                            <i id="repoModalInputIcon" class="fa-solid fa-link text-sm"></i>
                         </div>
                     </div>
                     <p id="repoModalHelp" class="text-xs text-gray-500 leading-relaxed pt-0.5">
-                        Masukkan tautan repository GitHub, GitLab, atau Bitbucket. Pastikan repo bersifat <strong>Public</strong> atau pembimbing telah di-invite sebagai collaborator agar kode bisa direview.
+                        Masukkan tautan tugas hasil karya Anda. Anda bebas memasukkan tautan yang valid (Git, Figma, Media Sosial, atau link dokumen tugas lainnya). Pastikan link dapat diakses oleh pembimbing.
                     </p>
                 </div>
             </div>
 
             <!-- Modal Footer -->
             <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 sm:gap-2.5">
-                <button type="button" onclick="closeGitRepoModal()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-100 transition text-center">
+                <button type="button" onclick="closeGitRepoModal()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-xl text-xs font-semibold text-gray-700 hover:bg-gray-100 transition text-center cursor-pointer">
                     Batal
                 </button>
-                <button id="repoModalSubmitBtn" type="submit" class="w-full sm:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2">
+                <button id="repoModalSubmitBtn" type="submit" class="w-full sm:w-auto px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
-                    <span id="repoModalSubmitText">Simpan Repository</span>
+                    <span id="repoModalSubmitText">Simpan Tautan Tugas</span>
                 </button>
             </div>
         </form>
@@ -1023,23 +1088,24 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
         $('#divisionAccountModal').addClass('hidden').removeClass('flex');
     }
 
-    function openGitRepoModal(projectIdOrBtn, projectName, currentUrl, mode = 'programmer') {
-        let projectId, pName, cUrl, pMode;
+    function openGitRepoModal(projectIdOrBtn, projectName, currentUrl, platforms = null) {
+        let projectId, pName, cUrl, pPlatforms;
         if (typeof projectIdOrBtn === 'object' && projectIdOrBtn !== null && projectIdOrBtn.dataset) {
             projectId = projectIdOrBtn.dataset.projectId;
             pName = projectIdOrBtn.dataset.projectName;
             cUrl = projectIdOrBtn.dataset.currentUrl;
-            pMode = projectIdOrBtn.dataset.mode || 'programmer';
+            pPlatforms = projectIdOrBtn.dataset.platforms || 'Git / Figma / Media Sosial';
         } else {
             projectId = projectIdOrBtn;
             pName = projectName;
             cUrl = currentUrl;
-            pMode = mode;
+            pPlatforms = platforms || 'Git / Figma / Media Sosial';
         }
 
         const form = document.getElementById('gitRepoForm');
         const nameEl = document.getElementById('gitRepoProjectName');
         const inputEl = document.getElementById('git_repository_url');
+        const platformsEl = document.getElementById('repoModalPlatforms');
 
         if (form) {
             form.action = `/user/projects/${projectId}/repository`;
@@ -1050,45 +1116,8 @@ $isUserGeneral = !$isUserProg && !$isUserUiUx && !$isUserSosmed;
         if (inputEl) {
             inputEl.value = cUrl || '';
         }
-
-        const isUiUx = (pMode === 'uiux');
-
-        // Dynamic elements
-        const headerEl = document.getElementById('repoModalHeader');
-        const iconWrapperEl = document.getElementById('repoModalIconWrapper');
-        const iconEl = document.getElementById('repoModalIcon');
-        const titleEl = document.getElementById('repoModalTitle');
-        const subtitleEl = document.getElementById('repoModalSubtitle');
-        const labelEl = document.getElementById('repoModalLabel');
-        const inputIconEl = document.getElementById('repoModalInputIcon');
-        const helpEl = document.getElementById('repoModalHelp');
-        const submitBtnEl = document.getElementById('repoModalSubmitBtn');
-        const submitTextEl = document.getElementById('repoModalSubmitText');
-
-        if (isUiUx) {
-            if (headerEl) headerEl.className = 'bg-purple-900 text-white px-6 py-5 flex justify-between items-center border-b border-purple-800';
-            if (iconWrapperEl) iconWrapperEl.className = 'w-10 h-10 rounded-xl bg-purple-800 text-white flex items-center justify-center text-xl shadow-sm border border-purple-700';
-            if (iconEl) iconEl.className = 'fa-brands fa-figma';
-            if (titleEl) titleEl.textContent = 'Tautkan Project Figma';
-            if (subtitleEl) subtitleEl.textContent = 'Khusus Divisi UI/UX & Designer';
-            if (labelEl) labelEl.innerHTML = 'URL File / Project Figma <span class="text-red-500">*</span>';
-            if (inputIconEl) inputIconEl.className = 'fa-brands fa-figma text-purple-600 text-sm';
-            if (inputEl) inputEl.placeholder = 'https://www.figma.com/design/... atau link prototype file';
-            if (helpEl) helpEl.innerHTML = 'Masukkan tautan file atau prototype Figma. Pastikan share permission diset ke <strong>Anyone with the link can view</strong> agar pembimbing dapat meninjau desain.';
-            if (submitBtnEl) submitBtnEl.className = 'px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2';
-            if (submitTextEl) submitTextEl.textContent = 'Simpan Link Figma';
-        } else {
-            if (headerEl) headerEl.className = 'bg-gray-900 text-white px-6 py-5 flex justify-between items-center border-b border-gray-800';
-            if (iconWrapperEl) iconWrapperEl.className = 'w-10 h-10 rounded-xl bg-gray-800 text-white flex items-center justify-center text-xl shadow-sm border border-gray-700';
-            if (iconEl) iconEl.className = 'fa-brands fa-github';
-            if (titleEl) titleEl.textContent = 'Tautkan Git Repository';
-            if (subtitleEl) subtitleEl.textContent = 'Khusus Divisi Programmer & Developer';
-            if (labelEl) labelEl.innerHTML = 'URL Repository Git <span class="text-red-500">*</span>';
-            if (inputIconEl) inputIconEl.className = 'fa-brands fa-github text-sm';
-            if (inputEl) inputEl.placeholder = 'https://github.com/username/nama-project';
-            if (helpEl) helpEl.innerHTML = 'Masukkan tautan repository GitHub, GitLab, atau Bitbucket. Pastikan repo bersifat <strong>Public</strong> atau pembimbing telah di-invite sebagai collaborator agar kode bisa direview.';
-            if (submitBtnEl) submitBtnEl.className = 'px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-sm transition flex items-center gap-2';
-            if (submitTextEl) submitTextEl.textContent = 'Simpan Repository';
+        if (platformsEl) {
+            platformsEl.textContent = pPlatforms;
         }
 
         $('#gitRepoModal').removeClass('hidden').addClass('flex');

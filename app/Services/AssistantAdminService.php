@@ -81,9 +81,13 @@ class AssistantAdminService
             : 0;
 
         $recentActivities = $pendingStatus
-            ? LogActivity::with('user')
+            ? LogActivity::with([
+                'detailSchedule.schedule.intern.user.profile',
+                'status'
+            ])
             ->where('status_id', $pendingStatus->id)
-            ->latest('date')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
             ->take(5)
             ->get()
             : collect();

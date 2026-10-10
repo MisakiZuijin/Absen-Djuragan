@@ -5,10 +5,12 @@
     <div class="max-w-7xl mx-auto space-y-6">
 
         <!-- HEADER SECTION -->
-        <div class="relative bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl shadow-xl p-6 md:p-8 text-white overflow-hidden border border-slate-800">
-            <!-- Decorative Glow -->
-            <div class="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
-            <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl"></div>
+        <div class="relative bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl shadow-xl p-6 md:p-8 text-white border border-slate-800">
+            <!-- Decorative Glow (contained) -->
+            <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                <div class="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl"></div>
+            </div>
 
             <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div class="space-y-1.5">
@@ -25,19 +27,68 @@
                     </p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <a href="{{ route('super-admin.admins.index') }}" class="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-2xl text-xs font-medium transition shadow-sm flex items-center gap-2">
-                        <i class="fa-solid fa-user-shield text-indigo-400"></i>
-                        <span>Kelola Admin</span>
-                    </a>
-                    <button type="button" onclick="openClearModal()" class="px-4 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-2xl text-xs font-semibold transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-trash-can"></i>
-                        <span>Bersihkan Log</span>
+                <!-- Action Toggle Dropdown -->
+                <div class="relative inline-block text-left" id="auditActionDropdownContainer">
+                    <button type="button" 
+                            onclick="toggleAuditActionDropdown(event)" 
+                            class="inline-flex items-center gap-2.5 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700/90 text-white rounded-2xl text-xs font-semibold border border-slate-700/80 shadow-md backdrop-blur-xs transition focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer">
+                        <i class="fa-solid fa-ellipsis-vertical text-indigo-400 text-sm"></i>
+                        <span>Menu Aksi</span>
+                        <i id="auditActionChevron" class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
                     </button>
-                    <button type="button" onclick="submitExportCsv(false)" class="px-4 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl text-xs font-semibold shadow-lg shadow-emerald-600/30 transition flex items-center gap-2 cursor-pointer">
-                        <i class="fa-solid fa-file-excel"></i>
-                        <span>Export CSV</span>
-                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="auditActionMenu" 
+                         class="hidden absolute right-0 mt-2 w-60 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 text-slate-700">
+                        
+                        <div class="px-3.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Aksi & Manajemen
+                        </div>
+
+                        <!-- Export CSV -->
+                        <button type="button" 
+                                onclick="submitExportCsv(false); closeAuditActionDropdown();" 
+                                class="w-full text-left px-3.5 py-2 hover:bg-emerald-50/70 flex items-center gap-3 transition cursor-pointer group">
+                            <span class="w-8 h-8 rounded-xl bg-emerald-100/80 text-emerald-600 flex items-center justify-center shrink-0 border border-emerald-200/50 group-hover:bg-emerald-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-file-excel text-xs"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-slate-800 group-hover:text-emerald-700">Export CSV</div>
+                                <div class="text-[10px] text-slate-500">Unduh riwayat log aktivitas</div>
+                            </div>
+                        </button>
+
+                        <!-- Kelola Admin -->
+                        <a href="{{ route('super-admin.admins.index') }}" 
+                           class="w-full text-left px-3.5 py-2 hover:bg-indigo-50/70 flex items-center gap-3 transition group">
+                            <span class="w-8 h-8 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200/50 group-hover:bg-indigo-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-user-shield text-xs"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-slate-800 group-hover:text-indigo-700">Kelola Admin</div>
+                                <div class="text-[10px] text-slate-500">Manajemen role & akun admin</div>
+                            </div>
+                        </a>
+
+                        <div class="my-1.5 border-t border-slate-100"></div>
+
+                        <div class="px-3.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Pemeliharaan
+                        </div>
+
+                        <!-- Bersihkan Log -->
+                        <button type="button" 
+                                onclick="openClearModal(); closeAuditActionDropdown();" 
+                                class="w-full text-left px-3.5 py-2 hover:bg-rose-50/70 flex items-center gap-3 transition cursor-pointer group">
+                            <span class="w-8 h-8 rounded-xl bg-rose-100/80 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200/50 group-hover:bg-rose-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-rose-700 group-hover:text-rose-800">Bersihkan Log</div>
+                                <div class="text-[10px] text-slate-500">Hapus arsip log yang sudah lama</div>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -395,6 +446,45 @@
     function closeClearModal() {
         document.getElementById('clearLogModal').classList.add('hidden');
     }
+
+    // Toggle Action Dropdown
+    function toggleAuditActionDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('auditActionMenu');
+        const chevron = document.getElementById('auditActionChevron');
+        if (menu) {
+            const isHidden = menu.classList.toggle('hidden');
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+    }
+
+    function closeAuditActionDropdown() {
+        const menu = document.getElementById('auditActionMenu');
+        const chevron = document.getElementById('auditActionChevron');
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            if (chevron) {
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#auditActionDropdownContainer')) {
+            closeAuditActionDropdown();
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAuditActionDropdown();
+            closeClearModal();
+        }
+    });
 
     // Toggle select all checkboxes on current page
     function toggleSelectAllLogs(masterCheckbox) {

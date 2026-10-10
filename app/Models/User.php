@@ -33,7 +33,8 @@ class User extends Authenticatable
         'is_active',
         'is_confirm',
         'is_gps_support',
-        'is_gps_activate'
+        'is_gps_activate',
+        'is_gps_active',
     ];
 
     protected $hidden = [
@@ -45,8 +46,20 @@ class User extends Authenticatable
         'is_confirm' => 'boolean',
         'is_gps_support' => 'boolean',
         'is_gps_activate' => 'integer',
+        'is_gps_active' => 'integer',
         'is_reset_token' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::saving(function ($user) {
+            if ($user->isDirty('is_gps_active') && !$user->isDirty('is_gps_activate')) {
+                $user->is_gps_activate = (int) $user->is_gps_active;
+            } elseif ($user->isDirty('is_gps_activate') && !$user->isDirty('is_gps_active')) {
+                $user->is_gps_active = (int) $user->is_gps_activate;
+            }
+        });
+    }
 
     public function setPasswordAttribute(string $value)
     {
@@ -86,8 +99,22 @@ class User extends Authenticatable
 
     public function isMale(): bool
     {
-        $gender = strtolower(trim($this->profile?->gender ?? ''));
-        return in_array($gender, ['l', 'laki-laki', 'male', 'pria', 'laki'], true);
+        return $this->profile ? $this->profile->isMale() : false;
+    }
+
+    public function getReligionAttribute(): ?string
+    {
+        return $this->profile?->religion;
+    }
+
+    public function isMuslim(): bool
+    {
+        return $this->profile ? $this->profile->isMuslim() : false;
+    }
+
+    public function isMuslimMale(): bool
+    {
+        return $this->profile ? $this->profile->isMuslimMale() : false;
     }
 
     /**

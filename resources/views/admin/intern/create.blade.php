@@ -185,6 +185,23 @@
                         </select>
                     </div>
 
+                    <!-- Agama -->
+                    <div>
+                        <label for="religion" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Agama <span class="text-rose-500">*</span>
+                        </label>
+                        <select id="religion" name="religion" required
+                            class="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
+                            <option value="" disabled {{ old('religion') ? '' : 'selected' }}>-- Pilih Agama --</option>
+                            <option value="Islam" {{ old('religion') == 'Islam' ? 'selected' : '' }}>Islam</option>
+                            <option value="Kristen" {{ old('religion') == 'Kristen' ? 'selected' : '' }}>Kristen</option>
+                            <option value="Katolik" {{ old('religion') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
+                            <option value="Hindu" {{ old('religion') == 'Hindu' ? 'selected' : '' }}>Hindu</option>
+                            <option value="Buddha" {{ old('religion') == 'Buddha' ? 'selected' : '' }}>Buddha</option>
+                            <option value="Khonghucu" {{ old('religion') == 'Khonghucu' ? 'selected' : '' }}>Khonghucu</option>
+                        </select>
+                    </div>
+
                     <!-- Tempat Lahir -->
                     <div>
                         <label for="birth_place" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
@@ -225,6 +242,37 @@
                         <input type="text" id="nim" name="nim"
                             value="{{ old('nim') }}"
                             placeholder="Nomor Induk Mahasiswa / Siswa"
+                            class="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
+                    </div>
+
+                    <!-- Link Google Maps Domisili / Kos (Wajib) -->
+                    <div class="md:col-span-2">
+                        <label for="gmaps_url" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Link Google Maps Domisili / Kos Pemagang <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="text" id="gmaps_url" name="gmaps_url" required
+                                value="{{ old('gmaps_url') }}"
+                                placeholder="Contoh: https://maps.app.goo.gl/... atau format angka koordinat"
+                                class="w-full pl-3.5 pr-10 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
+                            <span class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-rose-500 pointer-events-none">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </span>
+                        </div>
+                        <div id="gmaps_status_msg_create" class="text-[11px] mt-1"></div>
+                        <p class="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                            Wajib diisi. Tempel link Google Maps atau titik koordinat domisili/kos pemagang untuk perhitungan jarak terdekat ke kantor (Smart Auto-Scheduling).
+                        </p>
+                    </div>
+
+                    <!-- Alamat Domisili / Kos -->
+                    <div class="md:col-span-2">
+                        <label for="address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Alamat / Keterangan Kos <span class="text-[11px] text-slate-400 font-normal lowercase">(opsional)</span>
+                        </label>
+                        <input type="text" id="address" name="address"
+                            value="{{ old('address') }}"
+                            placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 9, Sinduharjo, Ngaglik, Sleman"
                             class="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
                     </div>
                 </div>
@@ -359,5 +407,55 @@
             icon.classList.add('fa-eye');
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const gmapsInput = document.getElementById('gmaps_url');
+        const gmapsStatus = document.getElementById('gmaps_status_msg_create');
+        let gmapsTimer = null;
+
+        if (gmapsInput) {
+            gmapsInput.addEventListener('input', function() {
+                clearTimeout(gmapsTimer);
+                const val = this.value.trim();
+                if (!val) {
+                    if (gmapsStatus) gmapsStatus.innerHTML = '';
+                    return;
+                }
+                gmapsTimer = setTimeout(async function() {
+                    if (gmapsStatus) gmapsStatus.innerHTML = '<span class="text-blue-600"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memeriksa link Google Maps...</span>';
+                    try {
+                        const res = await fetch("{{ route('public.resolve-gmaps-url') }}", {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify({ url: val })
+                        });
+                        const data = await res.json();
+                        if (data.success && data.lat && data.lng) {
+                            if (gmapsStatus) {
+                                gmapsStatus.innerHTML = '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Titik lokasi valid terdeteksi (' + data.lat + ', ' + data.lng + ')</span>';
+                            }
+                            if (data.address) {
+                                const addrField = document.getElementById('address');
+                                if (addrField && (!addrField.value || addrField.dataset.autoFilled === '1')) {
+                                    addrField.value = data.address;
+                                    addrField.dataset.autoFilled = '1';
+                                }
+                            }
+                        } else {
+                            if (gmapsStatus) {
+                                gmapsStatus.innerHTML = '<span class="text-rose-600"><i class="fa-solid fa-circle-exclamation mr-1"></i> ' + (data.message || 'Link tidak dikenali.') + '</span>';
+                            }
+                        }
+                    } catch (e) {
+                        if (gmapsStatus) gmapsStatus.innerHTML = '';
+                    }
+                }, 600);
+            });
+        }
+    });
 </script>
 @endsection

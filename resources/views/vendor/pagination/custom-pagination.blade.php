@@ -1,64 +1,93 @@
 @if ($paginator->hasPages())
-    <nav role="navigation" aria-label="Pagination Navigation" class="flex items-center justify-between">
-        <div class="flex-1 flex items-center justify-between sm:justify-center">
-            {{-- Tombol Halaman Sebelumnya --}}
-            @if ($paginator->onFirstPage())
-                <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 cursor-default rounded-md">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    Sebelumnya
-                </span>
-            @else
-                <a href="{{ $paginator->previousPageUrl() }}" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
-                    </svg>
-                    Sebelumnya
-                </a>
-            @endif
+    @php
+        $currentPage = $paginator->currentPage();
+        $lastPage = $paginator->lastPage();
+        $maxPages = 5;
 
-            {{-- Angka Halaman (hanya ditampilkan di layar besar) --}}
-            <div class="hidden sm:flex sm:items-center sm:mx-4">
-                @foreach ($elements as $element)
-                    {{-- Tanda "..." --}}
-                    @if (is_string($element))
-                        <span class="relative inline-flex items-center px-4 py-2 mx-1 text-sm font-medium text-gray-700">{{ $element }}</span>
-                    @endif
+        $start = max(1, $currentPage - 2);
+        $end = min($lastPage, $start + ($maxPages - 1));
 
-                    {{-- Array Halaman (Angka) --}}
-                    @if (is_array($element))
-                        @foreach ($element as $page => $url)
-                            @if ($page == $paginator->currentPage())
-                                <span aria-current="page" class="relative inline-flex items-center px-4 py-2 mx-1 text-sm font-bold text-white bg-blue-600 border border-blue-600 rounded-md z-10">
-                                    {{ $page }}
-                                </span>
-                            @else
-                                <a href="{{ $url }}" class="relative inline-flex items-center px-4 py-2 mx-1 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
-                                    {{ $page }}
-                                </a>
-                            @endif
-                        @endforeach
-                    @endif
-                @endforeach
-            </div>
+        if ($end - $start + 1 < $maxPages) {
+            $start = max(1, $end - ($maxPages - 1));
+        }
+    @endphp
 
-            {{-- Tombol Halaman Selanjutnya --}}
-            @if ($paginator->hasMorePages())
-                <a href="{{ $paginator->nextPageUrl() }}" class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition">
-                    Selanjutnya
-                    <svg class="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
-                </a>
-            @else
-                <span class="relative inline-flex items-center px-4 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 cursor-default rounded-md">
-                    Selanjutnya
-                    <svg class="w-5 h-5 ml-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                    </svg>
+    <nav role="navigation" aria-label="Pagination Navigation" class="flex items-center gap-1.5 flex-wrap justify-center sm:justify-end">
+        {{-- Tombol Sebelumnya --}}
+        @if ($paginator->onFirstPage())
+            <span class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed flex items-center gap-1.5 select-none shadow-2xs">
+                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Sebelumnya</span>
+            </span>
+        @else
+            <a href="{{ $paginator->previousPageUrl() }}" rel="prev"
+                class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 transition shadow-2xs flex items-center gap-1.5 select-none">
+                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+                <span>Sebelumnya</span>
+            </a>
+        @endif
+
+        {{-- First Page jika start > 1 --}}
+        @if ($start > 1)
+            <a href="{{ $paginator->url(1) }}"
+                class="w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 hover:border-blue-300 transition shadow-2xs select-none">
+                1
+            </a>
+            @if ($start > 2)
+                <span class="w-6 h-8 flex items-center justify-center text-xs text-gray-400 font-bold select-none">
+                    ...
                 </span>
             @endif
-        </div>
+        @endif
+
+        {{-- Loop Angka Halaman (Maksimal 5 Halaman) --}}
+        @for ($page = $start; $page <= $end; $page++)
+            @if ($page == $currentPage)
+                <span aria-current="page"
+                    class="w-8 h-8 flex items-center justify-center text-xs font-bold rounded-xl bg-blue-600 text-white shadow-xs select-none">
+                    {{ $page }}
+                </span>
+            @else
+                <a href="{{ $paginator->url($page) }}"
+                    class="w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 hover:border-blue-300 transition shadow-2xs select-none">
+                    {{ $page }}
+                </a>
+            @endif
+        @endfor
+
+        {{-- Last Page jika end < lastPage --}}
+        @if ($end < $lastPage)
+            @if ($end < $lastPage - 1)
+                <span class="w-6 h-8 flex items-center justify-center text-xs text-gray-400 font-bold select-none">
+                    ...
+                </span>
+            @endif
+            <a href="{{ $paginator->url($lastPage) }}"
+                class="w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 hover:border-blue-300 transition shadow-2xs select-none">
+                {{ $lastPage }}
+            </a>
+        @endif
+
+        {{-- Tombol Selanjutnya --}}
+        @if ($paginator->hasMorePages())
+            <a href="{{ $paginator->nextPageUrl() }}" rel="next"
+                class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 transition shadow-2xs flex items-center gap-1.5 select-none">
+                <span>Selanjutnya</span>
+                <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        @else
+            <span class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed flex items-center gap-1.5 select-none shadow-2xs">
+                <span>Selanjutnya</span>
+                <svg class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </span>
+        @endif
     </nav>
 @endif

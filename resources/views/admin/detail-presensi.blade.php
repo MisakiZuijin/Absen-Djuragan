@@ -13,7 +13,25 @@
                         <i class="fas fa-user-circle"></i>
                     </div>
                     <div class="flex flex-col min-w-0">
-                        <div id="fullname" class="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">{{ $intern_data->full_name }}</div>
+                        <div class="flex items-center gap-2">
+                            <div id="fullname" class="text-lg sm:text-xl md:text-2xl font-bold text-white truncate">{{ $intern_data->full_name }}</div>
+                            @php
+                                $detailPhone = $intern_data->phone ?? null;
+                                $cleanDetailPhone = $detailPhone ? preg_replace('/[^0-9]/', '', (string)$detailPhone) : null;
+                                if ($cleanDetailPhone && str_starts_with($cleanDetailPhone, '0')) {
+                                    $cleanDetailPhone = '62' . substr($cleanDetailPhone, 1);
+                                } elseif ($cleanDetailPhone && !str_starts_with($cleanDetailPhone, '62') && strlen($cleanDetailPhone) > 8) {
+                                    $cleanDetailPhone = '62' . $cleanDetailPhone;
+                                }
+                            @endphp
+                            @if($cleanDetailPhone)
+                            <a href="https://wa.me/{{ $cleanDetailPhone }}" target="_blank" rel="noopener noreferrer"
+                               class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white transition shadow-sm shrink-0"
+                               title="Hubungi via WhatsApp ({{ $detailPhone }})">
+                                <i class="fab fa-whatsapp text-sm"></i>
+                            </a>
+                            @endif
+                        </div>
                         <div class="text-xs text-slate-300 font-mono mt-0.5">NIP : <span id="nip" class="font-bold text-white">{{ $intern_data->NIP }}</span></div>
                     </div>
                 </div>

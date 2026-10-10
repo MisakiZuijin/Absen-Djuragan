@@ -24,31 +24,47 @@ class HandRaiseController extends Controller
             $totalCount = HandRaise::where('is_raised', true)->count();
 
             // Hitung hanya permintaan yang masuk kondisi URGENT untuk pengulangan bunyi notifikasi:
-            // 1. Question (pertanyaan langsung saat ini)
-            // 2. New Task (permintaan tugas baru saat ini)
-            // 3. Presentation hari ini atau berstatus urgent
-            // Permintaan presentasi besok / masa mendatang (presentation_date > today()) dikecualikan dari pengulangan bunyi
+            // 1. KECUALI BANTUAN (question / null): Tetap bunyi terus sampai selesai sesinya (is_raised = true & status != 'done')
+            // 2. Selain bantuan (Tugas Baru & Presentasi):
+            //    HANYA mengulang bunyi jika BELUM mendapatkan tanggapan dari admin (status = 'pending' & belum ada tanggapan/resolved_by/admin_response).
+            //    Permintaan yang SUDAH mendapatkan tanggapan dari admin TIDAK AKAN mengulang bunyi notifikasi.
             $urgentCount = HandRaise::where('is_raised', true)
                 ->where('status', '!=', 'done')
                 ->where(function ($q) {
+                    // 1. KECUALI BANTUAN: Tetap bunyi terus sampai selesai sesinya
                     $q->where(function ($sq) {
-                        $sq->where('type', '!=', 'presentation')
+                        $sq->where('type', 'question')
                             ->orWhereNull('type');
                     })
-                        ->orWhere(function ($sq) {
-                            $sq->where('type', 'presentation')
-                                ->where(function ($ssq) {
-                                    $ssq->where('status', 'urgent')
-                                        ->orWhereDate('presentation_date', '<=', today());
+                    // 2. Raise hand selain bantuan (Tugas Baru & Presentasi):
+                    // Hanya mengulang jika BELUM mendapatkan tanggapan dari admin
+                    ->orWhere(function ($sq) {
+                        $sq->where(function ($typeQ) {
+                            $typeQ->where('type', 'new_task')
+                                ->orWhere(function ($presQ) {
+                                    $presQ->where('type', 'presentation')
+                                        ->where(function ($ssq) {
+                                            $ssq->where('status', 'urgent')
+                                                ->orWhereDate('presentation_date', '<=', today());
+                                        });
+                                });
+                        })
+                        ->where(function ($unrespondedQ) {
+                            $unrespondedQ->where('status', 'pending')
+                                ->whereNull('resolved_by')
+                                ->where(function ($respQ) {
+                                    $respQ->whereNull('admin_response')
+                                        ->orWhere('admin_response', '');
                                 });
                         });
+                    });
                 })
                 ->count();
 
             $latest = HandRaise::with(['user.profile', 'user.intern.school'])
                 ->where('is_raised', true)
                 ->where('status', '!=', 'done')
-                ->latest('updated_at')
+                ->latest('id')
                 ->first();
 
             $latestMessage = \App\Models\HandRaiseMessage::where('is_from_admin', false)
@@ -616,7 +632,14 @@ class HandRaiseController extends Controller
                     // Jika tidak ada revisi / status ready / valid, maka tandai project selesai
                     $handRaise->update(['status' => 'done']);
                     if ($project) {
-                        $project->update(['status' => 'done']);
+                        $pUpdates = ['status' => 'done'];
+                        if (empty($project->repository_url) && $handRaise->user && $handRaise->user->intern) {
+                            $acc = $handRaise->user->intern->account;
+                            if ($acc && !$acc->hasTaskLinkPlatform() && !empty($acc->gdrive_url)) {
+                                $pUpdates['repository_url'] = $acc->gdrive_url;
+                            }
+                        }
+                        $project->update($pUpdates);
 
                         // Sinkronkan tugas new_task terkait project ini agar otomatis selesai
                         HandRaise::where('user_id', $handRaise->user_id)
@@ -819,6 +842,7 @@ class HandRaiseController extends Controller
             $adminName = $adminUser->name ?? $adminUser->username ?? 'Admin';
 
             $handRaise->update([
+                'status' => 'done',
                 'is_raised' => false,
                 'resolved_at' => now(),
                 'resolved_by' => auth()->id()

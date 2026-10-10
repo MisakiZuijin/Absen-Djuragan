@@ -436,7 +436,14 @@ class AssistantAdminController extends Controller
 
                 $project = $handRaise->project;
                 if ($handRaise->status !== 'needs_revision' && $project) {
-                    $project->update(['status' => 'done']);
+                    $pUpdates = ['status' => 'done'];
+                    if (empty($project->repository_url) && $handRaise->user && $handRaise->user->intern) {
+                        $acc = $handRaise->user->intern->account;
+                        if ($acc && !$acc->hasTaskLinkPlatform() && !empty($acc->gdrive_url)) {
+                            $pUpdates['repository_url'] = $acc->gdrive_url;
+                        }
+                    }
+                    $project->update($pUpdates);
                 }
 
                 ActivityLogger::log(
@@ -577,74 +584,17 @@ class AssistantAdminController extends Controller
 
     public function confirmLogActivity(LogActivity $log)
     {
-        $log->load([
-            'detailSchedule.schedule.intern.user.profile',
-            'detailSchedule.schedule.intern.school',
-            'status'
-        ]);
-
-        return view('assistant_admin.confirm_log_activity', [
-            'user' => Auth::user(),
-            'log' => $log,
-            'sidebarView' => 'layouts.sidebar-assistant'
-        ]);
+        // Asisten admin tidak diizinkan mengakses halaman konfirmasi/edit logbook
+        return redirect()->route('assistant.logactivity', ['date' => $log->date])
+            ->with('error', 'Halaman konfirmasi dinonaktifkan untuk Asisten Admin. Silakan gunakan popup detail untuk membaca logbook siswa.');
     }
 
-    // === METHOD updateLogActivity DIPERBAIKI TOTAL ===
+    // === METHOD updateLogActivity DIBATASI (READ-ONLY FOR ASSISTANT) ===
     public function updateLogActivity(Request $request, int $id)
     {
-        // Validasi diperluas untuk menangani semua aksi dari halaman konfirmasi
-        $request->validate([
-            'activity' => 'required|string',
-            'action' => 'required|in:approve,reject,update_text',
-            'redirect_date' => 'required|date_format:Y-m-d', // Validasi tanggal dari hidden input
-        ]);
-
-        try {
-            DB::beginTransaction();
-
-            $log = LogActivity::with('detailSchedule.schedule.intern.user.profile')->findOrFail($id);
-
-            // Perbarui teks aktivitas & catatan (selalu dilakukan untuk semua aksi)
-            $log->activity = $request->activity;
-            if ($request->has('assistant_notes')) {
-                $log->assistant_notes = $request->assistant_notes;
-            }
-
-            // Logika untuk mengubah status berdasarkan aksi
-            $action = $request->action;
-            $message = 'Perubahan pada log aktivitas berhasil disimpan.'; // Pesan default
-            $internName = $log->detailSchedule?->schedule?->intern?->user?->profile?->full_name ?? 'Pemagang';
-            $assistantName = auth()->user()->name ?? auth()->user()->username ?? 'Asisten Admin';
-
-            if ($action === 'approve') {
-                $status = Status::where('name', 'Accepted')->firstOrFail();
-                $log->status_id = $status->id;
-                $message = 'Log aktivitas berhasil disetujui.';
-                ActivityLogger::log('APPROVE', 'Logbook', "Asisten Admin {$assistantName} menyetujui logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
-            } elseif ($action === 'reject') {
-                $status = Status::where('name', 'Rejected')->firstOrFail();
-                $log->status_id = $status->id;
-                $message = 'Log aktivitas berhasil ditolak.';
-                ActivityLogger::log('REJECT', 'Logbook', "Asisten Admin {$assistantName} menolak logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
-            } else {
-                ActivityLogger::log('UPDATE', 'Logbook', "Asisten Admin {$assistantName} memperbarui teks logbook pemagang {$internName}", ['log_activity_id' => $log->id]);
-            }
-
-            $log->save(); // Simpan semua perubahan ke database
-
-            DB::commit();
-
-            // Redirect kembali ke halaman daftar log dengan tanggal yang benar
-            $redirectDate = $request->input('redirect_date');
-
-            return redirect()->route('assistant.logactivity', ['date' => $redirectDate])
-                ->with('success', $message);
-        } catch (\Exception $e) {
-            DB::rollback();
-            Log::error('Update Log Activity error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-            return back()->with('error', 'Terjadi kesalahan saat memperbarui log aktivitas. Silakan coba lagi.')->withInput();
-        }
+        // Asisten admin tidak diizinkan mengubah/mengedit logbook siswa
+        return redirect()->route('assistant.logactivity')
+            ->with('error', 'Aksi ditolak. Asisten Admin tidak memiliki izin untuk mengubah atau menyetujui log aktivitas siswa.');
     }
 
     public function izinLeave()

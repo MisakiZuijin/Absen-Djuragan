@@ -82,24 +82,36 @@
 
         <!-- Tabel Daftar Pemagang di Shift Ini -->
         <div class="bg-white rounded-2xl shadow-xs border border-gray-100 overflow-hidden">
-            <div class="p-5 border-b border-gray-100 flex items-center justify-between">
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <h2 class="font-bold text-gray-800 text-sm flex items-center gap-2">
                     <i class="fa-solid fa-list-check text-blue-600"></i>
                     <span>Daftar Pemagang ({{ $shiftNames[$activeShiftName] ?? 'Shift' }})</span>
                 </h2>
-                <span class="text-xs text-gray-400" id="tableRowCountBadge">Total: {{ $detailSchedules->count() }} Orang</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100/80 inline-flex items-center gap-1 self-start sm:self-auto" id="tableRowCountBadge">
+                    <i class="fa-solid fa-users text-[10px]"></i>
+                    <span>Total: {{ $detailSchedules->count() }} Orang</span>
+                </span>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600" id="shiftInternsTable">
-                    <thead class="bg-gray-50/75 text-[11px] uppercase font-semibold text-gray-500 border-b border-gray-100">
+            <!-- Mobile Scroll Hint -->
+            <div class="sm:hidden px-4 py-2 bg-blue-50/70 border-b border-blue-100/80 text-blue-700 text-[11px] flex items-center justify-between">
+                <span class="flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-arrows-left-right text-blue-500"></i>
+                    Geser tabel ke samping untuk melihat kolom lengkap
+                </span>
+                <i class="fa-solid fa-chevron-right text-[10px] text-blue-400"></i>
+            </div>
+
+            <div class="overflow-x-auto touch-pan-x">
+                <table class="w-full min-w-[850px] divide-y divide-gray-200 text-left" id="shiftInternsTable">
+                    <thead class="bg-gray-50/75 text-gray-600 text-xs uppercase font-semibold">
                         <tr>
-                            <th class="px-5 py-3.5 w-12 text-center">No</th>
-                            <th class="px-5 py-3.5">Nama Pemagang</th>
-                            <th class="px-5 py-3.5">Divisi</th>
-                            <th class="px-5 py-3.5">Kantor / Brand</th>
-                            <th class="px-5 py-3.5">Sekolah / Kampus</th>
-                            <th class="px-5 py-3.5 text-center">Jam Shift</th>
+                            <th class="py-3.5 px-4 w-14 text-center">No</th>
+                            <th class="py-3.5 px-4 min-w-[240px]">Nama Pemagang</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Divisi</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Kantor / Brand</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Sekolah / Kampus</th>
+                            <th class="py-3.5 px-4 text-center whitespace-nowrap">Jam Shift</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 text-xs">
@@ -112,64 +124,77 @@
                         $divisionName = $intern->division->name ?? '-';
                         $officeName = $detail->office->name ?? '-';
                         $schoolName = $intern->school->name ?? '-';
-                        $nim = $intern->nim ?? $user->username ?? '-';
+                        $nim = $intern->nim ?? $user->username ?? '';
                         @endphp
-                        <tr class="hover:bg-blue-50/30 transition intern-row">
+                        <tr class="hover:bg-blue-50/25 transition intern-row">
                             <!-- No -->
-                            <td class="px-5 py-3.5 text-center text-gray-400 font-medium row-number">
+                            <td class="py-3.5 px-4 text-center text-gray-500 font-medium row-number">
                                 {{ $loop->iteration }}
                             </td>
 
                             <!-- Nama Pemagang & NIM -->
-                            <td class="px-5 py-3.5">
+                            <td class="py-3.5 px-4">
                                 <div class="flex items-center gap-3">
-                                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs uppercase">
-                                        {{ mb_substr($fullName, 0, 1) }}
+                                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-xs uppercase">
+                                        {{ strtoupper(substr($fullName, 0, 2)) }}
                                     </div>
                                     <div class="min-w-0">
-                                        <p class="font-bold text-gray-900 truncate search-target">{{ $fullName }}</p>
-                                        <p class="text-[11px] text-gray-400 truncate">NIM/ID: <span class="font-mono text-gray-600">{{ $nim }}</span></p>
+                                        <div class="font-bold text-gray-900 text-xs sm:text-sm leading-tight search-target">
+                                            {{ $fullName }}
+                                        </div>
+                                        @if($nim && $nim !== '-')
+                                            <div class="text-[11px] text-gray-500 font-mono mt-0.5 flex items-center gap-1 search-target">
+                                                @if(!str_starts_with(strtoupper($nim), 'NIM'))
+                                                    <span class="text-gray-400">NIM:</span>
+                                                @endif
+                                                <span class="font-medium text-gray-700">{{ $nim }}</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             </td>
 
                             <!-- Divisi -->
-                            <td class="px-5 py-3.5">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($divisionName !== '-')
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 search-target">
-                                    <i class="fa-solid fa-sitemap text-[10px]"></i>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-800 search-target">
+                                    <i class="fa-solid fa-sitemap text-[10px] text-gray-500"></i>
                                     <span>{{ $divisionName }}</span>
                                 </span>
                                 @else
-                                <span class="text-gray-400 text-xs">-</span>
+                                <span class="text-xs text-gray-400 italic">Belum Ada Divisi</span>
                                 @endif
                             </td>
 
                             <!-- Kantor / Brand -->
-                            <td class="px-5 py-3.5">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($officeName !== '-')
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 search-target">
-                                    <i class="fa-solid fa-building text-[10px]"></i>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-100 search-target">
+                                    <i class="fa-solid fa-building text-[10px] text-emerald-600"></i>
                                     <span>{{ $officeName }}</span>
                                 </span>
                                 @else
-                                <span class="text-gray-400 text-xs">-</span>
+                                <span class="text-xs text-gray-400 italic">Belum Ditentukan</span>
                                 @endif
                             </td>
 
                             <!-- Sekolah / Kampus -->
-                            <td class="px-5 py-3.5 search-target">
-                                <div class="flex items-center gap-1.5 text-gray-700">
+                            <td class="py-3.5 px-4 whitespace-nowrap search-target">
+                                @if($schoolName !== '-')
+                                <div class="flex items-center gap-2 text-gray-700">
                                     <i class="fa-solid fa-graduation-cap text-gray-400 text-xs shrink-0"></i>
-                                    <span class="truncate font-medium">{{ $schoolName }}</span>
+                                    <span class="font-medium text-xs">{{ $schoolName }}</span>
                                 </div>
+                                @else
+                                <span class="text-xs text-gray-400 italic">Sekolah tidak terdaftar</span>
+                                @endif
                             </td>
 
                             <!-- Jam Shift -->
-                            <td class="px-5 py-3.5 text-center">
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200/60">
-                                    <i class="fa-regular fa-clock text-amber-600 text-[11px]"></i>
-                                    <span>
+                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100">
+                                    <i class="fa-regular fa-clock text-blue-500 text-[11px]"></i>
+                                    <span class="font-mono">
                                         {{ \Carbon\Carbon::parse($detail->shift->start_time ?? $currentShift->start_time ?? '00:00')->format('H:i') }} - {{ \Carbon\Carbon::parse($detail->shift->end_time ?? $currentShift->end_time ?? '00:00')->format('H:i') }}
                                     </span>
                                 </span>
@@ -191,37 +216,209 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- Footer Pagination Bar -->
+            @if($detailSchedules->isNotEmpty())
+            <div class="p-3.5 sm:p-4 bg-gray-50/75 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+                <span id="shiftPaginationInfo" class="font-medium text-gray-600 text-center md:text-left">
+                    Menampilkan 1 - {{ min(50, $detailSchedules->count()) }} dari {{ $detailSchedules->count() }} orang
+                </span>
+                <div id="shiftPaginationControls" class="flex items-center justify-center flex-wrap gap-1.5">
+                    <!-- Navigasi pagination 50 pemagang dirender via JS -->
+                </div>
+                <button type="button" onclick="window.scrollTo({top: 0, behavior: 'smooth'})"
+                    class="text-[11px] font-semibold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer shrink-0">
+                    Kembali ke Atas ↑
+                </button>
+            </div>
+            @endif
         </div>
 
     </div>
 </main>
 
 <script>
+    let currentShiftPage = 1;
+    const shiftPerPage = 50;
+
+    function renderShiftTable(resetPage = false) {
+        if (resetPage) {
+            currentShiftPage = 1;
+        }
+
+        const searchInput = document.getElementById('shiftSearchInput');
+        const query = searchInput ? searchInput.value.toLowerCase().trim() : '';
+        const allRows = Array.from(document.querySelectorAll('#shiftInternsTable tbody tr.intern-row'));
+        const matchingRows = [];
+
+        allRows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            if (!query || text.includes(query)) {
+                matchingRows.push(row);
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        const totalMatching = matchingRows.length;
+        const totalPages = Math.ceil(totalMatching / shiftPerPage) || 1;
+
+        if (currentShiftPage > totalPages) {
+            currentShiftPage = totalPages;
+        }
+        if (currentShiftPage < 1) {
+            currentShiftPage = 1;
+        }
+
+        const startIndex = (currentShiftPage - 1) * shiftPerPage;
+        const endIndex = Math.min(startIndex + shiftPerPage, totalMatching);
+
+        matchingRows.forEach((row, index) => {
+            if (index >= startIndex && index < endIndex) {
+                row.style.display = '';
+                const rowNumberCell = row.querySelector('.row-number');
+                if (rowNumberCell) {
+                    rowNumberCell.textContent = index + 1;
+                }
+            } else {
+                row.style.display = 'none';
+            }
+        });
+
+        // Update Top Badge
+        const countBadge = document.getElementById('tableRowCountBadge');
+        if (countBadge) {
+            if (query) {
+                countBadge.innerHTML = `<i class="fa-solid fa-filter text-[10px]"></i><span>Hasil: ${totalMatching} dari ${allRows.length} Orang</span>`;
+            } else {
+                countBadge.innerHTML = `<i class="fa-solid fa-users text-[10px]"></i><span>Total: ${allRows.length} Orang</span>`;
+            }
+        }
+
+        // Update Bottom Pagination Info
+        const infoEl = document.getElementById('shiftPaginationInfo');
+        if (infoEl) {
+            if (totalMatching > 0) {
+                infoEl.textContent = `Menampilkan ${startIndex + 1} - ${endIndex} dari ${totalMatching} orang${query ? ` (difilter dari ${allRows.length})` : ''}`;
+            } else {
+                infoEl.textContent = `Tidak ada pemagang ditemukan (0 dari ${allRows.length} orang)`;
+            }
+        }
+
+        renderShiftPagination(totalPages, totalMatching);
+    }
+
+    function renderShiftPagination(totalPages, totalMatching) {
+        const container = document.getElementById('shiftPaginationControls');
+        if (!container) return;
+
+        if (totalMatching === 0 || totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let html = '<nav role="navigation" aria-label="Pagination Navigation" class="flex items-center justify-center gap-1 sm:gap-1.5 flex-wrap">';
+
+        // Tombol Sebelumnya
+        if (currentShiftPage > 1) {
+            html += `
+                <button type="button" onclick="goToShiftPage(${currentShiftPage - 1})"
+                    class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer shadow-2xs">
+                    <svg class="w-4 h-4 mr-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Sebelumnya</span>
+                </button>
+            `;
+        } else {
+            html += `
+                <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-400 bg-white border border-gray-200 cursor-not-allowed rounded-lg opacity-60 shadow-2xs">
+                    <svg class="w-4 h-4 mr-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Sebelumnya</span>
+                </span>
+            `;
+        }
+
+        // Nomor Halaman
+        let pages = [];
+        if (totalPages <= 7) {
+            for (let i = 1; i <= totalPages; i++) pages.push(i);
+        } else {
+            pages.push(1);
+            if (currentShiftPage > 3) pages.push('...');
+            const start = Math.max(2, currentShiftPage - 1);
+            const end = Math.min(totalPages - 1, currentShiftPage + 1);
+            for (let i = start; i <= end; i++) {
+                if (!pages.includes(i)) pages.push(i);
+            }
+            if (currentShiftPage < totalPages - 2) pages.push('...');
+            if (!pages.includes(totalPages)) pages.push(totalPages);
+        }
+
+        pages.forEach(p => {
+            if (p === '...') {
+                html += `<span class="relative inline-flex items-center px-2 py-1.5 text-xs font-medium text-gray-500">...</span>`;
+            } else if (p === currentShiftPage) {
+                html += `
+                    <span aria-current="page" class="relative inline-flex items-center px-3.5 py-1.5 text-xs font-bold text-white bg-blue-600 border border-blue-600 rounded-lg shadow-2xs z-10">
+                        ${p}
+                    </span>
+                `;
+            } else {
+                html += `
+                    <button type="button" onclick="goToShiftPage(${p})"
+                        class="relative inline-flex items-center px-3.5 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer shadow-2xs">
+                        ${p}
+                    </button>
+                `;
+            }
+        });
+
+        // Tombol Selanjutnya
+        if (currentShiftPage < totalPages) {
+            html += `
+                <button type="button" onclick="goToShiftPage(${currentShiftPage + 1})"
+                    class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition cursor-pointer shadow-2xs">
+                    <span>Selanjutnya</span>
+                    <svg class="w-4 h-4 ml-1 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+            `;
+        } else {
+            html += `
+                <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-400 bg-white border border-gray-200 cursor-not-allowed rounded-lg opacity-60 shadow-2xs">
+                    <span>Selanjutnya</span>
+                    <svg class="w-4 h-4 ml-1 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                    </svg>
+                </span>
+            `;
+        }
+
+        html += '</nav>';
+        container.innerHTML = html;
+    }
+
+    function goToShiftPage(page) {
+        currentShiftPage = page;
+        renderShiftTable(false);
+        const table = document.getElementById('shiftInternsTable');
+        if (table) {
+            table.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const searchInput = document.getElementById('shiftSearchInput');
-        const rows = document.querySelectorAll('.intern-row');
-        const countBadge = document.getElementById('tableRowCountBadge');
-
         if (searchInput) {
             searchInput.addEventListener('input', function() {
-                const query = this.value.toLowerCase().trim();
-                let visibleCount = 0;
-
-                rows.forEach(row => {
-                    const text = row.innerText.toLowerCase();
-                    if (text.includes(query)) {
-                        row.style.display = '';
-                        visibleCount++;
-                    } else {
-                        row.style.display = 'none';
-                    }
-                });
-
-                if (countBadge) {
-                    countBadge.textContent = `Menampilkan: ${visibleCount} Orang`;
-                }
+                renderShiftTable(true);
             });
         }
+        renderShiftTable(true);
     });
 </script>
 @endsection

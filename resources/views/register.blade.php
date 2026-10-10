@@ -130,18 +130,67 @@
                         </div>
                     </div>
 
-                    <!-- Gender -->
+                    <!-- Gender & Agama - 2 Grid Layout -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="gender">
+                                Jenis Kelamin <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                id="gender" name="gender" required>
+                                <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Pilih Jenis Kelamin</option>
+                                <option value="Laki-laki" {{ old('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
+                                <option value="Perempuan" {{ old('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-semibold mb-1" for="religion">
+                                Agama <span class="text-red-500">*</span>
+                            </label>
+                            <select
+                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                id="religion" name="religion" required>
+                                <option value="" disabled {{ old('religion') ? '' : 'selected' }}>Pilih Agama</option>
+                                <option value="Islam" {{ old('religion') == 'Islam' ? 'selected' : '' }}>Islam</option>
+                                <option value="Kristen" {{ old('religion') == 'Kristen' ? 'selected' : '' }}>Kristen</option>
+                                <option value="Katolik" {{ old('religion') == 'Katolik' ? 'selected' : '' }}>Katolik</option>
+                                <option value="Hindu" {{ old('religion') == 'Hindu' ? 'selected' : '' }}>Hindu</option>
+                                <option value="Buddha" {{ old('religion') == 'Buddha' ? 'selected' : '' }}>Buddha</option>
+                                <option value="Khonghucu" {{ old('religion') == 'Khonghucu' ? 'selected' : '' }}>Khonghucu</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Link Google Maps Domisili / Kos (Wajib) -->
                     <div class="mb-3">
-                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="gender">
-                            Jenis Kelamin <span class="text-red-500">*</span>
+                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="gmaps_url">
+                            Link Google Maps Domisili / Kos <span class="text-red-500">*</span>
                         </label>
-                        <select
-                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
-                            id="gender" name="gender">
-                            <option value="" disabled selected>Pilih Jenis Kelamin</option>
-                            <option value="Laki-laki" {{ old('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
-                            <option value="Perempuan" {{ old('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
-                        </select>
+                        <div class="relative">
+                            <input
+                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 pl-3 pr-9 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
+                                id="gmaps_url" name="gmaps_url" type="text" required
+                                placeholder="Contoh: https://maps.app.goo.gl/... atau link Google Maps"
+                                value="{{ old('gmaps_url') }}">
+                            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-rose-500 pointer-events-none">
+                                <i class="fa-solid fa-location-dot"></i>
+                            </span>
+                        </div>
+                        <input type="hidden" id="home_latitude" name="home_latitude" value="{{ old('home_latitude') }}">
+                        <input type="hidden" id="home_longitude" name="home_longitude" value="{{ old('home_longitude') }}">
+                        <div id="gmaps_status_msg" class="text-[11px] mt-1"></div>
+                    </div>
+
+                    <!-- Keterangan Alamat / Nama Kos (Opsional) -->
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="address">
+                            Alamat / Keterangan Kos <span class="text-xs text-gray-400 font-normal">(Opsional)</span>
+                        </label>
+                        <input
+                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
+                            id="address" name="address" type="text" placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 5"
+                            value="{{ old('address') }}">
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -158,7 +207,7 @@
                         <!-- No Telp -->
                         <div>
                             <label class="block text-gray-700 text-sm font-semibold mb-1" for="phone">
-                                No Telp <span class="text-red-500">*</span>
+                                No Telp / WhatsApp <span class="text-red-500">*</span>
                             </label>
                             <input
                                 class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
@@ -218,7 +267,7 @@
                         </div>
                     </div>
 
-                    <input type="number" id="gps_support" name="is_gps_available" hidden>
+                    <input type="number" id="gps_support" name="is_gps_available" value="1" hidden>
 
                     <div class="flex items-center justify-center">
                         <button
@@ -238,6 +287,56 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             $('.select2').select2();
+
+            const gmapsInput = document.getElementById('gmaps_url');
+            const gmapsStatus = document.getElementById('gmaps_status_msg');
+            let gmapsTimer = null;
+
+            if (gmapsInput) {
+                gmapsInput.addEventListener('input', function() {
+                    clearTimeout(gmapsTimer);
+                    const val = this.value.trim();
+                    if (!val) {
+                        if (gmapsStatus) gmapsStatus.innerHTML = '';
+                        return;
+                    }
+                    gmapsTimer = setTimeout(async function() {
+                        if (gmapsStatus) gmapsStatus.innerHTML = '<span class="text-blue-600"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memeriksa link Google Maps...</span>';
+                        try {
+                            const res = await fetch("{{ route('public.resolve-gmaps-url') }}", {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                    'Accept': 'application/json'
+                                },
+                                body: JSON.stringify({ url: val })
+                            });
+                            const data = await res.json();
+                            if (data.success && data.lat && data.lng) {
+                                document.getElementById('home_latitude').value = data.lat;
+                                document.getElementById('home_longitude').value = data.lng;
+                                if (data.address) {
+                                    const addrField = document.getElementById('address');
+                                    if (addrField && (!addrField.value || addrField.dataset.autoFilled === '1')) {
+                                        addrField.value = data.address;
+                                        addrField.dataset.autoFilled = '1';
+                                    }
+                                }
+                                if (gmapsStatus) {
+                                    gmapsStatus.innerHTML = '<span class="text-emerald-600 font-semibold"><i class="fa-solid fa-circle-check mr-1"></i> Titik lokasi valid ditemukan!</span>';
+                                }
+                            } else {
+                                if (gmapsStatus) {
+                                    gmapsStatus.innerHTML = '<span class="text-rose-600"><i class="fa-solid fa-circle-exclamation mr-1"></i> ' + (data.message || 'Link tidak dikenali.') + '</span>';
+                                }
+                            }
+                        } catch (e) {
+                            if (gmapsStatus) gmapsStatus.innerHTML = '';
+                        }
+                    }, 600);
+                });
+            }
         });
     </script>
 </body>

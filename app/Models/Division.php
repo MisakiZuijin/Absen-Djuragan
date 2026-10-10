@@ -29,4 +29,19 @@ class Division extends Model
     {
         return $this->belongsToMany(Broadcast::class, 'broadcast_division', 'division_id', 'broadcast_id');
     }
+
+    public function offices(): BelongsToMany
+    {
+        return $this->belongsToMany(Office::class, 'office_divisions')->withPivot('is_active')->withTimestamps();
+    }
+
+    public function activeOffices(): BelongsToMany
+    {
+        return $this->belongsToMany(Office::class, 'office_divisions')->wherePivot('is_active', true)->withTimestamps();
+    }
+
+    public function scheduleRule(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(DivisionScheduleRule::class, 'division_id');
+    }
 }

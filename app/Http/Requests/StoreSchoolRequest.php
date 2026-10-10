@@ -18,7 +18,8 @@ class StoreSchoolRequest extends FormRequest {
         return [
             'namaSekolah' => 'required|string|max:255',
             'schoolType1' => 'required|integer',
-            'alamatSekolah' => 'required|string'
+            'alamatSekolah' => 'required|string',
+            'is_remote_school' => 'nullable|boolean',
         ];
     }
 }

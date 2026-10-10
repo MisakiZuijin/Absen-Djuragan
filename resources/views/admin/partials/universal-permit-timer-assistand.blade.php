@@ -1,9 +1,9 @@
 @php
-    $toiletMonitorIntervalSec = \App\Models\PopupSetting::getInterval('toilet_monitor', 15);
+$toiletMonitorIntervalSec = \App\Models\PopupSetting::getInterval('toilet_monitor', 15);
 @endphp
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const pollIntervalMs = {{ $toiletMonitorIntervalSec > 0 ? $toiletMonitorIntervalSec * 1000 : 0 }};
+    document.addEventListener('DOMContentLoaded', function() {
+        const pollIntervalMs = Number("{{ $toiletMonitorIntervalSec > 0 ? $toiletMonitorIntervalSec * 1000 : 0 }}") || 0;
 
         function formatSeconds(totalSecs) {
             const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
@@ -35,19 +35,21 @@
                 if (!tableBody) return;
 
                 fetch(window.location.href, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => res.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newTableBody = doc.getElementById('internsTableBody');
-                    if (newTableBody) {
-                        tableBody.innerHTML = newTableBody.innerHTML;
-                        updateAllTimers();
-                    }
-                })
-                .catch(() => {});
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(res => res.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newTableBody = doc.getElementById('internsTableBody');
+                        if (newTableBody) {
+                            tableBody.innerHTML = newTableBody.innerHTML;
+                            updateAllTimers();
+                        }
+                    })
+                    .catch(() => {});
             }, pollIntervalMs);
         }
     });

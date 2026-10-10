@@ -41,7 +41,8 @@ class SettingSchoolController extends Controller
     {
         $this->schoolService->create($storeSchoolRequest);
 
-        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan Sekolah baru: {$storeSchoolRequest->input('name')}");
+        $schoolName = $storeSchoolRequest->input('namaSekolah') ?? $storeSchoolRequest->input('name', 'Sekolah');
+        \App\Helper\ActivityLogger::log('CREATE', 'Master Data', "Admin menambahkan Sekolah baru: {$schoolName}");
 
         return redirect()->back()->with('success', 'Data Sekolah berhasil ditambahkan!');
     }
@@ -50,7 +51,8 @@ class SettingSchoolController extends Controller
     {
         $this->schoolService->update($updateSchoolRequest, $id);
 
-        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data Sekolah: {$updateSchoolRequest->input('name')}", ['school_id' => $id]);
+        $schoolName = $updateSchoolRequest->input('namaSekolah') ?? $updateSchoolRequest->input('name', 'Sekolah');
+        \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin memperbarui data Sekolah: {$schoolName}", ['school_id' => $id]);
 
         return redirect()->back()->with('success', 'Data Sekolah berhasil diperbarui!');
     }

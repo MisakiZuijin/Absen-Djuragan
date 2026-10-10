@@ -173,6 +173,36 @@
             </div>
         </div>
         @endif
+ 
+        @if(!empty($piketInfo['is_piket_today']))
+        <!-- Banner Pengingat Piket Hari Ini -->
+        <div class="bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-amber-500/10 border border-amber-300 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div class="flex items-start sm:items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shadow-xs shrink-0">
+                    <i class="fa-solid fa-broom"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h4 class="font-bold text-gray-900 text-sm">Hari Ini Jadwal Tugas Piket Kebersihan Anda!</h4>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                            Piket Aktif
+                        </span>
+                    </div>
+                    <p class="text-xs text-gray-600 mt-0.5">
+                        Shift: <span class="font-semibold text-gray-800">{{ $piketInfo['my_piket']->shift->name ?? '-' }}</span>
+                        @if(!empty($piketInfo['today_teammates']) && $piketInfo['today_teammates']->isNotEmpty())
+                        &bull; Rekan satu tim: <span class="font-medium text-gray-700">{{ $piketInfo['today_teammates']->map(fn($t) => $t->intern?->user?->profile?->full_name ?? $t->intern?->user?->name ?? 'Pemagang')->implode(', ') }}</span>
+                        @endif
+                    </p>
+                </div>
+            </div>
+            <button type="button" onclick="openHolidayModal('piket')"
+                class="self-start sm:self-auto px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer">
+                <i class="fa-solid fa-clipboard-list text-xs"></i>
+                <span>Lihat SOP Piket</span>
+            </button>
+        </div>
+        @endif
 
         <!-- Top Section: Attention / Pesan Mentor (3/4 Lebar) & Status Jam Kerja (1/4 Lebar) -->
         <div class="flex flex-col lg:flex-row gap-3.5 items-stretch">
@@ -267,6 +297,8 @@
         <!-- Banner & Modal Chat Pra-Pendaftaran Ganti Jam (Livewire 5s Polling) -->
         @livewire('change-time-registration-chat')
 
+
+
         <!-- Weekly Schedule (Full Width) -->
         <div id="weekly-schedule-container" class="w-full flex flex-col">
             <div class="bg-white border border-gray-200 rounded-2xl shadow-xs overflow-hidden flex-1 flex flex-col">
@@ -333,7 +365,13 @@
                                     {{ \Carbon\Carbon::parse($schedule->date)->locale('id')->translatedFormat('l') }}
                                 </td>
                                 <td class="py-3 px-3.5 text-gray-900 font-bold whitespace-nowrap">
-                                    {{ $schedule->shift->name ?? '-' }}
+                                    <div>{{ $schedule->shift->name ?? '-' }}</div>
+                                    @if(isset($schedule->office))
+                                    <div class="text-[11px] font-normal text-slate-500 flex items-center justify-center gap-1 mt-0.5">
+                                        <i class="fa-solid fa-building text-[10px] text-slate-400"></i>
+                                        <span>{{ $schedule->office->name }}</span>
+                                    </div>
+                                    @endif
                                 </td>
                                 <td class="py-3 px-3.5 text-gray-600 whitespace-nowrap font-mono text-xs md:text-sm">
                                     @if(isset($schedule->shift) && !empty($schedule->shift->start_time) && !empty($schedule->shift->end_time))
@@ -358,9 +396,16 @@
                                     @endif
                                 </td>
                                 <td class="py-3 px-3.5 whitespace-nowrap">
-                                    <span class="px-2.5 py-1 rounded-full text-xs font-bold border {{ $workTypeBadge }}">
-                                        {{ strtoupper($schedule->work_type ?? 'WFO') }}
-                                    </span>
+                                    <div class="flex items-center justify-center gap-1.5 flex-wrap">
+                                        <span class="px-2.5 py-1 rounded-full text-xs font-bold border {{ $workTypeBadge }}">
+                                            {{ strtoupper($schedule->work_type ?? 'WFO') }}
+                                        </span>
+                                        @if((!empty($piketInfo['piket_dates']) && in_array($schedule->date, $piketInfo['piket_dates'])) || (!empty($piketInfo['my_piket']) && $piketInfo['my_piket']->date === $schedule->date))
+                                        <span class="px-2 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 shadow-2xs" title="Tugas Piket Kebersihan">
+                                            <i class="fa-solid fa-broom text-[10px] text-amber-600"></i> Piket
+                                        </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-3 px-3.5 whitespace-nowrap">
                                     <span class="px-2.5 py-1 rounded-full text-xs font-semibold border {{ $statusBadge }}">
@@ -544,7 +589,7 @@
                     <h3 class="font-semibold text-stone-800 text-base flex items-center gap-2">
                         <i class="fas fa-calendar-check text-green-600"></i> Kalender Hari Libur & Cuti Bersama
                     </h3>
-                    <span class="text-xs text-gray-500">Tahun {{ now()->year }}</span>
+                    <span class="text-xs font-semibold text-gray-600 bg-gray-100 px-2.5 py-0.5 rounded-full border border-gray-200">Tahun 2026</span>
                 </div>
                 <div class="border border-gray-200 rounded-xl overflow-hidden">
                     <div class="overflow-x-auto max-h-72">
@@ -557,7 +602,12 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100">
-                                @forelse ($holiday_data as $index => $holiday)
+                                @php
+                                    $holidayData2026 = collect($holiday_data)->filter(function($h) {
+                                        return \Carbon\Carbon::parse($h->date)->year === 2026;
+                                    })->values();
+                                @endphp
+                                @forelse ($holidayData2026 as $index => $holiday)
                                 <tr class="hover:bg-gray-50/80 transition-colors">
                                     <td class="py-2 px-3 text-center text-gray-500 font-medium">{{ $index + 1 }}</td>
                                     <td class="py-2 px-4 whitespace-nowrap text-gray-800 font-medium">
@@ -573,7 +623,7 @@
                                 <tr>
                                     <td colspan="3" class="py-8 text-center text-gray-400">
                                         <i class="far fa-calendar-times text-2xl mb-1 block"></i>
-                                        Tidak ada data hari libur yang tercatat.
+                                        Tidak ada data hari libur tahun 2026 yang tercatat.
                                     </td>
                                 </tr>
                                 @endforelse
@@ -690,22 +740,124 @@
                     <div class="text-amber-600 text-xl mt-0.5"><i class="fa-solid fa-broom"></i></div>
                     <div>
                         <h4 class="font-bold text-amber-900 text-sm">
-                            Jadwal & Ketentuan Piket: {{ $userOffice->name ?? 'Kantor Djuragan' }}
+                            Jadwal & Ketentuan Piket: {{ ($myP?->office?->name ?? $userOffice?->name) ?? 'Kantor Djuragan' }}
                         </h4>
                         <p class="text-xs text-amber-700 mt-0.5">
-                            Pembagian tugas kebersihan dan ketertiban ruang kerja harian bagi pemagang.
+                            Pembagian tugas kebersihan dan ketertiban ruang kerja harian bagi pemagang (1x WFO / Minggu).
                         </p>
                     </div>
                 </div>
 
+                <!-- Kartu Status Tugas Piket Pribadi Minggu Ini -->
+                @php
+                    $myP = $piketInfo['my_piket'] ?? null;
+                    $myPikets = $piketInfo['my_pikets'] ?? collect($myP ? [$myP] : []);
+                    $piketCount = $piketInfo['piket_count_this_week'] ?? $myPikets->count();
+                    $isPiketToday = $piketInfo['is_piket_today'] ?? false;
+                @endphp
+                @if($myPikets->isNotEmpty())
+                <div class="p-4 rounded-xl border {{ $isPiketToday ? 'bg-amber-500/10 border-amber-300' : 'bg-slate-50 border-slate-200' }} space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full {{ $isPiketToday ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500' }}"></span>
+                            <span class="text-xs font-bold uppercase tracking-wider text-gray-700">
+                                Tugas Piket Anda Minggu Ini
+                                @if($piketCount > 1)
+                                <span class="ml-1 text-[10px] font-extrabold text-amber-900 bg-amber-200/80 border border-amber-300 px-2 py-0.5 rounded-full">
+                                    {{ $piketCount }}x Seminggu
+                                </span>
+                                @endif
+                            </span>
+                        </div>
+                        @if($isPiketToday)
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300 uppercase tracking-wider">
+                            Bertugas Hari Ini
+                        </span>
+                        @else
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                            Terjadwal
+                        </span>
+                        @endif
+                    </div>
+
+                    <div class="space-y-2">
+                        @foreach($myPikets as $pItem)
+                        @php
+                            $pDate = \Carbon\Carbon::parse($pItem->date);
+                            $pDay = $pDate->locale('id')->translatedFormat('l');
+                            $pFormatted = $pDate->translatedFormat('d F Y');
+                            $isItemToday = $pDate->isToday();
+                        @endphp
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs {{ $isItemToday ? 'p-2 rounded-xl bg-amber-100/70 border border-amber-300/80 shadow-2xs' : '' }}">
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100 shadow-2xs">
+                                <div class="text-[10px] text-gray-400 font-semibold uppercase">Hari & Tanggal</div>
+                                <div class="font-bold text-gray-900 mt-0.5 flex items-center gap-1.5">
+                                    <span>{{ $pDay }}</span>
+                                    @if($isItemToday)
+                                    <span class="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 uppercase">Hari Ini</span>
+                                    @endif
+                                </div>
+                                <div class="text-[11px] text-gray-500">{{ $pFormatted }}</div>
+                            </div>
+
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100 shadow-2xs">
+                                <div class="text-[10px] text-gray-400 font-semibold uppercase">Shift & Jam</div>
+                                <div class="font-bold text-gray-900 mt-0.5">{{ $pItem->shift?->name ?? 'Shift Kerja' }}</div>
+                                <div class="text-[11px] text-gray-500">
+                                    @if($pItem->shift?->start_time && $pItem->shift?->end_time)
+                                    {{ substr($pItem->shift->start_time, 0, 5) }} - {{ substr($pItem->shift->end_time, 0, 5) }} WIB
+                                    @else
+                                    Jam reguler
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="bg-white p-2.5 rounded-lg border border-gray-100 shadow-2xs">
+                                <div class="text-[10px] text-gray-400 font-semibold uppercase">Lokasi Kantor</div>
+                                <div class="font-bold text-gray-900 mt-0.5">{{ $pItem->office?->name ?? 'Kantor Magang' }}</div>
+                                <div class="text-[11px] text-gray-500">WFO</div>
+                            </div>
+                        </div>
+                        @endforeach
+                    </div>
+
+                    @if(!empty($piketInfo['today_teammates']) && $piketInfo['today_teammates']->isNotEmpty())
+                    <div class="pt-2 border-t border-amber-200/60 text-xs text-gray-600">
+                        <span class="font-semibold text-gray-800">Rekan Piket Anda Hari Ini:</span>
+                        <div class="flex flex-wrap gap-1.5 mt-1.5">
+                            @foreach($piketInfo['today_teammates'] as $tm)
+                            @php
+                                $tmName = $tm->intern?->user?->profile?->full_name ?? $tm->intern?->user?->name ?? 'Pemagang';
+                            @endphp
+                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-gray-200 text-xs font-medium text-gray-800 shadow-2xs">
+                                <i class="fa-solid fa-user text-[10px] text-gray-400"></i>
+                                {{ $tmName }}
+                            </span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+                </div>
+                @else
+                <div class="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500 flex items-center gap-2.5">
+                    <i class="fa-solid fa-circle-info text-blue-500 text-sm shrink-0"></i>
+                    <span>Anda tidak memiliki jadwal piket minggu ini (Jadwal WFH penuh atau belum dibuat oleh admin).</span>
+                </div>
+                @endif
+
                 <!-- Detail Poin Aturan & Tugas Piket -->
+                @php
+                    $effectivePiketDesc = $myP?->office?->piket_description 
+                        ?: ($userOffice?->piket_description 
+                        ?: ($allOffices->firstWhere('piket_description', '!=', null)?->piket_description ?? null));
+                @endphp
                 <div class="p-4 bg-gray-50 rounded-xl border border-gray-200 text-sm text-gray-700 space-y-3">
                     <h5 class="font-semibold text-gray-900 flex items-center gap-2">
                         <i class="fa-solid fa-clipboard-check text-amber-600"></i> Ketentuan & Tugas Piket Harian:
                     </h5>
-                    @if(!empty($userOffice->piket_description))
+                    @if(!empty(trim($effectivePiketDesc ?? '')))
                     <div class="text-xs text-gray-600 whitespace-pre-line leading-relaxed pl-1">
-                        {!! nl2br(e($userOffice->piket_description)) !!}
+                        {!! nl2br(e($effectivePiketDesc)) !!}
                     </div>
                     @else
                     <ul class="list-disc list-inside text-xs text-gray-600 space-y-1.5 pl-1">
@@ -715,18 +867,6 @@
                         <li>Memastikan seluruh AC, dispenser, dan lampu dimatikan sebelum meninggalkan ruangan.</li>
                     </ul>
                     @endif
-                </div>
-
-                @php
-                $piketLink = $userOffice->piket_url ?? 'https://docs.google.com/spreadsheets/d/jadwal-piket-djuragan';
-                @endphp
-                <div class="pt-2 flex justify-center">
-                    <a href="{{ $piketLink }}" target="_blank" rel="noopener noreferrer"
-                        class="inline-flex items-center px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-medium text-sm transition shadow-sm hover:shadow">
-                        <i class="fa-solid fa-table-cells mr-2 text-base"></i>
-                        <span>Buka Dokumen Jadwal Piket</span>
-                        <i class="fas fa-arrow-up-right-from-square ml-2 text-xs"></i>
-                    </a>
                 </div>
             </div>
 
@@ -1629,6 +1769,20 @@
             .addClass('border-blue-600 text-blue-600 font-semibold');
     }
 
+    window.openHolidayModal = function(tab = 'holiday') {
+        const el = document.getElementById("holidayModal");
+        if (el) el.classList.remove("hidden");
+        const targetTab = (tab && tab.startsWith('tab-')) ? tab : `tab-${tab || 'holiday'}`;
+        if (typeof switchInfoTab === 'function') {
+            switchInfoTab(targetTab);
+        }
+    };
+
+    window.closeHolidayModal = function() {
+        const el = document.getElementById("holidayModal");
+        if (el) el.classList.add("hidden");
+    };
+
     function openModalBroadcastList() {
         $('#broadcastModalList').removeClass('hidden').addClass('flex');
     }
@@ -1912,7 +2066,9 @@
             toggleWeeklySchedule(true);
         }
     });
+
 </script>
+
 
 <style>
     .no-scrollbar::-webkit-scrollbar {

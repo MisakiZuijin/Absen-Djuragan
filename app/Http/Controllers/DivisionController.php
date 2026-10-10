@@ -81,6 +81,12 @@ class DivisionController extends Controller
         $shifts = $this->shiftService->getAllShift();
         $project = NameProjects::all();
         $brands = Brand::where('is_active', true)->orderBy('name')->get();
+        $offices = \App\Models\Office::orderBy('name')->get();
+        $otherInterns = \App\Models\Intern::with('user.profile')
+            ->whereHas('user', function($q) use ($userId) {
+                $q->where('id', '!=', $userId);
+            })
+            ->get();
 
         $data = [
             "user" => $userData,
@@ -89,6 +95,9 @@ class DivisionController extends Controller
             "shifts" => $shifts->isSuccess() ? $shifts->getData() : null,
             "projects" => $project,
             "brands" => $brands,
+            "offices" => $offices,
+            "otherInterns" => $otherInterns,
+            "existingConflict" => null,
         ];
 
         $isProjectVisible = true;
@@ -96,9 +105,19 @@ class DivisionController extends Controller
         if ($teamData->isSuccess()) {
             $team = $teamData->getData();
             if ($team->intern) {
-                $team->intern->loadMissing(['account', 'division', 'brand']);
+                $team->intern->loadMissing(['account', 'division', 'brand', 'shift', 'lockedOffice', 'blacklistedOffice']);
+
+                $conflictRule = \App\Models\InternConflictRule::where('is_active', true)
+                    ->where(function($q) use ($team) {
+                        $q->where('intern_id_1', $team->intern->id)
+                          ->orWhere('intern_id_2', $team->intern->id);
+                    })
+                    ->first();
+                if ($conflictRule) {
+                    $data["existingConflict"] = $conflictRule->intern_id_1 == $team->intern->id ? $conflictRule->intern_id_2 : $conflictRule->intern_id_1;
+                }
             }
-            $teamProject = $team->intern->detailProject;
+            $teamProject = $team->intern ? $team->intern->detailProject : collect();
             foreach ($teamProject as $project) {
                 if ($project->is_done == false) {
                     $isProjectVisible = false;

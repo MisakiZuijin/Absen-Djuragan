@@ -48,6 +48,9 @@ class AttdStatusButton extends Component
     public string $taskLinkType = 'general';
     public string $taskLinkLabel = 'Link Pengumpulan / Drive Tugas';
     public string $taskLinkPlaceholder = 'https://drive.google.com/...';
+    public bool $requiresTaskLink = false;
+    public string $internGdriveUrl = '';
+    public string $taskLinkHelpText = '';
     public bool $showAdminResponseModal = false;
     public ?array $adminResponseData = null;
     public int $mountTimestamp = 0;
@@ -997,48 +1000,34 @@ class AttdStatusButton extends Component
             $this->pendingProjectId = $project?->id;
             $this->pendingProjectName = $project?->nameProject?->name ?? 'Tugas / Project Aktif';
 
-            $divisionId = (int) ($currentUser?->intern?->division_id ?? 0);
-            $divisionName = strtolower($currentUser?->intern?->division?->name ?? '');
+            $internAccount = $currentUser?->intern?->account;
+            $hasTaskLinkPlatform = $internAccount ? $internAccount->hasTaskLinkPlatform() : false;
+            $this->requiresTaskLink = $hasTaskLinkPlatform;
+            $this->internGdriveUrl = $internAccount?->gdrive_url ?? '';
 
-            $isProg = ($divisionId === 4)
-                || str_contains($divisionName, 'programmer')
-                || str_contains($divisionName, 'program');
-            $isUiUx = ($divisionId === 1)
-                || str_contains($divisionName, 'ui/ux')
-                || str_contains($divisionName, 'ui / ux')
-                || (str_contains($divisionName, 'ui') && str_contains($divisionName, 'ux'));
-            $isSosmed = in_array($divisionId, [2, 3, 5, 6, 8, 9, 11, 12, 16])
-                || str_contains($divisionName, 'social')
-                || str_contains($divisionName, 'tiktok')
-                || str_contains($divisionName, 'marketing')
-                || str_contains($divisionName, 'marcom')
-                || str_contains($divisionName, 'content')
-                || str_contains($divisionName, 'talent')
-                || str_contains($divisionName, 'presenter');
-
-            if ($isProg) {
-                $this->taskLinkType = 'programmer';
-                $this->taskLinkLabel = 'Link Repository GitHub Tugas';
-                $this->taskLinkPlaceholder = 'https://github.com/username/project-repo';
-            } elseif ($isUiUx) {
-                $this->taskLinkType = 'uiux';
-                $this->taskLinkLabel = 'Link Project / File Figma Tugas';
-                $this->taskLinkPlaceholder = 'https://www.figma.com/design/...';
-            } elseif ($isSosmed) {
-                $this->taskLinkType = 'media';
-                $this->taskLinkLabel = 'Link Media / Google Drive Tugas';
-                $this->taskLinkPlaceholder = 'https://drive.google.com/...';
+            if (!$hasTaskLinkPlatform) {
+                // Tidak ada checklist git/figma/sosmed: otomatis langsung pakai link drive yang sudah diisi oleh admin untuk pemagang itu
+                $this->taskLinkInput = $project?->repository_url ?: $this->internGdriveUrl;
+                $this->taskLinkType = 'gdrive_auto';
+                $this->taskLinkLabel = 'Folder Google Drive Tugas';
+                $this->taskLinkPlaceholder = 'Otomatis menggunakan Google Drive';
+                $this->taskLinkHelpText = 'Hasil karya otomatis menggunakan tautan Google Drive yang telah diatur oleh admin.';
             } else {
-                $this->taskLinkType = 'general';
-                $this->taskLinkLabel = 'Link Pengumpulan / Drive Tugas';
-                $this->taskLinkPlaceholder = 'https://drive.google.com/...';
-            }
+                $platforms = $internAccount->getEnabledTaskPlatformNames();
+                $platformText = implode(' / ', $platforms);
 
-            // Periksa langsung ke repository_url pada project tugas tersebut (bukan kredensial akun)
-            $this->taskLinkInput = $project?->repository_url ?: '';
+                $this->taskLinkType = 'custom';
+                $this->taskLinkLabel = "Tautan Hasil Karya ({$platformText})";
+                $this->taskLinkPlaceholder = "https://... (masukkan link {$platformText} atau link tugas)";
+                $this->taskLinkHelpText = "Ketentuan: Tautan {$platformText}. Anda bebas memasukkan tautan tugas apapun yang valid (tidak dibatasi domain tertentu).";
+                $this->taskLinkInput = $project?->repository_url ?: '';
+            }
         } else {
             $this->taskLinkInput = '';
             $this->pendingProjectName = '';
+            $this->requiresTaskLink = false;
+            $this->internGdriveUrl = '';
+            $this->taskLinkHelpText = '';
         }
 
         $this->showOutcomeConfirmModal = true;
@@ -1055,6 +1044,9 @@ class AttdStatusButton extends Component
         $this->pendingProjectId = null;
         $this->pendingProjectName = '';
         $this->taskLinkInput = '';
+        $this->requiresTaskLink = false;
+        $this->internGdriveUrl = '';
+        $this->taskLinkHelpText = '';
         $this->resetErrorBag();
     }
 
@@ -1068,18 +1060,23 @@ class AttdStatusButton extends Component
             $outcome = $this->pendingOutcome;
 
             if ($outcome === 'passed') {
-                $this->validate([
-                    'taskLinkInput' => 'required|url|max:500',
-                ], [
-                    'taskLinkInput.required' => 'Link tugas wajib diisi terlebih dahulu sebelum menyelesaikan presentasi.',
-                    'taskLinkInput.url' => 'Format link tugas harus berupa URL valid (contoh: https://...).',
-                    'taskLinkInput.max' => 'Panjang link maksimal 500 karakter.',
-                ]);
+                if ($this->requiresTaskLink) {
+                    $this->validate([
+                        'taskLinkInput' => 'required|url|max:500',
+                    ], [
+                        'taskLinkInput.required' => 'Link tugas wajib diisi terlebih dahulu sebelum menyelesaikan presentasi.',
+                        'taskLinkInput.url' => 'Format link tugas harus berupa URL valid (contoh: https://...).',
+                        'taskLinkInput.max' => 'Panjang link maksimal 500 karakter.',
+                    ]);
 
-                $linkUrl = trim($this->taskLinkInput);
+                    $linkUrl = trim($this->taskLinkInput);
+                } else {
+                    // Otomatis langsung memakai link drive yang sudah diisi oleh admin untuk pemagang itu
+                    $linkUrl = !empty($this->taskLinkInput) ? trim($this->taskLinkInput) : ($this->internGdriveUrl ?: null);
+                }
 
-                // Simpan tautan secara khusus ke kolom repository_url pada project/tugas bersangkutan
-                if ($this->pendingProjectId) {
+                // Simpan tautan ke kolom repository_url pada project/tugas bersangkutan
+                if ($this->pendingProjectId && !empty($linkUrl)) {
                     $proj = \App\Models\Projects::find($this->pendingProjectId);
                     if ($proj) {
                         $proj->update(['repository_url' => $linkUrl]);
@@ -1093,6 +1090,9 @@ class AttdStatusButton extends Component
             $this->pendingProjectId = null;
             $this->pendingProjectName = '';
             $this->taskLinkInput = '';
+            $this->requiresTaskLink = false;
+            $this->internGdriveUrl = '';
+            $this->taskLinkHelpText = '';
             $this->resetErrorBag();
             $this->completePresentation($id, $outcome);
         }
@@ -1147,6 +1147,15 @@ class AttdStatusButton extends Component
 
             if ($project) {
                 $project->update(['status' => 'done']);
+
+                // Jika repository_url masih kosong dan pemagang tidak memiliki checklist git/figma/sosmed,
+                // otomatis isi dengan link drive dari admin
+                if (empty($project->repository_url) && $intern) {
+                    $acc = $intern->account;
+                    if ($acc && !$acc->hasTaskLinkPlatform() && !empty($acc->gdrive_url)) {
+                        $project->update(['repository_url' => $acc->gdrive_url]);
+                    }
+                }
 
                 \App\Models\HandRaise::where('user_id', $currentUser->id)
                     ->where('project_id', $project->id)

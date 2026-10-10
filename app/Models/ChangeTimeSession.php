@@ -148,7 +148,7 @@ class ChangeTimeSession extends Model
             ->where(function ($q) use ($sessionDateStr) {
                 if ($sessionDateStr) {
                     $q->whereDate('requested_date', $sessionDateStr)
-                      ->orWhereDate('created_at', $sessionDateStr);
+                        ->orWhereDate('created_at', $sessionDateStr);
                 }
             })
             ->latest('id')
@@ -158,12 +158,12 @@ class ChangeTimeSession extends Model
     /**
      * Akumulasi waktu kerja ganti jam maksimal 7 jam 15 menit (435 menit)
      */
-    public function getTotalWorkMinutesAttribute($value): int
+    public function getTotalWorkMinutesAttribute(mixed $value): int
     {
         return min(435, max(0, (int) $value));
     }
 
-    public function setTotalWorkMinutesAttribute($value): void
+    public function setTotalWorkMinutesAttribute(mixed $value): void
     {
         $this->attributes['total_work_minutes'] = min(435, max(0, (int) $value));
     }

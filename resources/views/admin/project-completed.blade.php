@@ -376,10 +376,16 @@
                 </div>
 
                 <!-- Setting-style Pagination (CSS Grid / Responsive) -->
-                @if ($projects->hasPages())
+                @if ($projects->total() > 0)
                 <div class="grid grid-cols-1 sm:grid-cols-2 items-center gap-3 p-3 bg-white rounded-xl border border-slate-200/80 shadow-2xs mt-3 w-full">
-                    <div class="text-xs text-slate-500 font-medium text-center sm:text-left">
-                        Menampilkan <span class="font-bold text-slate-800">{{ $projects->firstItem() ?? 0 }}</span> - <span class="font-bold text-slate-800">{{ $projects->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $projects->total() }}</span> project
+                    <div class="text-xs text-slate-500 font-medium text-center sm:text-left flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+                        <span>Menampilkan <span class="font-bold text-slate-800">{{ $projects->firstItem() ?? 0 }}</span> - <span class="font-bold text-slate-800">{{ $projects->lastItem() ?? 0 }}</span> dari <span class="font-bold text-slate-800">{{ $projects->total() }}</span> project</span>
+                        <span class="text-slate-300 hidden sm:inline">•</span>
+                        <div class="inline-flex items-center gap-1 text-[11px]">
+                            <span class="text-slate-400">Tampilkan:</span>
+                            <a href="{{ request()->fullUrlWithQuery(['per_page' => 8, 'page' => 1]) }}" class="px-2 py-0.5 rounded font-bold transition {{ ($perPage ?? 8) == 8 ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}" title="Tampilkan 8 item per halaman (Pas)">8 (Pas)</a>
+                            <a href="{{ request()->fullUrlWithQuery(['per_page' => 12, 'page' => 1]) }}" class="px-2 py-0.5 rounded font-bold transition {{ ($perPage ?? 8) == 12 ? 'bg-indigo-600 text-white shadow-2xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200' }}" title="Tampilkan 12 item per halaman">12</a>
+                        </div>
                     </div>
                     <div class="flex items-center justify-center sm:justify-end space-x-1.5">
                         {{-- Prev Button --}}

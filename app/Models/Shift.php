@@ -28,11 +28,19 @@ class Shift extends Model
         "friday_start_break_time",
         "friday_end_break_time",
         "friday_break_time_in_minute",
+        "is_split_shift",
+        "split_wfh_start",
+        "split_wfh_end",
+        "split_wfo_start",
+        "split_wfo_end",
+        "is_rolling",
     ];
 
     protected $casts = [
         'is_gps_active' => 'integer',
         'is_friday_break_active' => 'boolean',
+        'is_split_shift' => 'boolean',
+        'is_rolling' => 'boolean',
         'break_time_in_minute' => 'integer',
         'friday_break_time_in_minute' => 'integer',
         'total_time_in_minute' => 'integer',
@@ -85,15 +93,19 @@ class Shift extends Model
             return false;
         }
 
-        // 3. Cek apakah target pemagang adalah laki-laki
+        // 3. Cek apakah target pemagang adalah laki-laki dan beragama Islam (Shalat Jumat)
         try {
+            /** @var \App\Models\User|null $targetUser */
             $targetUser = $user ?: auth()->user();
             if (!$targetUser) {
                 return false;
             }
 
-            $gender = strtolower(trim($targetUser->profile?->gender ?? ''));
-            return in_array($gender, ['l', 'laki-laki', 'male', 'pria', 'laki'], true);
+            if (method_exists($targetUser, 'isMuslimMale')) {
+                return $targetUser->isMuslimMale();
+            }
+
+            return false;
         } catch (\Throwable $e) {
             return false;
         }

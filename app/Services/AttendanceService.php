@@ -903,8 +903,27 @@ class AttendanceService
             foreach ($result->items() as $item) {
                 $modifiedData = [];
 
-                $modifiedData['name'] = $item->schedule?->intern?->user?->profile?->full_name ?? $item->schedule?->intern?->user?->name ?? 'Pemagang';
-                $modifiedData['intern_id'] = $item->schedule?->intern?->id ?? 0;
+                $intern = $item->schedule?->intern;
+                $userProfile = $intern?->user?->profile;
+                $rawPhone = $userProfile?->phone ?? null;
+                $waNumber = null;
+                if (!empty($rawPhone)) {
+                    $clean = preg_replace('/[^0-9]/', '', (string)$rawPhone);
+                    if (str_starts_with($clean, '0')) {
+                        $clean = '62' . substr($clean, 1);
+                    } elseif (!str_starts_with($clean, '62') && strlen($clean) > 8) {
+                        $clean = '62' . $clean;
+                    }
+                    if (strlen($clean) >= 10) {
+                        $waNumber = $clean;
+                    }
+                }
+
+                $modifiedData['name'] = $userProfile?->full_name ?? $intern?->user?->name ?? 'Pemagang';
+                $modifiedData['intern_id'] = $intern?->id ?? 0;
+                $modifiedData['phone'] = $rawPhone;
+                $modifiedData['whatsapp_number'] = $waNumber;
+                $modifiedData['whatsapp_url'] = $waNumber ? "https://wa.me/{$waNumber}" : null;
                 $modifiedData['detail_schedule_id'] = $item->id;
                 $modifiedData['is_notification_sent'] = $item->is_notification_sent;
                 $modifiedData['ischange_schedule'] = $item->isChangeSchedule;
@@ -2379,7 +2398,7 @@ class AttendanceService
         }
     }
 
-    public function markMissedSchedulesAsAlpha(): void
+    public function markMissedSchedulesAsAlpha(): int
     {
         try {
             $today = Carbon::today()->toDateString();
@@ -2406,14 +2425,15 @@ class AttendanceService
                 ->get();
 
             if ($missedSchedules->isEmpty()) {
-                return;
+                return 0;
             }
 
-            // Ambil seluruh tanggal hari libur yang tercatat sampai hari ini
-            $holidayDates = \App\Models\Holiday::whereDate('date', '<=', $today)
-                ->pluck('date')
-                ->map(fn($d) => Carbon::parse($d)->toDateString())
-                ->toArray();
+            // Ambil seluruh tanggal hari libur yang tercatat sampai hari ini (di-cache 1 jam untuk performa)
+            $holidayDates = \Illuminate\Support\Facades\Cache::remember('active_holiday_dates_until_today', 3600, function () {
+                return \App\Models\Holiday::pluck('date')
+                    ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
+                    ->toArray();
+            });
 
             $alphaIds = [];
             foreach ($missedSchedules as $schedule) {
@@ -2441,11 +2461,14 @@ class AttendanceService
                 }
             }
 
+            $count = 0;
             if (!empty($alphaIds)) {
-                DetailSchedule::whereIn('id', $alphaIds)->update(['attd_status_id' => $statusAlpha]);
+                $count = DetailSchedule::whereIn('id', $alphaIds)->update(['attd_status_id' => $statusAlpha]);
             }
+            return $count;
         } catch (\Exception $e) {
             Log::error('Gagal saat mencoba menandai jadwal terlewat sebagai Alpha: ' . $e->getMessage());
+            return 0;
         }
     }
 }

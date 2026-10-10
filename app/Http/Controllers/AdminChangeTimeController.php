@@ -73,7 +73,7 @@ class AdminChangeTimeController extends Controller
                     $sub->whereBetween('session_date', [$dateFrom, $dateTo])
                         ->orWhere(function ($s) use ($dateFrom, $dateTo) {
                             $s->whereNull('session_date')
-                              ->whereBetween(DB::raw('DATE(created_at)'), [$dateFrom, $dateTo]);
+                                ->whereBetween(DB::raw('DATE(created_at)'), [$dateFrom, $dateTo]);
                         });
                 });
             } elseif ($dateFrom) {
@@ -81,7 +81,7 @@ class AdminChangeTimeController extends Controller
                     $sub->whereDate('session_date', '>=', $dateFrom)
                         ->orWhere(function ($s) use ($dateFrom) {
                             $s->whereNull('session_date')
-                              ->whereDate('created_at', '>=', $dateFrom);
+                                ->whereDate('created_at', '>=', $dateFrom);
                         });
                 });
             } elseif ($dateTo) {
@@ -89,7 +89,7 @@ class AdminChangeTimeController extends Controller
                     $sub->whereDate('session_date', '<=', $dateTo)
                         ->orWhere(function ($s) use ($dateTo) {
                             $s->whereNull('session_date')
-                              ->whereDate('created_at', '<=', $dateTo);
+                                ->whereDate('created_at', '<=', $dateTo);
                         });
                 });
             }
@@ -164,18 +164,21 @@ class AdminChangeTimeController extends Controller
         // Terapkan filter periode tanggal ke query sesi ganti jam
         $applySessionDateFilter($sessionQuery);
 
-        $sessions = $sessionQuery->paginate(15, ['*'], 'session_page')->appends($request->query());
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $sessions */
+        $sessions = $sessionQuery->paginate(15, ['*'], 'session_page');
+        $sessions->appends($request->query());
 
         // Prefetch registrations untuk sesi pada halaman aktif guna mencegah N+1 query
-        $sessionInternIds = $sessions->pluck('intern_id')->filter()->unique()->toArray();
+        $sessionInternIds = collect($sessions->items())->pluck('intern_id')->filter()->unique()->toArray();
         $registrationsByIntern = !empty($sessionInternIds)
             ? \App\Models\ChangeTimeRegistration::whereIn('intern_id', $sessionInternIds)
-                ->with(['shift', 'office'])
-                ->latest('id')
-                ->get()
-                ->groupBy('intern_id')
+            ->with(['shift', 'office'])
+            ->latest('id')
+            ->get()
+            ->groupBy('intern_id')
             : collect();
 
+        /** @var \Illuminate\Pagination\LengthAwarePaginator $sessions */
         $sessions->getCollection()->transform(function ($session) use ($registrationsByIntern) {
             $internRegs = $registrationsByIntern->get($session->intern_id, collect());
             $sessionDateStr = $session->session_date ? \Carbon\Carbon::parse($session->session_date)->toDateString() : null;
@@ -576,4 +579,3 @@ class AdminChangeTimeController extends Controller
         }
     }
 }
-

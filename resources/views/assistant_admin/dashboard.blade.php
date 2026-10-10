@@ -246,9 +246,15 @@
                             <p class="text-slate-600 text-sm">5 log aktivitas terakhir yang masuk</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 text-slate-500 text-sm">
-                        <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                        <span>Real-time</span>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 text-slate-500 text-sm">
+                            <div class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            <span>Real-time</span>
+                        </div>
+                        <a href="{{ route('assistant.logactivity') }}" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-1 transition-colors">
+                            <span>Lihat Semua</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -257,17 +263,23 @@
                 @if(isset($recentActivities) && $recentActivities->count() > 0)
                     <div class="space-y-4">
                         @foreach($recentActivities as $activity)
+                            @php
+                                $studentName = $activity->detailSchedule?->schedule?->intern?->user?->profile?->full_name 
+                                    ?? $activity->detailSchedule?->schedule?->intern?->user?->username 
+                                    ?? 'Siswa';
+                                $initial = strtoupper(substr($studentName, 0, 2));
+                            @endphp
                             <div class="flex items-center gap-4 p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors duration-200 border border-slate-100">
-                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
                                     <span class="text-blue-600 font-bold text-sm">
-                                        {{ strtoupper(substr($activity->user->name ?? 'U', 0, 2)) }}
+                                        {{ $initial }}
                                     </span>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <div class="font-semibold text-slate-900 mb-1">{{ $activity->user->name ?? 'User' }}</div>
-                                    <div class="text-sm text-slate-600 truncate">{{ Str::limit($activity->description, 80) }}</div>
+                                    <div class="font-semibold text-slate-900 mb-1 truncate">{{ $studentName }}</div>
+                                    <div class="text-sm text-slate-600 truncate">{{ Str::limit($activity->activity, 80) }}</div>
                                 </div>
-                                <div class="flex flex-col items-end gap-2">
+                                <div class="flex flex-col items-end gap-2 shrink-0">
                                     <div class="text-xs text-slate-500">
                                         {{ \Carbon\Carbon::parse($activity->date)->diffForHumans() }}
                                     </div>

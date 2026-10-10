@@ -1,45 +1,63 @@
-// FITUR SEKOLAH/KAMPUS
+// ==========================================
+// FITUR MODAL & FORM ANGGOTA SEKOLAH
+// ==========================================
 
-document.getElementById('searchInput').addEventListener('input', function() {
-    let filter = this.value.toLowerCase();
-    let divisionItems = document.querySelectorAll('.division-item');
-
-    divisionItems.forEach(function(item) {
-        let divisionTextElement = item.querySelector('.text-lg');
-        if (divisionTextElement) {
-            let divisionName = divisionTextElement.innerText.toLowerCase();
-            if (divisionName.includes(filter)) {
-                item.style.display = ''; // Show the item if it matches
-            } else {
-                item.style.display = 'none'; // Hide the item if it does not match
-            }
-        } else {
-            item.style.display = 'none'; // Hide the item if the text element is not found
-        }
-    });
-});
-
-// FITUR DAFTAR ANGGOTA SEKOLAH
-
-  // Function to open the modal and set values
-  function openModal(id, name, division, officeName) {
+// Function to open the modal and set values
+function openModal(id, name, division, officeName, shiftId, type, startDate, endDate) {
     const shiftModal = document.getElementById('shiftModal');
-    if (shiftModal) {
-        shiftModal.classList.remove('hidden');
-        document.getElementById('intern-id').value = id;
-        document.getElementById('internName').value = name;
-        document.getElementById('division').value = division;
-        
-        let officeDropdown = document.getElementById('office_id');
+    if (!shiftModal) return;
+
+    shiftModal.classList.remove('hidden');
+
+    const internIdInput = document.getElementById('intern-id');
+    if (internIdInput) internIdInput.value = id || '';
+
+    const internNameInput = document.getElementById('internName');
+    if (internNameInput) internNameInput.value = name || '';
+
+    const divisionInput = document.getElementById('division');
+    if (divisionInput) divisionInput.value = division || '';
+
+    const officeDropdown = document.getElementById('office_id');
+    if (officeDropdown && officeName) {
         for (let i = 0; i < officeDropdown.options.length; i++) {
-            if (officeDropdown.options[i].text === officeName) {
+            if (officeDropdown.options[i].text.trim() === officeName.trim()) {
                 officeDropdown.selectedIndex = i;
                 break;
             }
         }
+    }
 
-    } else {
-        console.error("Shift modal element not found");
+    const typeDropdown = document.getElementById('type');
+    if (typeDropdown) {
+        typeDropdown.value = type ? String(type) : '1';
+        toggleRollingInfo(typeDropdown.value);
+    }
+
+    const shiftDropdown = document.getElementById('shift_id');
+    if (shiftDropdown && shiftId) {
+        shiftDropdown.value = String(shiftId);
+    }
+
+    if (startDate) {
+        const startInput = document.getElementById('start_period');
+        if (startInput) startInput.value = startDate;
+    }
+    if (endDate) {
+        const endInput = document.getElementById('end_period');
+        if (endInput) endInput.value = endDate;
+    }
+}
+
+// Function to toggle rolling info alert
+function toggleRollingInfo(typeVal) {
+    const infoAlert = document.getElementById('rollingInfoAlert');
+    if (infoAlert) {
+        if (String(typeVal) === '2') {
+            infoAlert.classList.remove('hidden');
+        } else {
+            infoAlert.classList.add('hidden');
+        }
     }
 }
 
@@ -48,13 +66,14 @@ function closeModal() {
     const shiftModal = document.getElementById('shiftModal');
     if (shiftModal) {
         shiftModal.classList.add('hidden');
-    } else {
-        console.error("Shift modal element not found");
     }
 }
 
-// Close modal when clicking outside the modal content
+// ==========================================
+// DOMContentLoaded EVENT LISTENERS
+// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    // 1. Modal backdrop click handler
     const shiftModal = document.getElementById('shiftModal');
     if (shiftModal) {
         shiftModal.addEventListener('click', function(e) {
@@ -62,43 +81,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal();
             }
         });
-    } else {
-        console.error("Shift Modal element not found");
     }
 
-    // Handle form submission
-    const saveButton = document.getElementById('saveButton');
-    if (saveButton) {
-        saveButton.addEventListener('click', function() {
-            document.getElementById('shiftForm').submit();
+    // 2. Shift type dropdown change handler
+    const typeDropdown = document.getElementById('type');
+    if (typeDropdown) {
+        typeDropdown.addEventListener('change', function() {
+            toggleRollingInfo(this.value);
         });
-    } else {
-        console.error("Save Button element not found");
     }
-});
 
-// Search functionality for table rows
-document.getElementById('searchInput').addEventListener('input', function() {
-    const searchTerm = this.value.toLowerCase();
-    const tableRows = document.querySelectorAll('#teamTableBody tr');
+    // 3. Unified Search handler (berfungsi untuk halaman kartu sekolah & tabel anggota sekolah)
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase().trim();
 
-    tableRows.forEach(function(row) {
-        const nameCell = row.cells[1].textContent.toLowerCase();
-        if (nameCell.includes(searchTerm)) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
-});
+            // A. Pencarian Kartu Sekolah di halaman Daftar Sekolah
+            const schoolCards = document.querySelectorAll('.division-item');
+            if (schoolCards.length > 0) {
+                schoolCards.forEach(function(card) {
+                    const nameAttr = card.getAttribute('data-school-name') || '';
+                    const titleEl = card.querySelector('.school-title');
+                    const titleText = titleEl ? titleEl.textContent.toLowerCase() : '';
+                    const fullText = card.textContent.toLowerCase();
 
-// Fade-out success message
-document.addEventListener('DOMContentLoaded', function() {
+                    const isMatch = filter === '' ||
+                                    nameAttr.includes(filter) ||
+                                    titleText.includes(filter) ||
+                                    fullText.includes(filter);
+
+                    if (isMatch) {
+                        card.style.display = '';
+                        card.classList.remove('hidden');
+                    } else {
+                        card.style.display = 'none';
+                        card.classList.add('hidden');
+                    }
+                });
+            }
+
+            // B. Pencarian Baris Tabel di halaman Anggota Sekolah & Penjadwalan
+            const tableRows = document.querySelectorAll('#teamTableBody tr');
+            if (tableRows.length > 0) {
+                tableRows.forEach(function(row) {
+                    const rowText = row.textContent.toLowerCase();
+                    row.style.display = rowText.includes(filter) ? '' : 'none';
+                });
+            }
+        });
+    }
+
+    // 4. Auto-dismiss flash success message
     const message = document.getElementById('success-message');
     if (message) {
         setTimeout(() => {
-            message.style.opacity = 0;
-            setTimeout(() => message.remove(), 600); // Remove after transition
-        }, 3000); // Display duration (3 seconds)
+            message.style.opacity = '0';
+            setTimeout(() => message.remove(), 600);
+        }, 3000);
     }
 });

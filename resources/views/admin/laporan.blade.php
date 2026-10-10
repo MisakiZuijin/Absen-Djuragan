@@ -1200,16 +1200,28 @@
         const nextPageButton = document.querySelector('#next-page');
         const pageNumbersContainer = document.querySelector('#page-numbers');
         const tbody = document.querySelector('#report-tbody');
+        const loadingSpinner = document.getElementById('loading-spinner');
+        const noDataMessage = document.getElementById('no-data-message');
         let totalPages = 1;
 
-        const fetchData = (page, startDate = '', endDate = '', internName = null, filter = '') => {
+        const getFilters = () => {
+            const startDate = document.querySelector('#start-date')?.value || '';
+            const endDate = document.querySelector('#end-date')?.value || '';
+            const query = document.querySelector('#search-student')?.value?.trim() || '';
+            return { startDate, endDate, query };
+        };
+
+        const fetchData = (page, startDate = '', endDate = '', internName = null) => {
+            if (loadingSpinner) loadingSpinner.classList.remove('hidden');
+            if (noDataMessage) noDataMessage.classList.add('hidden');
+
             const params = {
                 page: page,
                 perPage: perPage,
                 startDate: startDate,
                 endDate: endDate
             };
-            if (internName != null) {
+            if (internName != null && internName !== '') {
                 params.internName = internName;
             }
 
@@ -1217,41 +1229,55 @@
                     params
                 })
                 .then(response => {
-                    totalPages = response.data.totalPages;
-                    currentPage = response.data.currentPage;
+                    if (loadingSpinner) loadingSpinner.classList.add('hidden');
+                    totalPages = response.data.totalPages || 1;
+                    currentPage = response.data.currentPage || page;
                     tbody.innerHTML = '';
 
-                    response.data.reportData.forEach((item, key) => {
-                        const row = document.createElement('tr');
-                        row.className = 'border-b border-gray-300 text-center';
+                    const reportData = response.data.reportData || [];
 
-                        const rowNumber = (currentPage - 1) * perPage + (key + 1);
+                    if (reportData.length === 0) {
+                        if (noDataMessage) noDataMessage.classList.remove('hidden');
+                    } else {
+                        if (noDataMessage) noDataMessage.classList.add('hidden');
+                        reportData.forEach((item, key) => {
+                            const row = document.createElement('tr');
+                            row.className = 'border-b border-gray-300 text-center';
 
-                        row.innerHTML = `
-                            <td class="px-4 py-2">${rowNumber}</td>
-                            <td class="px-4 py-2 text-left hover:underline cursor-pointer text-blue-600 hover:text-blue-800">
-                                <a href="/admin/presence/detail/${item.id}">${item.name}</a>
-                            </td>
-                            <td class="px-4 py-2">${item.nip}</td>
-                            <td class="px-4 py-2">
-                                <a href="#" class="inline-block ml-2">${item.submitted}</a>
-                            </td>
-                            <td class="px-4 py-2 text-yellow-600">
-                                <a href="#" class="inline-block ml-2">${item.permits}</a>
-                            </td>
-                            <td class="px-4 py-2 text-red-600">
-                                <a href="#" class="inline-block ml-2">${item.absence}</a>
-                            </td>
-                        `;
-                        tbody.appendChild(row);
-                        updatePaginationButtons();
-                        renderPageNumbers();
-                    });
+                            const rowNumber = (currentPage - 1) * perPage + (key + 1);
 
+                            row.innerHTML = `
+                                <td class="px-4 py-2">${rowNumber}</td>
+                                <td class="px-4 py-2 text-left hover:underline cursor-pointer text-blue-600 hover:text-blue-800">
+                                    <a href="/admin/presence/detail/${item.id}">${item.name}</a>
+                                </td>
+                                <td class="px-4 py-2">${item.nip}</td>
+                                <td class="px-4 py-2">
+                                    <a href="#" class="inline-block ml-2">${item.submitted}</a>
+                                </td>
+                                <td class="px-4 py-2 text-yellow-600">
+                                    <a href="#" class="inline-block ml-2">${item.permits}</a>
+                                </td>
+                                <td class="px-4 py-2 text-red-600">
+                                    <a href="#" class="inline-block ml-2">${item.absence}</a>
+                                </td>
+                            `;
+                            tbody.appendChild(row);
+                        });
+                    }
+
+                    updatePaginationButtons();
+                    renderPageNumbers();
                 })
                 .catch(error => {
+                    if (loadingSpinner) loadingSpinner.classList.add('hidden');
                     console.error('Error fetching data:', error);
                 });
+        };
+
+        const fetchCurrentPage = (page) => {
+            const { startDate, endDate, query } = getFilters();
+            fetchData(page, startDate, endDate, query);
         };
 
         const updatePaginationButtons = () => {
@@ -1261,22 +1287,31 @@
 
         const renderPageNumbers = () => {
             pageNumbersContainer.innerHTML = '';
+            if (totalPages <= 0) return;
 
-            for (let i = 1; i <= totalPages; i++) {
+            // Batasi jumlah tombol nomor halaman maksimal 5 tombol (sliding window)
+            const maxPagesToShow = 5;
+            let startPage = Math.max(1, currentPage - 2);
+            let endPage = Math.min(totalPages, startPage + maxPagesToShow - 1);
+            if (endPage - startPage < maxPagesToShow - 1) {
+                startPage = Math.max(1, endPage - maxPagesToShow + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
                 const pageButton = document.createElement('button');
                 pageButton.textContent = i;
-                pageButton.className = 'cursor-pointer px-4 py-2 rounded-md border';
+                pageButton.className = 'cursor-pointer px-3.5 py-1.5 rounded-md border text-sm font-semibold transition';
 
                 if (i === currentPage) {
-                    pageButton.classList.add('bg-blue-600', 'text-white');
+                    pageButton.classList.add('bg-blue-600', 'text-white', 'border-blue-600', 'shadow-xs');
                 } else {
-                    pageButton.classList.add('text-blue-600', 'bg-white', 'hover:bg-gray-100');
+                    pageButton.classList.add('text-blue-600', 'bg-white', 'hover:bg-gray-100', 'border-gray-300');
                 }
 
                 pageButton.addEventListener('click', () => {
                     if (i !== currentPage) {
                         currentPage = i;
-                        fetchData(currentPage);
+                        fetchCurrentPage(currentPage);
                     }
                 });
 
@@ -1284,32 +1319,32 @@
             }
         };
 
-        fetchData(currentPage);
+        fetchCurrentPage(currentPage);
 
         prevPageButton.addEventListener('click', () => {
             if (currentPage > 1) {
                 currentPage--;
-                fetchData(currentPage);
+                fetchCurrentPage(currentPage);
             }
         });
 
         nextPageButton.addEventListener('click', () => {
             if (currentPage < totalPages) {
                 currentPage++;
-                fetchData(currentPage);
+                fetchCurrentPage(currentPage);
             }
         });
 
+        let searchDebounce;
         document.querySelector('#search-student').addEventListener('input', function() {
-            const query = this.value;
-            fetchData(1, '', '', query);
+            clearTimeout(searchDebounce);
+            searchDebounce = setTimeout(() => {
+                fetchCurrentPage(1);
+            }, 300);
         });
 
         document.querySelector('#search-button').addEventListener('click', () => {
-            const startDate = document.querySelector('#start-date').value;
-            const endDate = document.querySelector('#end-date').value;
-            const query = document.querySelector('#search-student').value;
-            fetchData(1, startDate, endDate, query);
+            fetchCurrentPage(1);
         });
 
     });

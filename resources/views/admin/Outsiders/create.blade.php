@@ -3,6 +3,83 @@
 @section('title', 'Tambah Outsider')
 
 @section('contents')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        /* Select2 Custom Tailwind Styling for Form Inputs */
+        .select2-container--default .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 6px 12px !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #ffffff !important;
+            font-size: 0.875rem !important;
+            transition: all 0.2s ease !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #374151 !important;
+            line-height: normal !important;
+            padding-left: 0 !important;
+            padding-right: 20px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ca3af !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 8px !important;
+            top: 1px !important;
+        }
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+            outline: none !important;
+        }
+        .select2-dropdown {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.375rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            font-size: 0.875rem !important;
+            z-index: 9999 !important;
+            overflow: hidden !important;
+        }
+        .select2-search--dropdown {
+            padding: 8px !important;
+        }
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 6px 10px !important;
+            font-size: 0.875rem !important;
+            outline: none !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        .select2-search--dropdown .select2-search__field:focus {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2) !important;
+        }
+        .select2-results__option {
+            padding: 8px 12px !important;
+            font-size: 0.875rem !important;
+            color: #374151 !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+            font-weight: 600 !important;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+
     <!-- Main Content -->
     <main class="ml-0 md:ml-64 mt-16 md:mt-20 p-3 sm:p-6 min-w-0">
 
@@ -39,7 +116,7 @@
         @endif
 
         <!-- Form -->
-        <form action="{{ route('admin.outsiders.store') }}" method="POST" class="max-w-4xl">
+        <form action="{{ route('admin.outsiders.store') }}" method="POST" class="max-w-4xl" id="outsiderForm">
             @csrf
 
             <div class="bg-white rounded-lg shadow-sm border border-gray-200">
@@ -126,9 +203,9 @@
                             </label>
                             <select name="school_id" id="school_id"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Pilih sekolah</option>
+                                <option value=""></option>
                                 @foreach($schools as $school)
-                                    <option value="{{ $school->id }}">{{ $school->name }}</option>
+                                    <option value="{{ $school->id }}" {{ old('school_id') == $school->id ? 'selected' : '' }}>{{ $school->name }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -139,7 +216,7 @@
                             </label>
                             <select name="intern_id" id="intern_id"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                <option value="">Pilih siswa</option>
+                                <option value=""></option>
                                 @foreach ($interns as $intern)
                                     <option value="{{ $intern->id }}" {{ old('intern_id') == $intern->id ? 'selected' : '' }}>
                                         {{ $intern->user->profile->full_name ?? $intern->user->username }} - {{ $intern->school->name ?? '-' }}
@@ -206,33 +283,88 @@
         </form>
     </main>
 
+    <!-- Select2 JS & Dynamic Fields Handler -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        const typeSelect = document.getElementById('type');
-        const schoolField = document.getElementById('school_field');
-        const internField = document.getElementById('intern_field');
-        const notificationSection = document.getElementById('notification_section');
-        const schoolInput = document.getElementById('school_id');
-        const internInput = document.getElementById('intern_id');
+        $(document).ready(function() {
+            // Inisialisasi Select2 Searchable Dropdown
+            $('#school_id').select2({
+                placeholder: 'Pilih atau cari sekolah...',
+                allowClear: true,
+                width: '100%'
+            });
 
-        function toggleFields() {
-            const selected = typeSelect.value;
-            schoolField.style.display = selected === 'guru' ? 'block' : 'none';
-            internField.style.display = selected === 'ortu' ? 'block' : 'none';
-            notificationSection.style.display = selected === 'ortu' ? 'block' : 'none';
+            $('#intern_id').select2({
+                placeholder: 'Pilih atau cari nama pemagang...',
+                allowClear: true,
+                width: '100%'
+            });
 
-            if(selected === 'guru') {
-                schoolInput.required = true;
-                internInput.required = false;
-            } else if(selected === 'ortu') {
-                schoolInput.required = false;
-                internInput.required = true;
-            } else {
-                schoolInput.required = false;
-                internInput.required = false;
+            const typeSelect = document.getElementById('type');
+            const schoolField = document.getElementById('school_field');
+            const internField = document.getElementById('intern_field');
+            const notificationSection = document.getElementById('notification_section');
+
+            function toggleFields() {
+                const selected = typeSelect.value;
+                schoolField.style.display = selected === 'guru' ? 'block' : 'none';
+                internField.style.display = selected === 'ortu' ? 'block' : 'none';
+                if (notificationSection) {
+                    notificationSection.style.display = selected === 'ortu' ? 'block' : 'none';
+                }
+
+                // Perbarui lebar Select2 saat kontainer yang sebelumnya disembunyikan ditampilkan
+                if (selected === 'guru') {
+                    $('#school_id').next('.select2-container').css('width', '100%');
+                } else if (selected === 'ortu') {
+                    $('#intern_id').next('.select2-container').css('width', '100%');
+                }
             }
-        }
 
-        typeSelect.addEventListener('change', toggleFields);
-        document.addEventListener('DOMContentLoaded', toggleFields);
+            typeSelect.addEventListener('change', toggleFields);
+            toggleFields();
+
+            // Validasi submit form agar tidak terjadi error browser non-focusable control
+            $('#outsiderForm').on('submit', function(e) {
+                const selected = typeSelect.value;
+                if (selected === 'guru') {
+                    if (!$('#school_id').val()) {
+                        e.preventDefault();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Sekolah Belum Dipilih',
+                                text: 'Silakan pilih atau cari sekolah untuk outsider tipe Guru.',
+                                confirmButtonColor: '#2563eb'
+                            }).then(() => {
+                                $('#school_id').select2('open');
+                            });
+                        } else {
+                            alert('Silakan pilih atau cari sekolah untuk tipe Guru.');
+                            $('#school_id').select2('open');
+                        }
+                        return false;
+                    }
+                } else if (selected === 'ortu') {
+                    if (!$('#intern_id').val()) {
+                        e.preventDefault();
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Siswa Belum Dipilih',
+                                text: 'Silakan pilih atau cari siswa/pemagang untuk outsider tipe Orang Tua.',
+                                confirmButtonColor: '#2563eb'
+                            }).then(() => {
+                                $('#intern_id').select2('open');
+                            });
+                        } else {
+                            alert('Silakan pilih atau cari siswa untuk tipe Orang Tua.');
+                            $('#intern_id').select2('open');
+                        }
+                        return false;
+                    }
+                }
+            });
+        });
     </script>
 @endsection

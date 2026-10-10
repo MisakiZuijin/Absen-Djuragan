@@ -17,7 +17,16 @@ class UpdateDivisionRequest extends FormRequest {
     public function rules(): array {
         return [
             'namaDivisi' => 'required|string|max:255',
-            'iconDivisi' => 'file|image|mimes:jpg,png,jpeg,gif,svg|max:2048'
+            'iconDivisi' => 'nullable|file|image|mimes:jpg,png,jpeg,webp|max:2048',
+        ];
+    }
+
+    public function messages(): array {
+        return [
+            'namaDivisi.required' => 'Nama divisi wajib diisi.',
+            'iconDivisi.image' => 'Berkas ikon divisi harus berupa gambar/foto.',
+            'iconDivisi.mimes' => 'Format foto ikon divisi harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'iconDivisi.max' => 'Ukuran foto ikon divisi maksimal adalah 2MB.',
         ];
     }
 }

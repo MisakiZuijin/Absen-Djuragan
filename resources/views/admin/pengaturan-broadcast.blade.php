@@ -78,7 +78,13 @@
                                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-600 text-white shadow-xs">
                                                     Divisi
                                                 </span>
-                                                <span class="text-gray-700 font-medium">{{ $broadcast->divisions->pluck('name')->join(', ') }}</span>
+                                                <span class="text-gray-700 font-medium">
+                                                    @if(isset($totalDivisions) && $broadcast->divisions->count() >= $totalDivisions)
+                                                        <span class="font-bold text-blue-700">Semua Divisi ({{ $totalDivisions }} Divisi)</span>
+                                                    @else
+                                                        {{ $broadcast->divisions->pluck('name')->join(', ') }}
+                                                    @endif
+                                                </span>
                                             </div>
                                         @elseif($broadcast->shifts->isNotEmpty())
                                             <div class="flex items-center gap-1.5 flex-wrap">
@@ -177,8 +183,8 @@
                             <button type="button" id="addFilesButton" class="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-blue-500 hover:text-blue-500 transition">
                                 <i class="fas fa-upload mr-2"></i> Pilih atau Tambahkan File
                             </button>
-                            <input type="file" id="broadcastimg" name="images[]" accept="image/*" multiple class="hidden">
-                            <p class="text-xs text-gray-500 mt-1">Format yang didukung: JPG, PNG, GIF (Maks. 2MB per file)</p>
+                            <input type="file" id="broadcastimg" name="images[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple class="hidden">
+                            <p class="text-xs text-gray-500 mt-1">Format foto yang didukung: JPG, JPEG, PNG, WebP (Maks. 2MB per file)</p>
 
                              <!-- Image Preview Container -->
                             <div id="addImagePreviewContainer" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"></div>
@@ -198,8 +204,20 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="addDivisions" class="block text-sm font-medium text-gray-700 mb-2">Target Divisi</label>
+                                <div class="flex items-center justify-between mb-2">
+                                    <label for="addDivisions" class="block text-sm font-medium text-gray-700">Target Divisi</label>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="selectAllDivisionsBtn" class="text-xs text-blue-600 hover:text-blue-800 font-semibold focus:outline-none flex items-center gap-1">
+                                            <i class="fas fa-check-double text-[10px]"></i> Pilih Semua Divisi
+                                        </button>
+                                        <span class="text-gray-300 text-xs">|</span>
+                                        <button type="button" id="clearAllDivisionsBtn" class="text-xs text-gray-500 hover:text-gray-700 font-semibold focus:outline-none">
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
                                 <select name="divisions[]" id="addDivisions" multiple class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 select2">
+                                    <option value="all_divisions">🌟 Semua Divisi</option>
                                     @foreach($divisions as $division)
                                         <option value="{{ $division->id }}">{{ $division->name }}</option>
                                     @endforeach
@@ -275,7 +293,8 @@
                             <button type="button" id="editFilesButton" class="w-full px-4 py-2.5 bg-gray-800 hover:bg-gray-900 text-white rounded-xl font-semibold text-xs shadow-xs transition">
                                 <i class="fas fa-upload mr-2"></i> Pilih atau Tambahkan File
                             </button>
-                            <input type="file" id="editbroadcastImg" name="images[]" accept="image/*" multiple class="hidden">
+                            <input type="file" id="editbroadcastImg" name="images[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple class="hidden">
+                            <p class="text-[11px] text-gray-400 mt-1">Format foto yang didukung: JPG, JPEG, PNG, WebP (Maks. 2MB per file)</p>
                         </div>
                         
                         <!-- New Image Preview Container -->
@@ -293,8 +312,20 @@
                         </div>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
-                                <label for="editDivisions" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Target Divisi</label>
+                                <div class="flex items-center justify-between mb-1.5">
+                                    <label for="editDivisions" class="block text-xs font-bold text-gray-700 uppercase tracking-wider">Target Divisi</label>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" id="editSelectAllDivisionsBtn" class="text-[11px] text-blue-600 hover:text-blue-800 font-semibold focus:outline-none flex items-center gap-1">
+                                            <i class="fas fa-check-double text-[9px]"></i> Pilih Semua Divisi
+                                        </button>
+                                        <span class="text-gray-300 text-[11px]">|</span>
+                                        <button type="button" id="editClearAllDivisionsBtn" class="text-[11px] text-gray-500 hover:text-gray-700 font-semibold focus:outline-none">
+                                            Reset
+                                        </button>
+                                    </div>
+                                </div>
                                 <select name="divisions[]" id="editDivisions" multiple class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 select2">
+                                    <option value="all_divisions">🌟 Semua Divisi</option>
                                     @foreach($divisions as $division)
                                         <option value="{{ $division->id }}">{{ $division->name }}</option>
                                     @endforeach
@@ -394,19 +425,62 @@
                 $('#editbroadcastImg').click();
             });
 
+            function showPhotoAlert(message) {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Foto Tidak Sesuai',
+                        text: message,
+                        confirmButtonText: 'Mengerti',
+                        confirmButtonColor: '#3085d6'
+                    });
+                } else {
+                    alert(message);
+                }
+            }
+
+            const ALLOWED_PHOTO_EXTS = ['jpg', 'jpeg', 'png', 'webp'];
+            const ALLOWED_PHOTO_MIMES = ['image/jpeg', 'image/png', 'image/webp'];
+            const MAX_PHOTO_SIZE = 2 * 1024 * 1024; // 2MB
+
+            function validateAndFilterFiles(files) {
+                const validFiles = [];
+                for (const file of files) {
+                    const ext = (file.name.split('.').pop() || '').toLowerCase();
+                    const isValidFormat = ALLOWED_PHOTO_EXTS.includes(ext) || ALLOWED_PHOTO_MIMES.includes(file.type);
+                    if (!isValidFormat) {
+                        showPhotoAlert(`File "${file.name}" ditolak. Hanya format foto JPG, JPEG, PNG, atau WebP yang diperbolehkan.`);
+                        continue;
+                    }
+                    if (file.size > MAX_PHOTO_SIZE) {
+                        const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+                        showPhotoAlert(`Ukuran foto "${file.name}" (${sizeMb} MB) melebihi batas maksimal 2MB.`);
+                        continue;
+                    }
+                    validFiles.push(file);
+                }
+                return validFiles;
+            }
+
             // Event handler saat file dipilih di modal Tambah
             $('#broadcastimg').on('change', function(e) {
-                const newFiles = Array.from(e.target.files);
-                addModalFiles.push(...newFiles);
-                renderPreviews(addModalFiles, '#addImagePreviewContainer');
+                const selectedFiles = Array.from(e.target.files);
+                const validFiles = validateAndFilterFiles(selectedFiles);
+                if (validFiles.length > 0) {
+                    addModalFiles.push(...validFiles);
+                    renderPreviews(addModalFiles, '#addImagePreviewContainer');
+                }
                 $(this).val(''); // Reset input agar bisa memilih file yang sama lagi
             });
 
             // Event handler saat file dipilih di modal Edit
             $('#editbroadcastImg').on('change', function(e) {
-                const newFiles = Array.from(e.target.files);
-                editModalFiles.push(...newFiles);
-                renderPreviews(editModalFiles, '#editImagePreviewContainer');
+                const selectedFiles = Array.from(e.target.files);
+                const validFiles = validateAndFilterFiles(selectedFiles);
+                if (validFiles.length > 0) {
+                    editModalFiles.push(...validFiles);
+                    renderPreviews(editModalFiles, '#editImagePreviewContainer');
+                }
                 $(this).val(''); // Reset input
             });
 
@@ -451,6 +525,44 @@
                 allowClear: true,
                 width: '100%',
                 dropdownParent: $(document.body)
+            });
+
+            // Quick Select / Clear All Divisions
+            $('#selectAllDivisionsBtn').on('click', function(e) {
+                e.preventDefault();
+                const allValues = $('#addDivisions option').map(function() {
+                    return $(this).val();
+                }).get().filter(val => val !== 'all_divisions' && val !== '');
+                $('#addDivisions').val(allValues).trigger('change');
+            });
+
+            $('#clearAllDivisionsBtn').on('click', function(e) {
+                e.preventDefault();
+                $('#addDivisions').val(null).trigger('change');
+            });
+
+            $('#editSelectAllDivisionsBtn').on('click', function(e) {
+                e.preventDefault();
+                const allValues = $('#editDivisions option').map(function() {
+                    return $(this).val();
+                }).get().filter(val => val !== 'all_divisions' && val !== '');
+                $('#editDivisions').val(allValues).trigger('change');
+            });
+
+            $('#editClearAllDivisionsBtn').on('click', function(e) {
+                e.preventDefault();
+                $('#editDivisions').val(null).trigger('change');
+            });
+
+            // Expand "all_divisions" to all individual division IDs if selected via Select2
+            $('#addDivisions, #editDivisions').on('select2:select', function (e) {
+                if (e.params && e.params.data && e.params.data.id === 'all_divisions') {
+                    const select = $(this);
+                    const allValues = select.find('option').map(function() {
+                        return $(this).val();
+                    }).get().filter(val => val !== 'all_divisions' && val !== '');
+                    select.val(allValues).trigger('change');
+                }
             });
 
             // Fungsi untuk mengupdate broadcast_type berdasarkan input yang terisi

@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Shift;
 use App\Models\Office;
 use App\Models\DetailSchedule;
+use App\Models\AttdStatus;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Models\LogActivity;
@@ -44,20 +45,20 @@ class OutsiderDashboardController extends Controller
             ])
             ->get();
 
-        // Hitung jumlah berdasarkan status kehadiran
-        $totalHadir = $presensiHariIni->where('attd_status_id', 2)->count();
+        // Hitung jumlah berdasarkan status kehadiran (Status 2: Hadir, Status 4: Hadir dan Mengganti Jam)
+        $totalHadir = $presensiHariIni->whereIn('attd_status_id', [2, 4])->count();
         $totalIzin = $presensiHariIni->where('attd_status_id', 3)->count();
         $totalAlpha = $presensiHariIni->where('attd_status_id', 5)->count();
 
         // Hitung jumlah berdasarkan gender dari presensi hari ini
         $jumlahLaki = $presensiHariIni->filter(function ($detail) {
-            return optional($detail->schedule->intern->user)->profile &&
-                $detail->schedule->intern->user->profile->gender === 'Laki-laki';
+            $profile = optional($detail->schedule->intern->user)->profile;
+            return $profile && $profile->isMale();
         })->count();
 
         $jumlahPerempuan = $presensiHariIni->filter(function ($detail) {
-            return optional($detail->schedule->intern->user)->profile &&
-                $detail->schedule->intern->user->profile->gender === 'Perempuan';
+            $profile = optional($detail->schedule->intern->user)->profile;
+            return $profile && $profile->isFemale();
         })->count();
 
         $dateNow = Carbon::today()->translatedFormat('d F Y');
@@ -65,12 +66,7 @@ class OutsiderDashboardController extends Controller
 
         $shifts = Shift::all();
         $offices = Office::all();
-        $attd_statuses = [
-            ['id' => 2, 'name' => 'Hadir'],
-            ['id' => 3, 'name' => 'Izin'],
-            ['id' => 4, 'name' => 'Sakit'],
-            ['id' => 5, 'name' => 'Alpha'],
-        ];
+        $attd_statuses = AttdStatus::all();
 
         return view('outsiders.presensi.index', compact(
             'presensiHariIni',
@@ -251,12 +247,10 @@ class OutsiderDashboardController extends Controller
             if (!$isFuture) {
                 $total++;
 
-                if ($presensi->attd_status_id == 2) {
+                if ($presensi->attd_status_id == 2 || $presensi->attd_status_id == 4) {
                     $hadir++;
                 } elseif ($presensi->attd_status_id == 3) {
                     $izin++;
-                } elseif ($presensi->attd_status_id == 4) {
-                    $sakit++;
                 } elseif ($presensi->attd_status_id == 5) {
                     $tidakHadir++;
                 } else {
@@ -272,7 +266,7 @@ class OutsiderDashboardController extends Controller
             'total' => $total,
             'hadir' => $hadir,
             'izin' => $izin,
-            'sakit' => $sakit,
+            'sakit' => 0,
             'tidak_hadir' => $tidakHadir,
             'libur' => $libur
         ];
@@ -333,20 +327,20 @@ class OutsiderDashboardController extends Controller
             'logActivity'
         ])->get();
 
-        // Hitung total berdasarkan status
-        $totalHadir = $presensi->where('attd_status_id', 2)->count();
+        // Hitung total berdasarkan status (Status 2: Hadir, Status 4: Hadir dan Mengganti Jam)
+        $totalHadir = $presensi->whereIn('attd_status_id', [2, 4])->count();
         $totalIzin = $presensi->where('attd_status_id', 3)->count();
         $totalAlpha = $presensi->where('attd_status_id', 5)->count();
 
         // Hitung berdasarkan gender
         $maleCount = $presensi->filter(function ($p) {
-            return optional($p->schedule->intern->user)->profile &&
-                $p->schedule->intern->user->profile->gender === 'Laki-laki';
+            $profile = optional($p->schedule->intern->user)->profile;
+            return $profile && $profile->isMale();
         })->count();
 
         $femaleCount = $presensi->filter(function ($p) {
-            return optional($p->schedule->intern->user)->profile &&
-                $p->schedule->intern->user->profile->gender === 'Perempuan';
+            $profile = optional($p->schedule->intern->user)->profile;
+            return $profile && $profile->isFemale();
         })->count();
 
         return response()->json([

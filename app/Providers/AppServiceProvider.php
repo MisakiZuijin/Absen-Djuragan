@@ -6,6 +6,7 @@ use App\Models\AppSetting;
 use App\Models\Outsider;
 use App\Observers\OutsiderObserver;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use App\Repositories\Interface\UserRepository;
 use App\Repositories\Interface\ShiftRepository;
@@ -82,6 +83,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (request()->isSecure() || config('app.env') === 'production' || str_starts_with(config('app.url'), 'https://')) {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         Outsider::observe(OutsiderObserver::class);
 
         View::composer('*', function ($view) {

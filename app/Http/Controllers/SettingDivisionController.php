@@ -29,11 +29,13 @@ class SettingDivisionController extends Controller
     {
         $userData = $this->userService->getUserLoggedData();
 
-        $division = $this->divisionService->getAllDivision();
+        $division = Division::with('scheduleRule')->get();
+        $allShifts = \App\Models\Shift::where('id', '!=', 1)->get();
 
         $data = [
             "user" => $userData,
-            "division" => $division->isSuccess() ? $division->getData() : null
+            "division" => $division,
+            "allShifts" => $allShifts,
         ];
 
         return view('admin.pengaturan-divisi')->with($data);

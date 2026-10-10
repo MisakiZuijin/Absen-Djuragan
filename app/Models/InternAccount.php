@@ -61,6 +61,36 @@ class InternAccount extends Model
     }
 
     /**
+     * Cek apakah pemagang memiliki checklist platform tugas mandiri (git, figma, atau sosmed).
+     */
+    public function hasTaskLinkPlatform(): bool
+    {
+        return $this->isPlatformEnabled('github')
+            || $this->isPlatformEnabled('figma')
+            || $this->isPlatformEnabled('sosmed');
+    }
+
+    /**
+     * Dapatkan daftar platform tugas yang diaktifkan (misal: ['Git', 'Figma', 'Media Sosial']).
+     *
+     * @return array<string>
+     */
+    public function getEnabledTaskPlatformNames(): array
+    {
+        $names = [];
+        if ($this->isPlatformEnabled('github')) {
+            $names[] = 'Git';
+        }
+        if ($this->isPlatformEnabled('figma')) {
+            $names[] = 'Figma';
+        }
+        if ($this->isPlatformEnabled('sosmed')) {
+            $names[] = 'Media Sosial';
+        }
+        return $names;
+    }
+
+    /**
      * Get the intern that owns the account credentials.
      */
     public function intern(): BelongsTo

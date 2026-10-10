@@ -1,9 +1,9 @@
 @php
-    $toiletMonitorIntervalSec = \App\Models\PopupSetting::getInterval('toilet_monitor', 15);
+$toiletMonitorIntervalSec = \App\Models\PopupSetting::getInterval('toilet_monitor', 15);
 @endphp
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const pollIntervalMs = {{ $toiletMonitorIntervalSec > 0 ? $toiletMonitorIntervalSec * 1000 : 0 }};
+    document.addEventListener('DOMContentLoaded', function() {
+        const pollIntervalMs = Number("{{ $toiletMonitorIntervalSec > 0 ? $toiletMonitorIntervalSec * 1000 : 0 }}") || 0;
 
         function formatSeconds(totalSecs) {
             const h = String(Math.floor(totalSecs / 3600)).padStart(2, '0');
@@ -40,29 +40,31 @@
                 if (!targetContainer) return;
 
                 fetch(window.location.href, {
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                })
-                .then(res => res.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const newTargetContainer = doc.getElementById('internsTableBody') || doc.getElementById('internsContainer');
-                    if (newTargetContainer) {
-                        targetContainer.innerHTML = newTargetContainer.innerHTML;
-                        updateAllTimers();
-
-                        const searchInput = document.getElementById('searchInput');
-                        if (searchInput && searchInput.value.trim() !== '') {
-                            const filter = searchInput.value.toLowerCase();
-                            const rows = targetContainer.querySelectorAll('.intern-row');
-                            rows.forEach(row => {
-                                const name = (row.getAttribute('data-name') || '').toLowerCase();
-                                row.style.display = name.includes(filter) ? '' : 'none';
-                            });
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
                         }
-                    }
-                })
-                .catch(() => {});
+                    })
+                    .then(res => res.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(html, 'text/html');
+                        const newTargetContainer = doc.getElementById('internsTableBody') || doc.getElementById('internsContainer');
+                        if (newTargetContainer) {
+                            targetContainer.innerHTML = newTargetContainer.innerHTML;
+                            updateAllTimers();
+
+                            const searchInput = document.getElementById('searchInput');
+                            if (searchInput && searchInput.value.trim() !== '') {
+                                const filter = searchInput.value.toLowerCase();
+                                const rows = targetContainer.querySelectorAll('.intern-row');
+                                rows.forEach(row => {
+                                    const name = (row.getAttribute('data-name') || '').toLowerCase();
+                                    row.style.display = name.includes(filter) ? '' : 'none';
+                                });
+                            }
+                        }
+                    })
+                    .catch(() => {});
             }, pollIntervalMs);
         }
     });

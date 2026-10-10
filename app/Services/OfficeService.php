@@ -5,6 +5,9 @@ namespace App\Services;
 use App\Helper\ActionResult;
 use App\Repositories\Interface\OfficeRepository;
 use App\Models\Coordinate;
+use App\Models\Division;
+use App\Models\OfficeDivision;
+use App\Models\OfficeShiftCapacity;
 use function Sentry\captureException;
 use App\Http\Requests\StoreOfficeRequest;
 use App\Http\Requests\UpdateOfficeRequest;
@@ -41,7 +44,6 @@ class OfficeService
             if (isset($data['radius'])) {
                 $data['radius'] = (int) $data['radius'];
             }
-
             $result = $this->officeRepository->create($data);
 
             $office_id = $result->id;
@@ -66,6 +68,24 @@ class OfficeService
                 'longitude' => $data['longituderightbottom'],
                 'is_main' => false,
             ]);
+
+            // Inisialisasi kapasitas shift default untuk kantor baru agar siap di Pusat Otomatisasi
+            $shifts = \App\Models\Shift::all();
+            foreach ($shifts as $s) {
+                OfficeShiftCapacity::firstOrCreate(
+                    ['office_id' => $office_id, 'shift_id' => $s->id],
+                    ['max_capacity' => (int)$data['capacity'], 'is_enabled' => true]
+                );
+            }
+
+            // Inisialisasi semua divisi aktif untuk kantor baru agar siap di Matriks Divisi
+            $allDivIds = Division::pluck('id')->toArray();
+            foreach ($allDivIds as $divId) {
+                OfficeDivision::firstOrCreate(
+                    ['office_id' => $office_id, 'division_id' => $divId],
+                    ['is_active' => true]
+                );
+            }
 
             return new ActionResult(true, "Successfully added office and coordinates", $result);
         } catch (\Throwable $th) {

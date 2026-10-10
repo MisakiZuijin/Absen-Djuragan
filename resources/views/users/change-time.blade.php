@@ -10,11 +10,29 @@
         formatTimeStr(val) {
             if (!val) return '-';
             const str = String(val).trim();
+            // 1. Jika format time murni 'HH:mm' atau 'HH:mm:ss'
+            if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
+                return str.substring(0, 5);
+            }
+            // 2. Jika format ISO string / datetime string (misal '2026-09-30T09:15:00.000000Z')
+            try {
+                const date = new Date(str);
+                if (!isNaN(date.getTime())) {
+                    const h = String(date.getHours()).padStart(2, '0');
+                    const m = String(date.getMinutes()).padStart(2, '0');
+                    return `${h}:${m}`;
+                }
+            } catch (e) {}
+            // 3. Fallback jika string ada spasi atau T
             if (str.includes(' ')) {
                 const parts = str.split(' ');
                 return parts[1] ? parts[1].substring(0, 5) : parts[0].substring(0, 5);
             }
-            return str.substring(0, 5);
+            if (str.includes('T')) {
+                const parts = str.split('T');
+                return parts[1] ? parts[1].substring(0, 5) : parts[0].substring(0, 5);
+            }
+            return str;
         }
     }">
         <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
@@ -69,7 +87,12 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="text-sm font-medium text-gray-900">{{ $schedule->keterangan }}</div>
-                                        @if($schedule->permitReason && !empty($schedule->permitReason->description))
+                                        @if((int)$schedule->attd_status_id === 5)
+                                            <div class="text-xs text-rose-600 mt-1 flex items-center gap-1">
+                                                <i class="fa-solid fa-user-xmark text-rose-500 text-xs"></i>
+                                                <span>Keterangan: Tidak hadir fisik di kantor</span>
+                                            </div>
+                                        @elseif($schedule->permitReason && !empty($schedule->permitReason->description))
                                             <div class="text-xs text-gray-500 mt-1 flex items-center gap-1">
                                                 <i class="fa-solid fa-note-sticky text-amber-500 text-xs"></i>
                                                 <span>Alasan: "{{ $schedule->permitReason->description }}"</span>
@@ -136,17 +159,17 @@
                                     <h3 class="font-semibold text-red-700 mb-3 border-b border-red-200 pb-2 flex items-center gap-1.5 text-xs sm:text-sm">
                                         <i class="fa-solid fa-clock text-rose-600"></i> Absensi Aktual / Izin
                                     </h3>
-                                    <template x-if="selectedSchedule?.attendance?.start_time">
+                                    <template x-if="selectedSchedule?.attendance?.start_time && selectedSchedule?.attd_status_id != 5">
                                         <div class="space-y-2 text-xs sm:text-sm">
-                                            <p><strong>Masuk:</strong> <span class="font-mono" x-text="formatTimeStr(selectedSchedule.attendance.start_time)"></span></p>
-                                            <p><strong>Pulang:</strong> <span class="font-mono" x-text="selectedSchedule.attendance.end_time ? formatTimeStr(selectedSchedule.attendance.end_time) : 'Belum Absen Pulang'"></span></p>
+                                            <p><strong>Masuk:</strong> <span class="font-mono" x-text="formatTimeStr(selectedSchedule.attendance.formatted_start_time || selectedSchedule.attendance.start_time)"></span></p>
+                                            <p><strong>Pulang:</strong> <span class="font-mono" x-text="selectedSchedule.attendance.end_time ? formatTimeStr(selectedSchedule.attendance.formatted_end_time || selectedSchedule.attendance.end_time) : 'Belum Absen Pulang'"></span></p>
                                             <hr class="my-2 border-red-200">
                                             <p><strong>Total Jam Kerja:</strong> <span x-text="`${Math.floor((selectedSchedule.attendance.total_min || 0) / 60)} Jam ${ (selectedSchedule.attendance.total_min || 0) % 60} Menit`"></span></p>
                                         </div>
                                     </template>
-                                    <template x-if="!selectedSchedule?.attendance?.start_time">
+                                    <template x-if="!selectedSchedule?.attendance?.start_time || selectedSchedule?.attd_status_id == 5">
                                         <div class="space-y-2 text-xs sm:text-sm text-slate-700">
-                                            <template x-if="selectedSchedule?.permit_reason">
+                                            <template x-if="selectedSchedule?.attd_status_id != 5 && selectedSchedule?.permit_reason">
                                                 <div class="space-y-1.5">
                                                     <p class="text-amber-700 font-semibold"><i class="fa-solid fa-clipboard-question mr-1"></i> Pengajuan Izin</p>
                                                     <p><strong>Alasan:</strong> <span x-text="selectedSchedule.permit_reason.description || '-'"></span></p>
@@ -165,8 +188,20 @@
                                                     </template>
                                                 </div>
                                             </template>
-                                            <template x-if="!selectedSchedule?.permit_reason">
-                                                <p class="text-rose-600 font-medium"><i class="fa-solid fa-circle-xmark mr-1"></i> Tidak ada data kehadiran (Alpha / tidak hadir).</p>
+                                            <template x-if="selectedSchedule?.attd_status_id == 5 || !selectedSchedule?.permit_reason">
+                                                <div class="bg-rose-50 border border-rose-200 rounded-lg p-3 text-rose-800 space-y-1">
+                                                    <p class="font-semibold flex items-center gap-1.5 text-xs sm:text-sm text-rose-700">
+                                                        <i class="fa-solid fa-user-xmark text-rose-600"></i> Tidak Hadir Fisik di Kantor
+                                                    </p>
+                                                    <p class="text-xs text-rose-600 leading-relaxed">
+                                                        Pemagang tercatat Alpha / tidak hadir fisik di kantor pada jam kerja shift. Sesuai ketentuan, jam kerja shift wajib diganti penuh.
+                                                    </p>
+                                                    <template x-if="selectedSchedule?.attendance?.keterangan">
+                                                        <p class="text-xs text-rose-700 mt-2 pt-2 border-t border-rose-200/60">
+                                                            <strong>Catatan:</strong> <span x-text="selectedSchedule.attendance.keterangan"></span>
+                                                        </p>
+                                                    </template>
+                                                </div>
                                             </template>
                                         </div>
                                     </template>

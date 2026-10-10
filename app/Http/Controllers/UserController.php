@@ -233,10 +233,15 @@ class UserController extends Controller
             }
         });
 
-        // Popup untuk pengumuman biasa (non-Livewire, muncul sekali per sesi saat pertama kali membuka dashboard)
-        if (!Session::has('announcement_shown') && $relevant_announcements->isNotEmpty()) {
-            Session::put('announcement_shown', true);
-            Session::flash('firstAnnouncement', $relevant_announcements->first());
+        // Popup untuk pengumuman biasa (hanya pemberitahuan tanpa form wajib isi, muncul saat ada pengumuman baru)
+        $latestAnnouncement = $relevant_announcements->first();
+        if ($latestAnnouncement) {
+            $seenAnnouncementIds = Session::get('seen_announcement_ids', []);
+            if (!in_array($latestAnnouncement->id, $seenAnnouncementIds)) {
+                $seenAnnouncementIds[] = $latestAnnouncement->id;
+                Session::put('seen_announcement_ids', $seenAnnouncementIds);
+                Session::flash('firstAnnouncement', $latestAnnouncement);
+            }
         }
 
         // Broadcast popup kini ditangani secara real-time dan terpisah oleh komponen Livewire BroadcastPopup
@@ -247,8 +252,16 @@ class UserController extends Controller
             $extraLeaveDebtSeconds = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($absenceHistory) * 60;
             $hasClockedOut = !is_null($absenceHistory->end_time);
             if ($hasClockedOut) {
-                $shiftMinutes = $todaysShift->total_time_in_minute ?? 0;
-                $workingMinutes = ($absenceHistory->total_min ?? 0) - ($absenceHistory->total_break_min ?? 0);
+                $shiftMinutes = (int) ($todaysShift->total_time_in_minute ?? 0);
+                if ($absenceHistory->start_time && $absenceHistory->end_time) {
+                    $startTime = Carbon::parse($absenceHistory->start_time);
+                    $endTime = Carbon::parse($absenceHistory->end_time);
+                    $totalGross = $endTime->diffInMinutes($startTime);
+                    $breakMinutes = (int) ($absenceHistory->total_break_min ?? 0);
+                    $workingMinutes = max(0, $totalGross - $breakMinutes);
+                } else {
+                    $workingMinutes = (int) ($absenceHistory->total_min ?? 0);
+                }
                 $differenceInMinutes = $shiftMinutes - $workingMinutes;
                 $lackInSecondsToday = max(0, $differenceInMinutes * 60) + $extraLeaveDebtSeconds;
             } elseif (!is_null($absenceHistory->start_time)) {
@@ -259,18 +272,6 @@ class UserController extends Controller
                 }
                 $lackInSecondsToday += $extraLeaveDebtSeconds;
             }
-        }
-
-        $lackData = ['isLess' => false];
-        $internTargetData = ['change_time_total' => '00:00:00', 'total_lack_in_seconds' => 0];
-        if ($lackInSecondsToday > 0) {
-            $lackData['isLess'] = true;
-            $hours = floor($lackInSecondsToday / 3600);
-            $minutes = floor(($lackInSecondsToday % 3600) / 60);
-            $seconds = $lackInSecondsToday % 60;
-            // Format positif tanpa tanda minus
-            $internTargetData['change_time_total'] = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
-            $internTargetData['total_lack_in_seconds'] = $lackInSecondsToday;
         }
 
         // ====================================================================
@@ -286,6 +287,19 @@ class UserController extends Controller
         $totalDebtHours = round($totalDebtMinutes / 60, 1);
         $totalDebtTimeFormatted = sprintf("%02d:%02d:00", floor($totalDebtMinutes / 60), $totalDebtMinutes % 60);
 
+        // Status kekurangan jam kerja HANYA menghitung hari ini
+        $lackData = ['isLess' => false];
+        $internTargetData = ['change_time_total' => '00:00:00', 'total_lack_in_seconds' => 0];
+        if ($lackInSecondsToday > 0) {
+            $lackData['isLess'] = true;
+            $hours = floor($lackInSecondsToday / 3600);
+            $minutes = floor(($lackInSecondsToday % 3600) / 60);
+            $seconds = $lackInSecondsToday % 60;
+            // Format positif tanpa tanda minus
+            $internTargetData['change_time_total'] = sprintf("%02d:%02d:%02d", $hours, $minutes, $seconds);
+            $internTargetData['total_lack_in_seconds'] = $lackInSecondsToday;
+        }
+
         $normalDebts = $internDebts->values();
         $smallDebts = $internDebts->values();
 
@@ -294,17 +308,12 @@ class UserController extends Controller
 
         $isAdjustable = !empty($activeChangeTimeSession);
 
-        // Kandidat pemberi izin keluar: Admin (1) & Asisten Admin (6),
-        // plus pemagang divisi Human Resource (18) jika ada.
+        // Kandidat pemberi izin keluar: Hanya Admin (1, 7) & Asisten Admin (6).
+        // Divisi Human Resource telah dihilangkan sesuai permintaan.
         $hrUsers = \Illuminate\Support\Facades\Cache::remember('hr_approver_users_list', 1800, function () {
             return User::with('profile')
                 ->where('is_active', true)
-                ->where(function ($query) {
-                    $query->whereIn('role_id', [1, 6])
-                        ->orWhereHas('intern', function ($q) {
-                            $q->where('division_id', 18);
-                        });
-                })
+                ->whereIn('role_id', [1, 6, 7])
                 ->get()
                 ->map(function ($user) {
                     return [
@@ -321,7 +330,18 @@ class UserController extends Controller
             $userOffice = $allOffices->firstWhere('id', $todaysDetailSchedule->office_id);
         }
         if (!$userOffice && $user->intern) {
-            $userOffice = $allOffices->firstWhere('id', $user->intern->office_id);
+            if (!empty($user->intern->locked_office_id)) {
+                $userOffice = $allOffices->firstWhere('id', $user->intern->locked_office_id);
+            }
+        }
+        if (!$userOffice && $user->intern) {
+            $latestScheduleOfficeId = \App\Models\Schedule::where('intern_id', $user->intern->id)
+                ->whereNotNull('office_id')
+                ->latest('id')
+                ->value('office_id');
+            if ($latestScheduleOfficeId) {
+                $userOffice = $allOffices->firstWhere('id', $latestScheduleOfficeId);
+            }
         }
         if (!$userOffice) {
             $userOffice = $allOffices->first();
@@ -407,6 +427,7 @@ class UserController extends Controller
             "totalDebtHours" => $totalDebtHours,
             "totalDebtTimeFormatted" => $totalDebtTimeFormatted,
             "isAdjustable" => $isAdjustable,
+            "piketInfo" => $user->intern ? app(\App\Services\PiketSchedulingService::class)->getInternWeeklyPiketInfo($user->intern->id) : null,
         ];
 
         return view("users.index")->with($data);
@@ -1040,11 +1061,17 @@ class UserController extends Controller
                     ['name' => $taskTitle]
                 );
 
+                $internAcc = $intern->account;
+                $initialRepoUrl = ($internAcc && !$internAcc->hasTaskLinkPlatform() && !empty($internAcc->gdrive_url))
+                    ? $internAcc->gdrive_url
+                    : null;
+
                 $newProj = Projects::create([
                     'name_project_id' => $nameProject->id,
                     'team' => $divName,
                     'description' => $mTask->admin_response ?: 'Tugas baru dari pembimbing',
                     'status' => $mTask->status === 'done' ? 'done' : 'progress',
+                    'repository_url' => $initialRepoUrl,
                 ]);
 
                 DetailProjects::firstOrCreate([
@@ -1082,6 +1109,17 @@ class UserController extends Controller
         $assignedProjects = $detailProjects->map(function ($dp) {
             return $dp->project;
         })->filter()->unique('id');
+
+        // Auto gunakan link Google Drive admin jika pemagang tidak memiliki checklist platform tugas mandiri (git/figma/sosmed)
+        $currentInternAccount = $user->intern?->account;
+        if ($currentInternAccount && !$currentInternAccount->hasTaskLinkPlatform() && !empty($currentInternAccount->gdrive_url)) {
+            foreach ($assignedProjects as $p) {
+                if (empty($p->repository_url)) {
+                    $p->update(['repository_url' => $currentInternAccount->gdrive_url]);
+                    $p->repository_url = $currentInternAccount->gdrive_url;
+                }
+            }
+        }
 
         // Jika project memiliki status presentasi 'ready' atau 'done' (lulus tanpa revisi), pastikan statusnya 'done'
         $doneProjectIds = [];
@@ -1209,11 +1247,16 @@ class UserController extends Controller
             return redirect()->back()->with('error', 'Anda tidak memiliki hak akses untuk mengubah project ini.');
         }
 
+        $internAccount = $user->intern->account;
+        if ($internAccount && !$internAccount->hasTaskLinkPlatform()) {
+            return redirect()->back()->with('error', 'Divisi Anda tidak memiliki kewajiban mengisi link tugas mandiri.');
+        }
+
         $validated = $request->validate([
             'repository_url' => 'required|url|max:500',
         ], [
-            'repository_url.required' => 'Link hasil karya / repository wajib diisi.',
-            'repository_url.url' => 'Format link harus berupa URL valid (contoh: https://github.com/... atau https://www.figma.com/...).',
+            'repository_url.required' => 'Link hasil karya / tugas wajib diisi.',
+            'repository_url.url' => 'Format link harus berupa URL valid (contoh: https://...).',
             'repository_url.max' => 'Panjang link maksimal 500 karakter.',
         ]);
 
@@ -1269,5 +1312,58 @@ class UserController extends Controller
         }
 
         return redirect()->back()->with('success', 'Catatan revisi berhasil disimpan!');
+    }
+
+    /**
+     * Update titik koordinat kos / domisili pemagang secara mandiri
+     */
+    public function updateKosLocation(Request $request)
+    {
+        $user = Auth::user();
+        if (!$user || !$user->intern) {
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'Sesi login tidak valid.'], 401);
+            }
+            return redirect()->route('login.view');
+        }
+
+        if ($request->has('home_latitude') && is_string($request->home_latitude)) {
+            $request->merge(['home_latitude' => str_replace(',', '.', trim($request->home_latitude))]);
+        }
+        if ($request->has('home_longitude') && is_string($request->home_longitude)) {
+            $request->merge(['home_longitude' => str_replace(',', '.', trim($request->home_longitude))]);
+        }
+
+        $validated = $request->validate([
+            'home_latitude' => 'required|numeric|between:-90,90',
+            'home_longitude' => 'required|numeric|between:-180,180',
+            'home_address_notes' => 'nullable|string|max:500',
+        ], [
+            'home_latitude.required' => 'Koordinat latitude kos wajib diisi.',
+            'home_latitude.numeric' => 'Latitude harus berupa angka koordinat.',
+            'home_longitude.required' => 'Koordinat longitude kos wajib diisi.',
+            'home_longitude.numeric' => 'Longitude harus berupa angka koordinat.',
+            'home_address_notes.max' => 'Keterangan alamat maksimal 500 karakter.',
+        ]);
+
+        $user->intern->update([
+            'home_latitude' => $validated['home_latitude'],
+            'home_longitude' => $validated['home_longitude'],
+            'home_address_notes' => $validated['home_address_notes'] ?? null,
+        ]);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Titik lokasi kos berhasil diperbarui!',
+                'data' => [
+                    'latitude' => (float) $validated['home_latitude'],
+                    'longitude' => (float) $validated['home_longitude'],
+                    'address_notes' => $validated['home_address_notes'] ?? '',
+                ]
+            ]);
+        }
+
+        return redirect()->back()->with('success', 'Titik lokasi kos berhasil diperbarui!');
     }
 }

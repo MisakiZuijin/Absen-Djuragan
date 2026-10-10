@@ -204,18 +204,28 @@
         </div>
 
         <!-- Pagination Controls -->
-        <div class="mt-4 flex flex-wrap justify-center items-center gap-2 border rounded-md p-2">
-            <button id="prev-page"
-                class="cursor-pointer bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100" disabled>
-                Previous
-            </button>
+        <div id="pagination-wrapper" class="mt-6 px-6 py-4 rounded-xl border border-gray-200/80 bg-white flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-2xs">
+            <div id="pagination-info" class="text-xs text-gray-500 font-medium"></div>
+            <div class="flex items-center gap-1.5 flex-wrap justify-center sm:justify-end">
+                <button id="prev-page"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 transition shadow-2xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 select-none cursor-pointer" disabled>
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    <span>Sebelumnya</span>
+                </button>
 
-            <!-- Page numbers will be dynamically added here -->
-            <div id="page-numbers" class="flex space-x-2"></div>
+                <!-- Page numbers will be dynamically added here -->
+                <div id="page-numbers" class="flex items-center gap-1.5"></div>
 
-            <button id="next-page" class="bg-white text-blue-600 px-4 py-2 rounded-md border hover:bg-gray-100">
-                Next
-            </button>
+                <button id="next-page"
+                    class="px-3 py-1.5 text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 transition shadow-2xs flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 select-none cursor-pointer">
+                    <span>Selanjutnya</span>
+                    <svg class="w-3.5 h-3.5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- Download PDF Button -->
@@ -537,6 +547,56 @@
                 modal.classList.add('hidden');
             }
 
+            // Fungsi untuk generate cell nama beserta shortcut WhatsApp
+            function generateNameCell(item, rowspan) {
+                const escapedName = escapeHtml(item.name || '');
+                const internId = item.intern_id || '';
+                let waButton = '';
+
+                let waUrl = item.whatsapp_url;
+                const phone = item.phone || item.whatsapp_number;
+
+                if (!waUrl && phone) {
+                    let clean = String(phone).replace(/[^0-9]/g, '');
+                    if (clean.startsWith('0')) {
+                        clean = '62' + clean.substring(1);
+                    } else if (!clean.startsWith('62') && clean.length > 8) {
+                        clean = '62' + clean;
+                    }
+                    if (clean.length >= 10) {
+                        waUrl = 'https://wa.me/' + clean;
+                    }
+                }
+
+                if (waUrl) {
+                    waButton = `
+                        <a href="${waUrl}" target="_blank" rel="noopener noreferrer" 
+                           class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 hover:border-emerald-600 transition shadow-2xs shrink-0"
+                           title="Chat WhatsApp ${escapedName} (${phone || ''})">
+                            <i class="fab fa-whatsapp text-xs"></i>
+                        </a>
+                    `;
+                } else {
+                    waButton = `
+                        <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg bg-gray-50 text-gray-300 border border-gray-200 cursor-not-allowed shrink-0"
+                              title="Nomor WhatsApp belum terdaftar">
+                            <i class="fab fa-whatsapp text-xs"></i>
+                        </span>
+                    `;
+                }
+
+                return `
+                    <td rowspan="${rowspan}" class="border-t align-middle text-left px-3.5 py-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <a href="/admin/presence/detail/${internId}" class="hover:underline cursor-pointer text-blue-600 hover:text-blue-800 font-medium">
+                                ${escapedName}
+                            </a>
+                            ${waButton}
+                        </div>
+                    </td>
+                `;
+            }
+
             // Fungsi untuk generate cell attendance dengan validasi
             function generateAttendanceCell(tipe, label, field, data, name) {
                 // Validasi data untuk menghindari error
@@ -798,7 +858,7 @@
                                     allRowsHtml += `
                                             <tr class="border-b border-gray-300 text-center">
                                                 <td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>
-                                                <td rowspan="${rowspan}" class="border-t text-center align-middle text-left"><a href="/admin/presence/detail/${item.intern_id}" class="hover:underline cursor-pointer text-blue-600 hover:text-blue-800">${escapeHtml(item.name || '')}</a></td>
+                                                ${generateNameCell(item, rowspan)}
                                                 <td class="p-2 border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Masuk', 'start_time', attendance, item.name)}</td>
                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name)}</td>
                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name)}</td>
@@ -824,7 +884,7 @@
 
                                         allRowsHtml += `
                                                 <tr class="border-b border-gray-300 text-center ${bgColor}">
-                                                    ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td><td rowspan="${rowspan}" class="border-t text-center align-middle text-left"><a href="/admin/presence/detail/${item.intern_id}" class="hover:underline cursor-pointer text-blue-600 hover:text-blue-800">${escapeHtml(item.name || '')}</a></td>` : ""}
+                                                    ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>${generateNameCell(item, rowspan)}` : ""}
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Masuk', 'start_time', adjustable, item.name)}</td>
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name)}</td>
                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name)}</td>
@@ -872,30 +932,81 @@
             });
 
             function updatePagination(meta) {
-                const paginationContainer = $('#prev-page').parent();
-                if (!meta || meta.total === 0) {
-                    paginationContainer.addClass('hidden');
+                const paginationWrapper = $('#pagination-wrapper');
+                if (!meta || !meta.total || meta.total === 0) {
+                    paginationWrapper.addClass('hidden');
                     return;
                 }
-                paginationContainer.removeClass('hidden');
+                paginationWrapper.removeClass('hidden');
 
-                totalPages = meta.last_page || 1;
+                currentPage = parseInt(meta.current_page || currentPage || 1);
+                totalPages = parseInt(meta.last_page || 1);
+                const perPage = parseInt(meta.per_page || 15);
+                const total = parseInt(meta.total || 0);
+
+                // Update text summary
+                const from = total > 0 ? (currentPage - 1) * perPage + 1 : 0;
+                const to = Math.min(currentPage * perPage, total);
+                $('#pagination-info').html(
+                    `Menampilkan <span class="font-bold text-gray-700">${from}</span> - <span class="font-bold text-gray-700">${to}</span> dari <span class="font-bold text-gray-700">${total}</span> data pemagang`
+                );
+
                 $('#prev-page').prop('disabled', currentPage <= 1);
                 $('#next-page').prop('disabled', currentPage >= totalPages);
 
                 $('#page-numbers').empty();
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageNumber = $('<button></button>')
-                        .text(i)
-                        .addClass('cursor-pointer px-4 py-2 rounded-md border')
-                        .toggleClass('bg-blue-600 text-white', i === currentPage)
-                        .toggleClass('text-blue-600 bg-white hover:bg-gray-100', i !== currentPage)
+
+                // Batasi maksimal 5 nomor halaman
+                const maxPages = 5;
+                let start = Math.max(1, currentPage - 2);
+                let end = Math.min(totalPages, start + (maxPages - 1));
+
+                if (end - start + 1 < maxPages) {
+                    start = Math.max(1, end - (maxPages - 1));
+                }
+
+                function createPageBtn(page, isActive = false) {
+                    if (isActive) {
+                        return $('<span></span>')
+                            .text(page)
+                            .addClass('w-8 h-8 flex items-center justify-center text-xs font-bold rounded-xl bg-blue-600 text-white shadow-xs select-none');
+                    }
+                    return $('<button></button>')
+                        .attr('type', 'button')
+                        .text(page)
+                        .addClass('w-8 h-8 flex items-center justify-center text-xs font-semibold rounded-xl border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 hover:text-blue-600 hover:border-blue-300 transition shadow-2xs cursor-pointer select-none')
                         .on('click', function () {
-                            if (i !== currentPage) {
-                                loadData({ page: i });
+                            if (page !== currentPage) {
+                                loadData({ page: page });
                             }
                         });
-                    $('#page-numbers').append(pageNumber);
+                }
+
+                function createEllipsis() {
+                    return $('<span></span>')
+                        .text('...')
+                        .addClass('w-6 h-8 flex items-center justify-center text-xs text-gray-400 font-bold select-none');
+                }
+
+                // First page jika start > 1
+                if (start > 1) {
+                    $('#page-numbers').append(createPageBtn(1, false));
+                    if (start > 2) {
+                        $('#page-numbers').append(createEllipsis());
+                    }
+                }
+
+                // Loop 5 halaman
+                for (let i = start; i <= end; i++) {
+                    $('#page-numbers').append(createPageBtn(i, i === currentPage));
+                }
+
+                // Last page jika end < totalPages
+                if (end < totalPages) {
+                    if (end < totalPages - 1) {
+                        $('#page-numbers').append(createEllipsis());
+                    }
+                    $('#page-numbers').append(createPageBtn(totalPages, false));
                 }
             }
 

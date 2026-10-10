@@ -94,6 +94,15 @@
                 </a>
             </li>
 
+            <!-- Menu Item: Brand -->
+            <li>
+                <a href="{{ route('admin.brand.view') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/brand*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-tags w-5 text-center {{ Request::is('admin/brand*') ? 'scale-110' : '' }}"></i>
+                    <span>Brand</span>
+                </a>
+            </li>
+
             <!-- Menu Item: Portofolio Project -->
             <li>
                 <a href="{{ route('admin.projects.completed') }}"
@@ -109,6 +118,26 @@
                     class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/sekolah*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
                     <i class="fa-solid fa-graduation-cap w-5 text-center {{ Request::is('admin/sekolah*') ? 'scale-110' : '' }}"></i>
                     <span>Sekolah / Kampus</span>
+                </a>
+            </li>
+
+            <!-- Menu Item: Penjadwalan Shift -->
+            <li>
+                <a href="{{ route('admin.penjadwalan.index') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/penjadwalan*') || Request::is('admin/shift/update*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <i class="fa-solid fa-calendar-days w-5 text-center {{ Request::is('admin/penjadwalan*') || Request::is('admin/shift/update*') ? 'scale-110' : '' }}"></i>
+                    <span>Penjadwalan</span>
+                </a>
+            </li>
+
+            <!-- Menu Item: Otomatisasi Jadwal -->
+            <li>
+                <a href="{{ route('admin.automation-rules.index') }}"
+                    class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/automation-rules*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
+                    <svg class="w-5 h-5 text-gray-200 shrink-0 {{ Request::is('admin/automation-rules*') ? 'scale-110 text-gray-200' : '' }}" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
+                    </svg>
+                    <span>Otomatisasi Jadwal</span>
                 </a>
             </li>
 
@@ -293,6 +322,26 @@
                     class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/super-admin/activity-logs*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
                     <i class="fa-solid fa-list-check w-5 text-center {{ Request::is('admin/super-admin/activity-logs*') ? 'scale-110' : '' }}"></i>
                     <span>Audit Log Sistem</span>
+                </a>
+            </li>
+            @endif
+
+            @if(auth()->check() && in_array((int) auth()->user()->role_id, [1, 7], true))
+            <!-- Pemisah Sistem Eksternal (Khusus Admin & Super Admin) -->
+            <hr class="my-3 border-gray-800">
+            <div class="px-4 py-1 text-[10px] font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+                <i class="fa-solid fa-link text-indigo-400 text-xs"></i>
+                <span>Integrasi Sistem</span>
+            </div>
+            <li>
+                <a href="{{ route('admin.sso.to-intern') }}"
+                    class="flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:translate-x-1 text-indigo-300 hover:text-white border border-indigo-900/40 bg-indigo-950/20"
+                    title="Buka & Login Otomatis ke Sistem Internship (Web Intern)">
+                    <div class="flex items-center gap-x-4">
+                        <i class="fa-solid fa-graduation-cap w-5 text-center text-indigo-400"></i>
+                        <span class="font-medium text-sm">Web Intern</span>
+                    </div>
+                    <i class="fa-solid fa-arrow-right text-xs text-indigo-400 opacity-80"></i>
                 </a>
             </li>
             @endif

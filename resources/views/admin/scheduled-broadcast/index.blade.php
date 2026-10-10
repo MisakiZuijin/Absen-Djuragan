@@ -61,137 +61,169 @@
 
         <!-- Tabel Daftar Broadcast Terjadwal -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-5 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-list-check text-gray-400"></i>
-                    Riwayat Broadcast Terjadwal
+            <div class="p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <h2 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i>
+                    <span>Riwayat Broadcast Terjadwal</span>
                 </h2>
-                <span class="text-xs text-gray-400">Total: {{ $broadcastlist->total() }} Pesan</span>
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-100/80 inline-flex items-center gap-1 self-start sm:self-auto">
+                    <i class="fa-solid fa-bullhorn text-[10px]"></i>
+                    <span>Total: {{ $broadcastlist->total() }} Pesan</span>
+                </span>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-gray-600">
-                    <thead class="bg-gray-50/75 text-xs uppercase font-semibold text-gray-500 border-b border-gray-100">
+            <!-- Mobile Scroll Hint -->
+            <div class="sm:hidden px-4 py-2 bg-blue-50/70 border-b border-blue-100/80 text-blue-700 text-[11px] flex items-center justify-between">
+                <span class="flex items-center gap-1.5 font-medium">
+                    <i class="fa-solid fa-arrows-left-right text-blue-500"></i>
+                    Geser tabel ke samping untuk melihat kolom lengkap
+                </span>
+                <i class="fa-solid fa-chevron-right text-[10px] text-blue-400"></i>
+            </div>
+
+            <div class="overflow-x-auto touch-pan-x">
+                <table class="w-full min-w-[980px] divide-y divide-gray-200 text-left text-sm text-gray-600">
+                    <thead class="bg-gray-50/75 text-gray-600 text-xs uppercase font-semibold">
                         <tr>
-                            <th class="px-6 py-4">Judul & Pesan</th>
-                            <th class="px-6 py-4">Target Penerima</th>
-                            <th class="px-6 py-4">Target Shift</th>
-                            <th class="px-6 py-4">Jadwal / Pengiriman</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4">Balasan Pemagang</th>
-                            <th class="px-6 py-4 text-center">Aksi</th>
+                            <th class="py-3.5 px-4 min-w-[240px]">Judul & Pesan</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Target Penerima</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Target Shift</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Jadwal / Pengiriman</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Status</th>
+                            <th class="py-3.5 px-4 whitespace-nowrap">Balasan Pemagang</th>
+                            <th class="py-3.5 px-4 text-center whitespace-nowrap w-24">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-gray-100 text-xs">
                         @forelse($broadcastlist as $item)
-                        <tr class="hover:bg-gray-50/50 transition">
+                        <tr class="hover:bg-blue-50/25 transition">
                             <!-- Judul & Pesan -->
-                            <td class="px-6 py-4 max-w-sm">
-                                <p class="font-bold text-gray-900 line-clamp-1">{{ $item->title }}</p>
-                                <p class="text-xs text-gray-500 mt-0.5 line-clamp-2">{{ $item->message }}</p>
+                            <td class="py-3.5 px-4 max-w-xs">
+                                <div class="font-bold text-gray-900 text-xs sm:text-sm line-clamp-1 leading-snug">
+                                    {{ $item->title }}
+                                </div>
+                                <p class="text-xs text-gray-500 mt-0.5 line-clamp-2 leading-relaxed">
+                                    {{ $item->message }}
+                                </p>
                                 @if($item->images->count() > 0)
-                                <div class="flex items-center gap-1 text-[11px] text-blue-600 mt-1 font-medium">
-                                    <i class="fa-solid fa-image"></i>
+                                <div class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md mt-1 border border-blue-100">
+                                    <i class="fa-solid fa-image text-[10px]"></i>
                                     <span>{{ $item->images->count() }} Lampiran Gambar</span>
                                 </div>
                                 @endif
                             </td>
 
                             <!-- Target Penerima -->
-                            <td class="px-6 py-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($item->broadcast_type === 'all')
-                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
                                     <i class="fa-solid fa-globe text-[10px]"></i> Semua Pemagang
                                 </span>
                                 @elseif($item->broadcast_type === 'division')
-                                <div>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 w-fit">
                                         <i class="fa-solid fa-sitemap text-[10px]"></i> Per Divisi
                                     </span>
-                                    <p class="text-[11px] text-gray-500 mt-1 font-medium">{{ $item->divisions->pluck('name')->implode(', ') ?: '-' }}</p>
+                                    <span class="text-[11px] text-gray-600 font-medium max-w-[160px] truncate pl-0.5">
+                                        @if(isset($totalDivisions) && $item->divisions->count() >= $totalDivisions)
+                                            Semua Divisi
+                                        @else
+                                            {{ $item->divisions->pluck('name')->implode(', ') ?: '-' }}
+                                        @endif
+                                    </span>
                                 </div>
                                 @elseif($item->broadcast_type === 'shift')
-                                <div>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                                        <i class="fa-solid fa-business-time text-[10px]"></i> Khusus Shift Tertentu
-                                    </span>
-                                </div>
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200/80">
+                                    <i class="fa-solid fa-business-time text-[10px]"></i> Khusus Shift Tertentu
+                                </span>
                                 @elseif($item->broadcast_type === 'office')
-                                <div>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 w-fit">
                                         <i class="fa-solid fa-building text-[10px]"></i> Per Kantor/Brand
                                     </span>
-                                    <p class="text-[11px] text-gray-500 mt-1 font-medium">{{ $item->offices->pluck('name')->implode(', ') ?: '-' }}</p>
-                                </div>
-                                @elseif($item->broadcast_type === 'specific')
-                                <div>
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-teal-50 text-teal-700 border border-teal-200">
-                                        <i class="fa-solid fa-user-tag text-[10px]"></i> Spesifik User ({{ $item->users->count() }})
+                                    <span class="text-[11px] text-gray-600 font-medium max-w-[160px] truncate pl-0.5">
+                                        {{ $item->offices->pluck('name')->implode(', ') ?: '-' }}
                                     </span>
                                 </div>
+                                @elseif($item->broadcast_type === 'specific')
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 border border-teal-200/80">
+                                    <i class="fa-solid fa-user-tag text-[10px]"></i> Spesifik User ({{ $item->users->count() }})
+                                </span>
                                 @endif
                             </td>
 
                             <!-- Target Shift -->
-                            <td class="px-6 py-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($item->shifts && $item->shifts->isNotEmpty())
-                                    <div class="flex flex-col gap-1.5 min-w-[100px] max-w-[160px]">
+                                    <div class="flex flex-col gap-1">
                                         @foreach($item->shifts as $shift)
-                                        <div class="px-2.5 py-1.5 rounded-lg bg-amber-50/90 text-amber-900 border border-amber-200/80 shadow-2xs">
-                                            <div class="flex items-center gap-1.5 font-bold text-xs leading-tight">
-                                                <i class="fa-solid fa-business-time text-amber-600 text-[10px] shrink-0"></i>
-                                                <span class="truncate">{{ $shift->name }}</span>
-                                            </div>
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-amber-50 text-amber-900 border border-amber-200/80 w-fit shadow-2xs">
+                                            <i class="fa-solid fa-business-time text-amber-600 text-[10px]"></i>
+                                            <span class="font-semibold">{{ $shift->name }}</span>
                                             @if($shift->start_time && $shift->end_time)
-                                            <div class="text-[10px] text-amber-700/90 font-medium pl-4 mt-0.5 leading-tight">
-                                                {{ substr($shift->start_time, 0, 5) }} - {{ substr($shift->end_time, 0, 5) }} WIB
-                                            </div>
+                                            <span class="text-[11px] text-amber-700/90 font-mono">({{ substr($shift->start_time, 0, 5) }} - {{ substr($shift->end_time, 0, 5) }} WIB)</span>
                                             @endif
-                                        </div>
+                                        </span>
                                         @endforeach
                                     </div>
                                 @else
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
-                                        <i class="fa-solid fa-clock text-[10px]"></i> Semua Shift
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                                        <i class="fa-regular fa-clock text-gray-400 text-[10px]"></i> Semua Shift
                                     </span>
                                 @endif
                             </td>
 
                             <!-- Jadwal / Waktu Kirim -->
-                            <td class="px-6 py-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($item->scheduled_at)
-                                <div class="space-y-0.5">
-                                    <span class="text-xs text-gray-500">Jadwal:</span>
-                                    <p class="font-semibold text-gray-800 text-xs">{{ $item->scheduled_at->format('d M Y, H:i') }}</p>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                                        <i class="fa-regular fa-calendar text-xs"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-gray-800 text-xs">
+                                            {{ $item->scheduled_at->format('d M Y') }}
+                                        </div>
+                                        <div class="text-[11px] text-gray-500 font-mono">
+                                            {{ $item->scheduled_at->format('H:i') }} WIB
+                                        </div>
+                                    </div>
                                 </div>
                                 @else
-                                <div class="space-y-0.5">
-                                    <span class="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                                        <i class="fa-solid fa-paper-plane text-[10px]"></i> Langsung
-                                    </span>
-                                    <p class="text-[11px] text-gray-400">{{ $item->created_at->format('d M Y, H:i') }}</p>
+                                <div class="flex items-center gap-2">
+                                    <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+                                        <i class="fa-solid fa-paper-plane text-xs"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <div class="font-bold text-emerald-700 text-xs">
+                                            Langsung
+                                        </div>
+                                        <div class="text-[11px] text-gray-400 font-mono">
+                                            {{ $item->created_at->format('d M Y, H:i') }}
+                                        </div>
+                                    </div>
                                 </div>
                                 @endif
                             </td>
 
                             <!-- Status -->
-                            <td class="px-6 py-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($item->isDue())
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                                    <i class="fa-solid fa-check text-[10px]"></i> Terkirim
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check text-[10px] text-emerald-600"></i> Terkirim
                                 </span>
                                 @else
-                                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
-                                    <i class="fa-solid fa-clock text-[10px]"></i> Menunggu Jadwal
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+                                    <i class="fa-solid fa-clock text-[10px] text-amber-600"></i> Menunggu Jadwal
                                 </span>
                                 @endif
                             </td>
 
                             <!-- Balasan Pemagang -->
-                            <td class="px-6 py-4">
+                            <td class="py-3.5 px-4 whitespace-nowrap">
                                 @if($item->requires_report)
-                                <span class="inline-flex items-center gap-1.5 text-xs text-slate-700 font-semibold bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200/70">
-                                    <i class="fa-regular fa-comment-dots text-blue-600"></i>
+                                <span class="inline-flex items-center gap-1.5 text-xs text-blue-700 font-semibold bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200/80">
+                                    <i class="fa-regular fa-comment-dots text-blue-600 text-[11px]"></i>
                                     <span>{{ $item->reports->count() }} Balasan</span>
                                 </span>
                                 @else
@@ -200,15 +232,15 @@
                             </td>
 
                             <!-- Aksi -->
-                            <td class="px-6 py-4 text-center">
-                                <div class="flex items-center justify-center gap-2">
+                            <td class="py-3.5 px-4 text-center whitespace-nowrap">
+                                <div class="flex items-center justify-center gap-1.5">
                                     @if($item->requires_report)
                                     <button type="button"
                                         data-id="{{ $item->id }}"
                                         onclick="openReportsModal(this.dataset.id)"
-                                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                        class="w-8 h-8 rounded-lg text-blue-600 hover:bg-blue-50 border border-blue-200/60 flex items-center justify-center transition"
                                         title="Lihat Balasan / Laporan">
-                                        <i class="fa-solid fa-comments"></i>
+                                        <i class="fa-solid fa-comments text-xs"></i>
                                     </button>
                                     @endif
 
@@ -216,9 +248,9 @@
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit"
-                                            class="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                            class="w-8 h-8 rounded-lg text-rose-500 hover:bg-rose-50 hover:text-rose-700 border border-rose-200/60 flex items-center justify-center transition"
                                             title="Hapus Broadcast">
-                                            <i class="fa-solid fa-trash-can"></i>
+                                            <i class="fa-solid fa-trash-can text-xs"></i>
                                         </button>
                                     </form>
                                 </div>
@@ -237,21 +269,21 @@
             </div>
 
             @if($broadcastlist->hasPages())
-            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-100 bg-white">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 border-t border-gray-100 bg-gray-50/50">
                 <div class="text-xs text-gray-500 font-medium">
                     Menampilkan <span class="font-bold text-gray-800">{{ $broadcastlist->firstItem() ?? 0 }}</span> - <span class="font-bold text-gray-800">{{ $broadcastlist->lastItem() ?? 0 }}</span> dari <span class="font-bold text-gray-800">{{ $broadcastlist->total() }}</span> broadcast
                 </div>
                 <div class="flex items-center space-x-1.5">
                     {{-- Prev Button --}}
                     @if ($broadcastlist->onFirstPage())
-                        <button class="bg-gray-200 text-gray-400 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-not-allowed shadow-2xs flex items-center gap-1" disabled>
-                            <i class="fas fa-chevron-left text-[10px]"></i>
-                            <span>Prev</span>
-                        </button>
+                        <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-400 bg-white border border-gray-200 cursor-not-allowed rounded-lg opacity-60 shadow-2xs">
+                            <i class="fas fa-chevron-left text-[10px] mr-1"></i>
+                            <span>Sebelumnya</span>
+                        </span>
                     @else
-                        <a href="{{ $broadcastlist->previousPageUrl() }}" class="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1">
-                            <i class="fas fa-chevron-left text-[10px]"></i>
-                            <span>Prev</span>
+                        <a href="{{ $broadcastlist->previousPageUrl() }}" class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-2xs">
+                            <i class="fas fa-chevron-left text-[10px] mr-1"></i>
+                            <span>Sebelumnya</span>
                         </a>
                     @endif
 
@@ -259,11 +291,11 @@
                     <div class="flex space-x-1">
                         @foreach (range(1, $broadcastlist->lastPage()) as $page)
                             @if ($page == $broadcastlist->currentPage())
-                                <span class="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold shadow-2xs transition">
+                                <span class="px-3 py-1.5 bg-blue-600 border border-blue-600 text-white rounded-lg text-xs font-bold shadow-2xs">
                                     {{ $page }}
                                 </span>
                             @else
-                                <a href="{{ $broadcastlist->url($page) }}" class="px-3 py-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-xs font-bold shadow-2xs transition">
+                                <a href="{{ $broadcastlist->url($page) }}" class="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 rounded-lg text-xs font-medium shadow-2xs transition">
                                     {{ $page }}
                                 </a>
                             @endif
@@ -272,15 +304,15 @@
 
                     {{-- Next Button --}}
                     @if ($broadcastlist->hasMorePages())
-                        <a href="{{ $broadcastlist->nextPageUrl() }}" class="bg-gray-800 text-white hover:bg-gray-900 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1">
-                            <span>Next</span>
-                            <i class="fas fa-chevron-right text-[10px]"></i>
+                        <a href="{{ $broadcastlist->nextPageUrl() }}" class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-2xs">
+                            <span>Selanjutnya</span>
+                            <i class="fas fa-chevron-right text-[10px] ml-1"></i>
                         </a>
                     @else
-                        <button class="bg-gray-200 text-gray-400 px-3 py-1.5 rounded-lg text-xs font-semibold cursor-not-allowed shadow-2xs flex items-center gap-1" disabled>
-                            <span>Next</span>
-                            <i class="fas fa-chevron-right text-[10px]"></i>
-                        </button>
+                        <span class="relative inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-400 bg-white border border-gray-200 cursor-not-allowed rounded-lg opacity-60 shadow-2xs">
+                            <span>Selanjutnya</span>
+                            <i class="fas fa-chevron-right text-[10px] ml-1"></i>
+                        </span>
                     @endif
                 </div>
             </div>
@@ -371,11 +403,17 @@
 
                 <!-- Target: Divisi -->
                 <div id="target_division_wrapper" class="hidden p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <span class="block font-semibold text-gray-700 mb-1.5 text-[11px]">Pilih Divisi:</span>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="block font-semibold text-gray-700 text-[11px]">Pilih Divisi:</span>
+                        <label class="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:text-blue-800 font-semibold cursor-pointer">
+                            <input type="checkbox" id="check_all_scheduled_divisions" class="rounded text-blue-600 h-3.5 w-3.5" onchange="toggleAllScheduledDivisions(this.checked)">
+                            <span>Pilih Semua Divisi</span>
+                        </label>
+                    </div>
                     <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
                         @foreach($divisions as $div)
                         <label class="flex items-center gap-1.5 text-[11px] text-gray-700 bg-white p-1.5 rounded border border-gray-200 hover:border-blue-400 cursor-pointer">
-                            <input type="checkbox" name="divisions[]" value="{{ $div->id }}" class="rounded text-blue-600 h-3.5 w-3.5">
+                            <input type="checkbox" name="divisions[]" value="{{ $div->id }}" class="scheduled-division-cb rounded text-blue-600 h-3.5 w-3.5" onchange="updateCheckAllScheduledDivisions()">
                             <span class="truncate">{{ $div->name }}</span>
                         </label>
                         @endforeach
@@ -440,11 +478,11 @@
                             Klik untuk memilih gambar atau seret file ke sini
                         </p>
                         <p class="text-[10px] text-gray-400">
-                            Format: JPG, PNG, GIF, WebP (Maksimal 2MB)
+                            Format: JPG, JPEG, PNG, WebP (Maksimal 2MB)
                         </p>
                     </div>
                 </div>
-                <input type="file" id="scheduledBroadcastImagesInput" name="images[]" accept="image/*" class="hidden">
+                <input type="file" id="scheduledBroadcastImagesInput" name="images[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden">
 
                 <!-- Single Image Selected Card (Tampil saat gambar berhasil dipilih) -->
                 <div id="singleImagePreviewCard" class="hidden bg-white p-3 rounded-xl border border-gray-200 shadow-xs flex items-center justify-between gap-3">
@@ -580,13 +618,38 @@
     function handleSingleFile(file) {
         if (!file) return;
 
-        if (!file.type.startsWith('image/')) {
-            alert('File yang dipilih bukan berkas gambar. Harap pilih gambar (JPG, PNG, GIF, WebP).');
+        const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+        const fileExtension = (file.name.split('.').pop() || '').toLowerCase();
+
+        if (!allowedMimeTypes.includes(file.type) && !allowedExtensions.includes(fileExtension)) {
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Format Tidak Sesuai',
+                    text: 'File yang dipilih bukan format foto yang diizinkan. Harap pilih foto berformat JPG, JPEG, PNG, atau WebP.',
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                alert('File yang dipilih bukan format foto yang diizinkan. Harap pilih foto berformat JPG, JPEG, PNG, atau WebP.');
+            }
             return;
         }
 
         if (file.size > 2 * 1024 * 1024) { // 2MB
-            alert(`Ukuran gambar (${formatFileSize(file.size)}) melebihi batas maksimal 2MB.`);
+            const sizeMsg = `Ukuran foto (${formatFileSize(file.size)}) melebihi batas maksimal 2MB.`;
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Ukuran Terlalu Besar',
+                    text: sizeMsg,
+                    confirmButtonText: 'Mengerti',
+                    confirmButtonColor: '#3085d6'
+                });
+            } else {
+                alert(sizeMsg);
+            }
             return;
         }
 
@@ -653,6 +716,21 @@
             offWrap.classList.remove('hidden');
         } else if (value === 'specific' && specWrap) {
             specWrap.classList.remove('hidden');
+        }
+    }
+
+    function toggleAllScheduledDivisions(checked) {
+        document.querySelectorAll('#target_division_wrapper .scheduled-division-cb').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+
+    function updateCheckAllScheduledDivisions() {
+        const total = document.querySelectorAll('#target_division_wrapper .scheduled-division-cb').length;
+        const checked = document.querySelectorAll('#target_division_wrapper .scheduled-division-cb:checked').length;
+        const masterCb = document.getElementById('check_all_scheduled_divisions');
+        if (masterCb) {
+            masterCb.checked = (total > 0 && total === checked);
         }
     }
 
@@ -767,9 +845,10 @@
                                         onkeydown="if(event.key === 'Enter') sendAdminFollowUp(${r.id});">
                                     <button type="button" onclick="sendAdminFollowUp(${r.id})"
                                         id="btn-send-followup-${r.id}"
-                                        class="p-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-2xs flex items-center justify-center shrink-0 cursor-pointer"
+                                        class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition shadow-2xs flex items-center justify-center gap-1.5 shrink-0 cursor-pointer"
                                         title="Kirim Pesan">
                                         <i class="fa-solid fa-paper-plane text-[10px]"></i>
+                                        <span>Kirim</span>
                                     </button>
                                 </div>
                             </div>
@@ -813,7 +892,7 @@
         const message = input.value.trim();
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i>';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin text-[10px]"></i> <span>Mengirim...</span>';
         }
 
         fetch(`{{ url('/admin/scheduled-broadcasts/reports') }}/${reportId}/follow-up`, {

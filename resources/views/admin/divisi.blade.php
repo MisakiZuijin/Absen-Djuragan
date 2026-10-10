@@ -71,17 +71,31 @@
                 <div class="space-y-4">
                     @forelse ($internWithoutDivision as $intern)
                         <a href="{{ route('admin.division.edit.view', ['userId' => $intern->user->id]) }}"
-                            class="intern-item p-2">
-                            <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow hover:shadow-lg">
-                                <span class="font-semibold">{{ $intern->user->profile->full_name }}</span>
-                                <span class="text-gray-500">{{ $intern->user->getDurationFromCreation() }} yang lalu</span>
+                            class="intern-item p-2 block">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-white p-4 rounded-lg shadow hover:shadow-lg transition">
+                                <div class="flex flex-col">
+                                    <span class="font-semibold text-gray-800">{{ $intern->user->profile->full_name ?? $intern->user->username }}</span>
+                                    <div class="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                                        <span><i class="fa-solid fa-briefcase text-slate-400 mr-1"></i>{{ $intern->division?->name ?? 'Belum ada divisi' }}</span>
+                                        @if($intern->school)
+                                            <span>•</span>
+                                            <span><i class="fa-solid fa-graduation-cap text-slate-400 mr-1"></i>{{ $intern->school->name }}</span>
+                                        @endif
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-700 border border-amber-200">
+                                        <i class="fa-solid fa-clock mr-1 text-[10px]"></i> Belum Aktif
+                                    </span>
+                                    <span class="text-xs text-gray-400">{{ $intern->user->getDurationFromCreation() }} yang lalu</span>
+                                </div>
                             </div>
                         </a>
                     @empty
                         <div class="p-2">
-                            <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow hover:shadow-lg">
-                                <span class="font-semibold">Tidak ada</span>
-                                <span class="text-gray-500"></span>
+                            <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow">
+                                <span class="font-medium text-gray-500">Tidak ada anggota yang belum aktif</span>
+                                <span class="text-gray-400 text-xs">Semua anggota telah aktif</span>
                             </div>
                         </div>
                     @endforelse

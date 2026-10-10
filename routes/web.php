@@ -10,6 +10,7 @@ use App\Http\Controllers\InternController;
 use App\Http\Controllers\SchoolController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\DivisionController;
+use App\Http\Controllers\BrandController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\AdminMapsController;
 use App\Http\Controllers\AttendanceController;
@@ -46,6 +47,7 @@ use App\Http\Controllers\SettingMeetController;
 use App\Http\Controllers\SuperAdmin\AdminManagementController;
 use App\Http\Controllers\SuperAdmin\SystemActivityLogController;
 use App\Http\Controllers\SuperAdmin\AppSettingsController;
+use App\Http\Controllers\AutomationRuleController;
 use App\Services\UserService;
 
 /*
@@ -91,6 +93,10 @@ Route::controller(AuthController::class)->group(function () {
     Route::get('/user/notif/success', 'successView')->name('notif.success.view');
 });
 
+Route::post('/public/resolve-gmaps-url', [AdminMapsController::class, 'resolveGmapsUrl'])
+    ->middleware('throttle:30,1')
+    ->name('public.resolve-gmaps-url');
+
 // User Routes (Intern)
 Route::prefix('user')->middleware('role:3')->group(function () {
     Route::controller(UserController::class)->group(function () {
@@ -108,6 +114,7 @@ Route::prefix('user')->middleware('role:3')->group(function () {
         Route::post('/broadcast/{broadcast}/report', 'submitBroadcastReport')->name('user.broadcast.report');
         Route::post('/scheduled-broadcasts/reports/{report}/reply', [\App\Http\Controllers\ScheduledBroadcastController::class, 'replyFollowUp'])->name('user.scheduled-broadcasts.reply-follow-up');
         Route::post('/auto-end-notify/dismiss/{id}', 'dismissAutoEndPopup')->name('user.autoEnd.dismiss');
+        Route::post('/kos-location/update', 'updateKosLocation')->name('user.kos-location.update');
     });
 
     Route::controller(AttendanceController::class)->group(function () {
@@ -151,6 +158,8 @@ Route::prefix('user')->middleware('role:3')->group(function () {
 
 // Admin Routes
 Route::prefix('admin')->middleware('role:1')->group(function () {
+
+    Route::get('/sso/to-intern', [\App\Http\Controllers\SsoController::class, 'redirectToIntern'])->name('admin.sso.to-intern');
 
     Route::controller(AdminController::class)->group(function () {
         Route::get('/home', 'homeView')->name('admin.home');
@@ -318,6 +327,11 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('/bulk-action', 'bulkAction')->name('bulk.action');
     });
 
+    Route::controller(BrandController::class)->group(function () {
+        Route::get('/brand', 'adminBrandView')->name('admin.brand.view');
+        Route::get('/brand/anggota/{brandId}', 'adminBrandTeamView')->name('admin.brand.team.view');
+    });
+
     Route::controller(ProjectCompletedController::class)->group(function () {
         Route::get('/portofolio-project', 'index')->name('admin.projects.completed');
     });
@@ -328,14 +342,37 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::post('/intern/update', 'adminUpdateInternAction')->name('admin.update.intern.action');
     });
 
+    Route::post('/resolve-gmaps-url', [AdminMapsController::class, 'resolveGmapsUrl'])->name('admin.resolve-gmaps-url');
+    Route::post('/geocode-address', [AdminMapsController::class, 'geocodeAddress'])->name('admin.geocode-address');
+
+
     Route::controller(SchoolController::class)->group(function () {
         Route::get('/sekolah', 'adminSchoolView')->name('admin.school.view');
         Route::get('/sekolah/anggota/{schoolId}', 'adminSchoolTeamView')->name('admin.school.team.view');
     });
 
     Route::controller(ScheduleController::class)->group(function () {
+        Route::get('/penjadwalan', 'scheduleListView')->name('admin.penjadwalan.index');
         Route::post('/shft/update', 'createSchedule')->name('create.Schedule');
         Route::get('/shift/update/{internId}', 'scheduleUpdateView')->name('admin.shift.schedule.update');
+    });
+
+    // Pusat Aturan & Simulator Otomatisasi Jadwal Magang (Fase 2)
+    Route::controller(AutomationRuleController::class)->prefix('automation-rules')->name('admin.automation-rules.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::post('/matrix', 'saveMatrix')->name('save-matrix');
+        Route::post('/capacities', 'saveCapacities')->name('save-capacities');
+        Route::post('/division-rules', 'saveDivisionRules')->name('save-division-rules');
+        Route::post('/conflict', 'storeConflict')->name('store-conflict');
+        Route::delete('/conflict/{id}', 'deleteConflict')->name('delete-conflict');
+        Route::patch('/conflict/{id}/toggle', 'toggleConflict')->name('toggle-conflict');
+        Route::post('/global-settings', 'saveGlobalSettings')->name('save-global-settings');
+        Route::post('/shift-rolling', 'saveShiftRolling')->name('save-shift-rolling');
+        Route::post('/bulk-interns', 'saveBulkInternPolicies')->name('save-bulk-interns');
+        Route::post('/balance-groups', 'balanceHybridGroups')->name('balance-groups');
+        Route::post('/recommendation', 'getRecommendation')->name('recommendation');
+        Route::post('/simulate', 'simulate')->name('simulate');
+        Route::post('/deploy', 'deploy')->name('deploy');
     });
 
     Route::get('/late-absence', [App\Http\Controllers\LateAbsenceController::class, 'index'])
@@ -431,7 +468,11 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::post('/add-holiday', 'storeHoliday')->name('holidays.store');
             Route::post('/update-holiday/{id}', 'updateHoliday')->name('holidays.update');
             Route::delete('/delete-holiday/{id}', 'deleteHoliday')->name('holidays.delete');
+            Route::post('/sync-holidays', 'syncHolidays')->name('holidays.sync');
             Route::post('/update-office-info', 'updateOfficeInfo')->name('admin.pengaturan.holiday.updateInfo');
+            Route::post('/piket/generate', 'generatePiket')->name('admin.piket.generate');
+            Route::post('/piket/reset', 'resetPiket')->name('admin.piket.reset');
+            Route::get('/piket/roster', 'getPiketRoster')->name('admin.piket.roster');
         });
 
         Route::controller(SettingMeetController::class)->group(function () {

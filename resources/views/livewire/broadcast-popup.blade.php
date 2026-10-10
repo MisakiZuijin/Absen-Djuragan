@@ -23,7 +23,7 @@
                 </div>
 
                 <!-- BODY MODAL -->
-                <div class="p-4 sm:p-6 overflow-y-auto space-y-3.5 sm:space-y-4 flex-1">
+                <div class="p-4 sm:p-5 overflow-y-auto space-y-3 sm:space-y-3.5 flex-1">
                     <!-- Lampiran Gambar (Jika ada) -->
                     @if($currentBroadcast->images && $currentBroadcast->images->isNotEmpty())
                         <div class="flex justify-center">
@@ -43,21 +43,19 @@
                         </div>
                     @endif
 
-                    <!-- Isi Pengumuman / Pesan -->
-                    <div class="text-gray-700 leading-relaxed text-justify whitespace-pre-line text-xs sm:text-sm bg-gray-50/70 p-3.5 sm:p-4 rounded-xl border border-gray-100">
-                        {!! nl2br(e($currentBroadcast->message)) !!}
-                    </div>
+                    <!-- Isi Pengumuman / Pesan Pertanyaan -->
+                    <div class="bg-gray-50/80 p-3.5 sm:p-4 rounded-xl border border-gray-200/80 text-gray-800 text-left text-xs sm:text-sm leading-relaxed break-words whitespace-pre-line">{{ trim($currentBroadcast->message) }}</div>
 
                     <!-- FORM TANGGAPAN WAJIB PEMAGANG -->
-                    <div class="border-t border-gray-100 pt-3.5 sm:pt-4 space-y-2 sm:space-y-2.5">
-                        <label for="broadcastReportText" class="block text-xs font-bold uppercase tracking-wider text-gray-700">
+                    <div class="pt-1.5 space-y-1.5 border-t border-gray-100">
+                        <label for="broadcastReportText" class="block text-xs font-bold text-gray-700">
                             <i class="fa-solid fa-clipboard-check text-blue-600 mr-1"></i>
-                            {{ $currentBroadcast->report_question ?: 'Tuliskan tanggapan / konfirmasi Anda di sini:' }}
+                            <span>{{ $currentBroadcast->report_question ?: 'Tuliskan tanggapan / konfirmasi Anda di sini:' }}</span>
                             <span class="text-rose-500">*</span>
                         </label>
                         
                         <textarea wire:model="reportText" id="broadcastReportText" rows="3" 
-                            class="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm outline-none resize-none leading-relaxed bg-white"
+                            class="w-full px-3.5 sm:px-4 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm outline-none resize-none leading-relaxed bg-white text-gray-800"
                             placeholder="Ketik tanggapan, konfirmasi, atau jawaban Anda di sini (wajib diisi)..."></textarea>
                         
                         @error('reportText')

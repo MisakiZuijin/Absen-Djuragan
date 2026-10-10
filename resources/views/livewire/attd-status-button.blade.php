@@ -566,9 +566,15 @@
             <h3 class="text-base sm:text-lg font-bold text-slate-800 leading-snug mb-1.5">
                 Konfirmasi Kelulusan
             </h3>
+            @if($requiresTaskLink)
             <p class="text-xs text-slate-600 leading-relaxed mb-3">
-                Pastikan seluruh penugasan telah selesai. Masukkan tautan link tugas Anda di bawah ini sebelum menyelesaikan:
+                Pastikan seluruh penugasan telah selesai. Masukkan tautan hasil karya tugas Anda di bawah ini sebelum menyelesaikan:
             </p>
+            @else
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+                Pastikan seluruh penugasan telah selesai dievaluasi oleh mentor sebelum menyelesaikan sesi presentasi.
+            </p>
+            @endif
 
             @if(!empty($pendingProjectName))
             <div class="w-full text-left p-3 bg-slate-50 border border-slate-200 rounded-xl mb-3.5 space-y-0.5">
@@ -580,6 +586,7 @@
             </div>
             @endif
 
+            @if($requiresTaskLink)
             {{-- Input Link Tugas / Repo / Figma / Media --}}
             <div class="space-y-1.5 w-full text-left mb-4">
                 <label for="taskLinkInput" class="block text-xs font-bold text-slate-700">
@@ -587,13 +594,7 @@
                 </label>
                 <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                        @if($taskLinkType === 'programmer')
-                        <i class="fa-brands fa-github text-slate-700 text-sm"></i>
-                        @elseif($taskLinkType === 'uiux')
-                        <i class="fa-brands fa-figma text-purple-600 text-sm"></i>
-                        @else
                         <i class="fa-solid fa-link text-indigo-500 text-xs"></i>
-                        @endif
                     </div>
                     <input type="url"
                         id="taskLinkInput"
@@ -608,15 +609,27 @@
                 </p>
                 @enderror
                 <p class="text-[11px] text-slate-400 leading-tight pt-0.5">
-                    @if($taskLinkType === 'programmer')
-                    Tautkan URL repository GitHub khusus untuk tugas ini (pastikan bersifat publik atau mentor diberi akses).
-                    @elseif($taskLinkType === 'uiux')
-                    Tautkan URL file / prototype Figma khusus untuk tugas ini (pastikan diset view permission).
-                    @else
-                    Tautkan URL Google Drive / media folder pengumpulan tugas ini.
-                    @endif
+                    {{ $taskLinkHelpText }}
                 </p>
             </div>
+            @else
+            {{-- Tidak ada checklist Git/Figma/Sosmed: Otomatis gunakan Google Drive --}}
+            <div class="w-full text-left p-3.5 bg-slate-50 border border-slate-200 rounded-2xl mb-4 space-y-1.5">
+                <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+                    <i class="fa-brands fa-google-drive text-amber-500 text-sm"></i>
+                    <span>Tautan Folder Tugas (Google Drive):</span>
+                </div>
+                @if(!empty($internGdriveUrl))
+                <a href="{{ $internGdriveUrl }}" target="_blank" rel="noopener noreferrer" class="text-xs text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 truncate font-medium">
+                    <span class="truncate">{{ $internGdriveUrl }}</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[11px] shrink-0"></i>
+                </a>
+                <p class="text-[11px] text-slate-500">Hasil karya otomatis menggunakan tautan Google Drive yang telah diatur oleh admin.</p>
+                @else
+                <p class="text-[11px] text-slate-500 italic">Tidak ada tautan khusus yang wajib diisi untuk penugasan ini.</p>
+                @endif
+            </div>
+            @endif
 
             <div class="flex items-center gap-2 w-full pt-1">
                 <button type="button" wire:click="cancelOutcomeConfirm" class="flex-1 py-2.5 px-3 border border-slate-300 text-slate-700 hover:bg-slate-100 font-bold text-xs rounded-xl transition cursor-pointer text-center">
@@ -818,7 +831,7 @@
                     <div>
                         <label for="authorized_by" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Diizinkan oleh <span class="text-red-500">*</span></label>
                         <select id="authorized_by" name="authorized_by" class="w-full border border-gray-300 rounded-xl p-2.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none transition-colors bg-white" required>
-                            <option value="" disabled selected>-- Pilih nama HR/Atasan --</option>
+                            <option value="" disabled selected>-- Pilih nama Admin / Asisten Admin --</option>
                             @foreach($hrUsers as $hr)
                             <option value="{{ $hr['name'] }}">{{ $hr['name'] }}</option>
                             @endforeach

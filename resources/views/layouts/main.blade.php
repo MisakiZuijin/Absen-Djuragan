@@ -40,7 +40,7 @@
 
     {{-- Konten Utama --}}
     @yield('contents')
-    
+
 
     {{-- Modal Logout (Tidak ada perubahan) --}}
     <div id="logout-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
@@ -67,12 +67,12 @@
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     @php
-        $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
-        $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
+    $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
+    $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
     @endphp
     <script>
-        window.__raiseHandPollIntervalMs = {{ $raiseHandNotifInterval * 1000 }};
-        window.__raiseHandNotificationsEnabled = {{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? 'true' : 'false' }};
+        window.__raiseHandPollIntervalMs = Number("{{ $raiseHandNotifInterval * 1000 }}") || 0;
+        window.__raiseHandNotificationsEnabled = "{{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? '1' : '0' }}" === "1";
     </script>
     <script src="{{ asset('js/admin/raise-hand-notifications.js') }}?v={{ file_exists(public_path('js/admin/raise-hand-notifications.js')) ? filemtime(public_path('js/admin/raise-hand-notifications.js')) : '1.0' }}"></script>
     <script>
@@ -82,7 +82,7 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 statusCode: {
-                    419: function () {
+                    419: function() {
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 icon: 'warning',
@@ -97,7 +97,7 @@
                             window.location.reload();
                         }
                     },
-                    403: function () {
+                    403: function() {
                         if (typeof Swal !== 'undefined') {
                             Swal.fire({
                                 icon: 'error',
@@ -111,7 +111,7 @@
                 }
             });
         }
-        window.addEventListener('unhandledrejection', function (event) {
+        window.addEventListener('unhandledrejection', function(event) {
             if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
                 window.location.reload();
             }
@@ -122,6 +122,7 @@
         // =========================================================================
         (function() {
             let isLocked = false;
+
             function updateBodyScrollLock() {
                 const swalOpen = document.querySelector('.swal2-container.swal2-shown, body.swal2-shown');
                 if (swalOpen) {

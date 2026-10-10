@@ -84,7 +84,7 @@ class InternService
     {
         try {
             DB::beginTransaction();
-            $data = $editInternRequest->validated();
+            $data = ($editInternRequest->validator ?? false) ? $editInternRequest->validated() : $editInternRequest->all();
             $userId = $data["user_id"];
 
 
@@ -121,25 +121,59 @@ class InternService
                 "date_of_birth" => $data["birth_date"],
                 "NIP" => $data["nip"],
                 "phone" => $data["phone"],
-                "gender" => $data["gender"] ?? null
+                "gender" => $data["gender"] ?? null,
+                "religion" => $data["religion"] ?? null,
+                "address" => $data["address"] ?? null,
             ];
 
             $this->profileRepository->update($userResult->profile->id, $profileData);
 
+            $schoolId = $data["school_id"] ?? $userResult->intern?->school_id;
+            $school = $schoolId ? \App\Models\School::find($schoolId) : null;
+            $isRemoteSchool = (bool) ($school?->is_remote_school ?? false);
+
             $internData = [
-                "school_id" => $data["school_id"],
-                "division_id" => $data["division_id"],
+                "school_id" => $schoolId,
+                "division_id" => $data["division_id"] ?? null,
                 "brand_id" => $data["brand_id"] ?? null,
-                "start_date" => $data["in_date"],
-                "end_date" => $data["out_date"],
-                "nim" => $data["nim"]
+                "start_date" => $data["in_date"] ?? null,
+                "end_date" => $data["out_date"] ?? null,
+                "nim" => $data["nim"] ?? null,
+                "home_latitude" => !empty($data["home_latitude"]) ? $data["home_latitude"] : null,
+                "home_longitude" => !empty($data["home_longitude"]) ? $data["home_longitude"] : null,
+                "home_address_notes" => $data["home_address_notes"] ?? null,
+                "work_placement_type" => $isRemoteSchool ? 'wfh_only' : ($data["work_placement_type"] ?? 'auto_office'),
+                "locked_office_id" => $isRemoteSchool ? null : (!empty($data["locked_office_id"]) ? (int) $data["locked_office_id"] : null),
+                "blacklisted_office_id" => !empty($data["blacklisted_office_id"]) ? (int) $data["blacklisted_office_id"] : null,
+                "hr_placement_notes" => $data["hr_placement_notes"] ?? null,
             ];
 
+            if (array_key_exists('shift_id', $data)) {
+                $internData['shift_id'] = !empty($data['shift_id']) ? (int) $data['shift_id'] : null;
+            }
 
             $internId = $userResult->intern->id;
 
-
             $intern = $this->internRepository->update($internId, $internData);
+
+            // Handle Conflict Rule (Anti-Satu Shift / Pasangan Konflik)
+            if (!empty($data["conflict_intern_id"])) {
+                $targetConflictId = (int) $data["conflict_intern_id"];
+                \App\Models\InternConflictRule::updateOrCreate(
+                    [
+                        'intern_id_1' => min($internId, $targetConflictId),
+                        'intern_id_2' => max($internId, $targetConflictId),
+                    ],
+                    [
+                        'reason' => 'Aturan konflik antar pemagang yang ditentukan oleh HR/Admin',
+                        'is_active' => true,
+                    ]
+                );
+            } else {
+                \App\Models\InternConflictRule::where(function($q) use ($internId) {
+                    $q->where('intern_id_1', $internId)->orWhere('intern_id_2', $internId);
+                })->update(['is_active' => false]);
+            }
 
             $nomorTujuan = $data["parent_whatsapp_number"] ?? null;
 
@@ -223,7 +257,7 @@ class InternService
             DB::rollBack();
             Log::error('updateIntern error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
             captureException($th);
-            return new ActionResult(false, "failed to update data intern", null);
+            return new ActionResult(false, "failed to update data intern: " . $th->getMessage(), null);
         }
     }
 

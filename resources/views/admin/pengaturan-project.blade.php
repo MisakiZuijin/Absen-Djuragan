@@ -484,12 +484,12 @@
                 </p>
             </div>
             <div class="flex justify-end gap-2.5">
-                <button type="button" onclick="closeNameProjectModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl text-xs font-semibold shadow-xs transition">
+                <button type="button" onclick="closeNameProjectModal()" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-xl text-xs font-semibold shadow-xs transition cursor-pointer">
                     Batal
                 </button>
-                <button type="submit" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    <span>Tambah Judul</span>
+                <button type="submit" id="btnSubmitNameProject" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-plus text-xs" id="btnSubmitNameProjectIcon"></i>
+                    <span id="btnSubmitNameProjectText">Tambah Judul</span>
                 </button>
             </div>
         </form>
@@ -871,16 +871,130 @@
     }
 
     function submitNameProjectForm(event) {
+        event.preventDefault();
+
         const prefix = document.getElementById('name_project_prefix').value || '';
         const suffix = document.getElementById('input_project_title_suffix').value.trim();
 
         if (!suffix) {
-            event.preventDefault();
             alert('Silakan ketik judul project!');
             return;
         }
 
-        document.getElementById('full_project_name').value = prefix + suffix;
+        const fullName = prefix + suffix;
+        document.getElementById('full_project_name').value = fullName;
+
+        const submitBtn = document.getElementById('btnSubmitNameProject');
+        const submitBtnText = document.getElementById('btnSubmitNameProjectText');
+        const submitBtnIcon = document.getElementById('btnSubmitNameProjectIcon');
+        const originalText = submitBtnText ? submitBtnText.innerText : 'Tambah Judul';
+
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.classList.add('opacity-70', 'cursor-not-allowed');
+        }
+        if (submitBtnIcon) {
+            submitBtnIcon.className = 'fa-solid fa-spinner fa-spin text-xs';
+        }
+        if (submitBtnText) submitBtnText.innerText = 'Menyimpan...';
+
+        const form = document.getElementById('formAddNameProject');
+        const formData = new FormData(form);
+
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            },
+            body: formData
+        })
+        .then(response => {
+            return response.json().then(data => {
+                if (!response.ok) {
+                    throw new Error(data.message || 'Gagal menyimpan nama project');
+                }
+                return data;
+            });
+        })
+        .then(data => {
+            if (data.success && data.data) {
+                const newProject = data.data;
+                const projectSelect = document.getElementById('project-name');
+
+                if (projectSelect) {
+                    // Cek apakah opsi sudah ada di dropdown
+                    let existingOpt = null;
+                    for (let i = 0; i < projectSelect.options.length; i++) {
+                        if (String(projectSelect.options[i].value) === String(newProject.id)) {
+                            existingOpt = projectSelect.options[i];
+                            break;
+                        }
+                    }
+
+                    if (!existingOpt) {
+                        const newOpt = document.createElement('option');
+                        newOpt.value = newProject.id;
+                        newOpt.textContent = newProject.name;
+                        projectSelect.appendChild(newOpt);
+                        projectSelect.value = newProject.id;
+                    } else {
+                        existingOpt.selected = true;
+                    }
+                }
+
+                // Tutup HANYA sub-modal nama project, modal utama Tambah/Edit Project tetap terbuka
+                closeNameProjectModal();
+
+                // Notifikasi toast sukses
+                showProjectToast("Judul project '" + newProject.name + "' berhasil ditambahkan!");
+            } else {
+                alert(data.message || 'Terjadi kesalahan saat menambahkan nama project.');
+            }
+        })
+        .catch(error => {
+            console.error('Error adding project name:', error);
+            alert(error.message || 'Terjadi kesalahan saat menyimpan nama project.');
+        })
+        .finally(() => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('opacity-70', 'cursor-not-allowed');
+            }
+            if (submitBtnIcon) {
+                submitBtnIcon.className = 'fa-solid fa-plus text-xs';
+            }
+            if (submitBtnText) submitBtnText.innerText = originalText;
+        });
+    }
+
+    // Toast Notification helper
+    function showProjectToast(message, type = 'success') {
+        const toastId = 'projectToastNotification';
+        let toast = document.getElementById(toastId);
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = toastId;
+            document.body.appendChild(toast);
+        }
+
+        const isSuccess = type === 'success';
+        toast.className = `fixed top-5 right-5 z-[100] max-w-sm px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 transition-all duration-300 text-xs font-semibold ${
+            isSuccess ? 'bg-emerald-600 text-white border border-emerald-500' : 'bg-rose-600 text-white border border-rose-500'
+        }`;
+        toast.innerHTML = `<i class="fa-solid ${isSuccess ? 'fa-circle-check' : 'fa-circle-exclamation'} text-base"></i><span>${message}</span>`;
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateY(0)';
+
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                if (toast.parentNode) toast.remove();
+            }, 300);
+        }, 3500);
     }
 
     function closeNameProjectModal() {

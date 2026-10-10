@@ -28,6 +28,11 @@ class Attendance extends Model {
         'debt_fulfilled_at' => 'datetime',
     ];
 
+    protected $appends = [
+        'formatted_start_time',
+        'formatted_end_time',
+    ];
+
     protected $fillable = [
         "intern_id",
         "shift_id",
@@ -210,5 +215,29 @@ class Attendance extends Model {
         $end = Carbon::parse($this->end_time);
 
         return $start->diffInMinutes($end);
+    }
+
+    /**
+     * Format jam mulai masuk ke string 'HH:mm' yang bersih dari timezone shift
+     */
+    public function getFormattedStartTimeAttribute(): ?string
+    {
+        $raw = $this->getRawOriginal('start_time');
+        if (!empty($raw)) {
+            return substr($raw, 0, 5);
+        }
+        return $this->start_time ? Carbon::parse($this->start_time)->format('H:i') : null;
+    }
+
+    /**
+     * Format jam pulang ke string 'HH:mm' yang bersih dari timezone shift
+     */
+    public function getFormattedEndTimeAttribute(): ?string
+    {
+        $raw = $this->getRawOriginal('end_time');
+        if (!empty($raw)) {
+            return substr($raw, 0, 5);
+        }
+        return $this->end_time ? Carbon::parse($this->end_time)->format('H:i') : null;
     }
 }

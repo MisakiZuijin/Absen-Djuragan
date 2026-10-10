@@ -70,10 +70,12 @@ class SettingOfficeController extends Controller
 
     public function showEditLocation(int $id)
     {
-        $office = Office::with('coordinates')->findOrFail($id);
+        $office = Office::with(['coordinates', 'officeDivisions', 'shiftCapacities'])->findOrFail($id);
         $coordinates = $office->coordinates;
         $radius = $office->radius;
+        $allShifts = \App\Models\Shift::where('id', '!=', 1)->get();
+        $allDivisions = \App\Models\Division::all();
 
-        return view('admin.edit-maps-location', compact('office', 'coordinates', 'radius'));
+        return view('admin.edit-maps-location', compact('office', 'coordinates', 'radius', 'allShifts', 'allDivisions'));
     }
 }

@@ -1735,7 +1735,7 @@
         });
     }
 
-    function calculateAutoLate() {
+    function calculateAutoLate(syncPresenceRadio = false) {
         const shiftSelect = document.getElementById('shift_id');
         const timeInput = document.getElementById('physical_checkin_time');
         const indicator = document.getElementById('autoLateIndicator');
@@ -1786,6 +1786,30 @@
                 <span>Tepat Waktu (Otomatis)</span>
             `;
         }
+
+        if (syncPresenceRadio) {
+            const currentChecked = document.querySelector('input[name="status"]:checked')?.value;
+            if (!currentChecked || ['hadir', 'early', 'terlambat'].includes(currentChecked)) {
+                let targetStatus = 'hadir';
+                if (diff > 0) {
+                    targetStatus = 'terlambat';
+                } else if (diff < 0) {
+                    targetStatus = 'early';
+                } else {
+                    targetStatus = 'hadir';
+                }
+
+                if (targetStatus !== currentChecked) {
+                    const targetRadio = document.querySelector(`input[name="status"][value="${targetStatus}"]`);
+                    if (targetRadio) {
+                        targetRadio.checked = true;
+                        if (typeof updateRadioStyles === 'function') {
+                            updateRadioStyles();
+                        }
+                    }
+                }
+            }
+        }
     }
 
     function setCurrentPhysicalTime() {
@@ -1795,7 +1819,7 @@
         const input = document.getElementById('physical_checkin_time');
         if (input) {
             input.value = `${hours}:${minutes}`;
-            calculateAutoLate();
+            calculateAutoLate(true);
         }
     }
 
@@ -1809,7 +1833,7 @@
                 const match = text.match(/\((\d{2}:\d{2})/);
                 if (match && match[1]) {
                     input.value = match[1];
-                    calculateAutoLate();
+                    calculateAutoLate(true);
                 }
             }
         }
@@ -1887,11 +1911,11 @@
 
         // Listeners for live late calculation
         if (physicalTimeInput) {
-            physicalTimeInput.addEventListener('input', calculateAutoLate);
-            physicalTimeInput.addEventListener('change', calculateAutoLate);
+            physicalTimeInput.addEventListener('input', () => calculateAutoLate(true));
+            physicalTimeInput.addEventListener('change', () => calculateAutoLate(true));
         }
         if (shiftSelect) {
-            shiftSelect.addEventListener('change', calculateAutoLate);
+            shiftSelect.addEventListener('change', () => calculateAutoLate(true));
         }
 
         // Close modal on click backdrop
@@ -2288,14 +2312,34 @@
                             }
                         } else {
                             // Default when creating new record
-                            if (physicalTimeInput && data.online_attendance && data.online_attendance.start_time) {
+                            if (physicalTimeInput && data.online && data.online.raw_time) {
+                                physicalTimeInput.value = data.online.raw_time;
+                            } else if (physicalTimeInput && data.online_attendance && data.online_attendance.start_time) {
                                 physicalTimeInput.value = data.online_attendance.start_time;
                             } else if (physicalTimeInput && !physicalTimeInput.value) {
                                 setCurrentPhysicalTime();
                             }
+
+                            // Tentukan radio awal berdasarkan data online jika ada
+                            let initialStatus = 'hadir';
+                            if (data.online && data.online.status_key) {
+                                if (data.online.status_key === 'terlambat') {
+                                    initialStatus = 'terlambat';
+                                } else if (data.online.status_key === 'izin_sakit') {
+                                    initialStatus = 'sakit';
+                                } else if (data.online.status_key === 'izin_keperluan' || data.online.status_key === 'izin') {
+                                    initialStatus = 'izin';
+                                } else if (data.online.status_key === 'alpha') {
+                                    initialStatus = 'alpha';
+                                }
+                            }
+                            const radioElem = document.querySelector(`input[name="status"][value="${initialStatus}"]`);
+                            if (radioElem) {
+                                radioElem.checked = true;
+                            }
                         }
 
-                        calculateAutoLate();
+                        calculateAutoLate(true);
                         updateRadioStyles();
 
                         const alertType = data.status.alert_type;
@@ -2307,12 +2351,13 @@
                             if (data.online && data.online.time) {
                                 onlineBadgeElem.classList.remove('hidden');
                                 const isLate = data.online.status_key === 'terlambat';
+                                const lateMinutesStr = isLate && data.online.late_minutes > 0 ? ` (Terlambat ${data.online.late_minutes}m)` : '';
                                 onlineBadgeElem.className = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${isLate ? 'bg-amber-100 text-amber-800 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'}`;
                                 onlineBadgeElem.innerHTML = `
                                     <svg class="w-3.5 h-3.5 ${isLate ? 'text-amber-600' : 'text-emerald-600'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                                     </svg>
-                                    <span>Online: ${data.online.time}</span>
+                                    <span>Online: ${data.online.time}${lateMinutesStr}</span>
                                 `;
                             } else if (data.online && data.online.status_key === 'izin_sakit') {
                                 onlineBadgeElem.classList.remove('hidden');

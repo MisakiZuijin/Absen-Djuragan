@@ -53,19 +53,19 @@
         <!-- Progress Indicator -->
         <div class="mb-8">
             <div class="flex items-center justify-center space-x-8">
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">1</div>
-                    <span class="ml-3 text-sm font-medium text-gray-700">Pilih Sekolah</span>
+                <div class="flex items-center" id="step-indicator-1">
+                    <div class="step-badge w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold text-sm">1</div>
+                    <span class="step-text ml-3 text-sm font-semibold text-blue-600">Pilih Sekolah</span>
                 </div>
-                <div class="w-12 h-0.5 bg-gray-300"></div>
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center font-semibold text-sm">2</div>
-                    <span class="ml-3 text-sm font-medium text-gray-500">Pilih Intern</span>
+                <div class="step-line w-12 h-0.5 bg-gray-300" id="step-line-1"></div>
+                <div class="flex items-center" id="step-indicator-2">
+                    <div class="step-badge w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center font-semibold text-sm">2</div>
+                    <span class="step-text ml-3 text-sm font-medium text-gray-500">Pilih Intern</span>
                 </div>
-                <div class="w-12 h-0.5 bg-gray-300"></div>
-                <div class="flex items-center">
-                    <div class="w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center font-semibold text-sm">3</div>
-                    <span class="ml-3 text-sm font-medium text-gray-500">Tentukan Jadwal</span>
+                <div class="step-line w-12 h-0.5 bg-gray-300" id="step-line-2"></div>
+                <div class="flex items-center" id="step-indicator-3">
+                    <div class="step-badge w-8 h-8 bg-gray-300 text-gray-500 rounded-full flex items-center justify-center font-semibold text-sm">3</div>
+                    <span class="step-text ml-3 text-sm font-medium text-gray-500">Tentukan Jadwal</span>
                 </div>
             </div>
         </div>
@@ -77,7 +77,7 @@
                 <div class="p-6 space-y-8">
 
                     <!-- Step 1: Pilih Sekolah -->
-                    <div class="form-step" data-step="1">
+                    <div class="form-step active" data-step="1">
                         <div class="flex items-center mb-6">
                             <div class="w-10 h-10 bg-blue-600 text-white rounded-lg flex items-center justify-center font-semibold mr-4">
                                 1
@@ -94,7 +94,18 @@
                             </label>
                             <select name="school_ids[]" id="school_ids" class="select-school w-full" multiple="multiple" required>
                                 @foreach($schools as $school)
-                                    <option value="{{ $school->id }}">{{ $school->name }}</option>
+                                    @php
+                                        $isRemote = (bool) ($school->is_remote_school ?? false);
+                                        $count = $isRemote ? 0 : ($school->interns_count ?? 0);
+                                    @endphp
+                                    <option value="{{ $school->id }}" data-count="{{ $count }}" data-remote="{{ $isRemote ? '1' : '0' }}">
+                                        {{ $school->name }} 
+                                        @if($isRemote)
+                                            (Remote WFH - Terkunci)
+                                        @else
+                                            ({{ $count }} pemagang aktif)
+                                        @endif
+                                    </option>
                                 @endforeach
                             </select>
                             <div class="mt-3 p-3 bg-blue-100 rounded-lg">
@@ -119,9 +130,20 @@
                         </div>
                         
                         <div class="bg-blue-50 rounded-lg p-6 border border-blue-100">
-                            <span class="block text-sm font-semibold text-gray-800 mb-3">
-                                <i class="fas fa-user-graduate mr-2 text-blue-600"></i>Daftar Intern
-                            </span>
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="block text-sm font-semibold text-gray-800">
+                                    <i class="fas fa-user-graduate mr-2 text-blue-600"></i>Daftar Intern
+                                </span>
+                                <span id="intern-loading" class="text-xs text-blue-600 font-medium hidden">
+                                    <i class="fas fa-spinner fa-spin mr-1"></i>Memuat data pemagang...
+                                </span>
+                            </div>
+
+                            <!-- Alert jika sekolah tidak memiliki intern aktif / non-remote -->
+                            <div id="intern-empty-alert" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-sm hidden">
+                                <i class="fas fa-exclamation-triangle mr-2 text-amber-600"></i>
+                                <span>Tidak ada pemagang aktif (non-WFH penuh) yang ditemukan dari sekolah yang Anda pilih. Silakan pilih sekolah lain yang memiliki pemagang aktif.</span>
+                            </div>
                             
                             <!-- Select All Checkbox -->
                             <div class="mb-4 p-3 bg-white rounded-lg border border-blue-200" id="select-all-container" style="display: none;">
@@ -407,6 +429,17 @@
             opacity: 1;
         }
 
+        /* Optgroup styling for grouped interns */
+        .select2-container--default .select2-results__group {
+            padding: 8px 12px;
+            font-weight: 700;
+            color: #1e40af;
+            background-color: #f1f5f9;
+            border-radius: 4px;
+            margin-top: 6px;
+            font-size: 0.85rem;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .form-step {
@@ -424,13 +457,29 @@
         $(document).ready(function () {
             let currentStep = 1;
             let totalInternsCount = 0;
+            let fetchAbortController = null;
 
             // Update progress indicator
-            function updateProgressIndicator(step) {
-                $('.progress-indicator .step').removeClass('active completed');
-                
-                for (let i = 1; i <= step; i++) {
-                    $(`.progress-indicator .step[data-step="${i}"]`).addClass(i < step ? 'completed' : 'active');
+            function setProgressStep(step) {
+                currentStep = step;
+                for (let i = 1; i <= 3; i++) {
+                    const badge = $(`#step-indicator-${i} .step-badge`);
+                    const text = $(`#step-indicator-${i} .step-text`);
+                    const line = $(`#step-line-${i}`);
+
+                    if (i < step) {
+                        badge.removeClass('bg-gray-300 bg-blue-600 text-gray-500').addClass('bg-green-600 text-white').html('<i class="fas fa-check text-xs"></i>');
+                        text.removeClass('text-gray-500 text-blue-600 font-semibold').addClass('text-gray-900 font-medium');
+                        if (line.length) line.removeClass('bg-gray-300').addClass('bg-green-600');
+                    } else if (i === step) {
+                        badge.removeClass('bg-gray-300 bg-green-600 text-gray-500').addClass('bg-blue-600 text-white').text(i);
+                        text.removeClass('text-gray-500 text-gray-900').addClass('text-blue-600 font-semibold');
+                        if (line.length) line.removeClass('bg-green-600').addClass('bg-gray-300');
+                    } else {
+                        badge.removeClass('bg-blue-600 bg-green-600 text-white').addClass('bg-gray-300 text-gray-500').text(i);
+                        text.removeClass('text-blue-600 font-semibold text-gray-900').addClass('text-gray-500 font-medium');
+                        if (line.length) line.removeClass('bg-green-600').addClass('bg-gray-300');
+                    }
                 }
             }
 
@@ -447,7 +496,7 @@
                 if (schoolIds && schoolIds.length > 0) {
                     const schoolTexts = [];
                     $('#school_ids option:selected').each(function() {
-                        schoolTexts.push($(this).text());
+                        schoolTexts.push($(this).text().trim());
                     });
                     $('#selected-schools').text(`${schoolTexts.length} sekolah dipilih`);
                     hasData = true;
@@ -470,7 +519,7 @@
                 }
             }
 
-            // Custom template functions
+            // Custom template functions for shift
             function formatShift(shift) {
                 if (!shift.id) return shift.text;
 
@@ -494,24 +543,41 @@
                 return formatShift(shift);
             }
 
-            // Initialize Select2
+            // Clean tag representation for schools (remove the count suffix in chips)
+            function formatSchoolSelection(school) {
+                if (!school.id) return school.text;
+                return school.text.replace(/\s*\([^)]*pemagang aktif\)/i, '').replace(/\s*\(Remote WFH - Terkunci\)/i, '').trim();
+            }
+
+            // Initialize Select2 School
             $('#school_ids').select2({
                 placeholder: "🏫 Cari dan pilih sekolah (dapat memilih lebih dari satu)",
                 width: '100%',
                 closeOnSelect: false,
-                allowClear: true
-            }).on('change', updateSummary);
+                allowClear: true,
+                templateSelection: formatSchoolSelection
+            }).on('change', function () {
+                updateSummary();
+                handleSchoolsChange();
+            });
 
+            // Initialize Select2 Intern (initial disabled state)
             const internSelect = $('#intern_ids').select2({
                 placeholder: "👨‍🎓 Pilih sekolah terlebih dahulu...",
                 width: '100%',
                 closeOnSelect: false,
                 allowClear: true
-            }).on('change', function() {
+            }).on('change', function () {
                 updateSummary();
                 updateSelectAllCheckbox();
+                const internIds = $(this).val();
+                if (internIds && internIds.length > 0) {
+                    setProgressStep(3);
+                    $('.form-step[data-step="3"]').addClass('active');
+                }
             });
 
+            // Initialize Select2 Shift
             $('#shift_id').select2({
                 templateResult: formatShift,
                 templateSelection: formatShiftSelection,
@@ -520,18 +586,155 @@
                 allowClear: true
             }).on('change', updateSummary);
 
+            // Handler ketika pilihan sekolah berubah
+            function handleSchoolsChange() {
+                const schoolIds = $('#school_ids').val();
+
+                // Batalkan request sebelumnya jika user memilih/mengubah sekolah dengan cepat
+                if (fetchAbortController) {
+                    fetchAbortController.abort();
+                }
+
+                // Reset state intern
+                $('#select-all-container').hide().removeClass('show');
+                $('#select-all-interns').prop('checked', false).prop('indeterminate', false);
+                $('#intern-empty-alert').addClass('hidden').hide();
+
+                if (!schoolIds || schoolIds.length === 0) {
+                    setProgressStep(1);
+                    $('.form-step').removeClass('active');
+                    $('.form-step[data-step="1"]').addClass('active');
+
+                    // Bersihkan dan nonaktifkan select2 intern
+                    if (internSelect.data('select2')) {
+                        internSelect.select2('destroy');
+                    }
+                    internSelect.empty().prop('disabled', true);
+                    internSelect.select2({
+                        placeholder: "👨‍🎓 Pilih sekolah terlebih dahulu...",
+                        width: '100%',
+                        closeOnSelect: false,
+                        allowClear: true
+                    }).trigger('change');
+                    return;
+                }
+
+                setProgressStep(2);
+                $('.form-step[data-step="2"]').addClass('active');
+                $('#intern-loading').removeClass('hidden').show();
+
+                fetchAbortController = new AbortController();
+
+                fetch("{{ route('admin.api.interns-by-schools') }}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ school_ids: schoolIds }),
+                    signal: fetchAbortController.signal
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Gagal mengambil data dari server (status: ' + response.status + ')');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    $('#intern-loading').addClass('hidden').hide();
+
+                    if (internSelect.data('select2')) {
+                        internSelect.select2('destroy');
+                    }
+                    internSelect.empty();
+
+                    totalInternsCount = data ? data.length : 0;
+
+                    if (data && data.length > 0) {
+                        internSelect.prop('disabled', false);
+
+                        // Kelompokkan intern per sekolah jika memilih lebih dari 1 sekolah
+                        const schoolGroups = {};
+                        data.forEach(intern => {
+                            const sName = intern.school_name || 'Sekolah Terpilih';
+                            if (!schoolGroups[sName]) {
+                                schoolGroups[sName] = [];
+                            }
+                            schoolGroups[sName].push(intern);
+                        });
+
+                        const schoolNames = Object.keys(schoolGroups);
+                        if (schoolNames.length > 1) {
+                            schoolNames.forEach(schoolName => {
+                                const groupInterns = schoolGroups[schoolName];
+                                const optgroup = $('<optgroup>').attr('label', `${schoolName} (${groupInterns.length} pemagang)`);
+                                groupInterns.forEach(intern => {
+                                    optgroup.append(new Option(intern.text, intern.id, false, false));
+                                });
+                                internSelect.append(optgroup);
+                            });
+                        } else {
+                            data.forEach(intern => {
+                                internSelect.append(new Option(intern.text, intern.id, false, false));
+                            });
+                        }
+
+                        // Tampilkan tombol Pilih Semua
+                        $('#total-interns-count').text(`(${data.length} intern)`);
+                        $('#select-all-container').show().addClass('show');
+
+                        internSelect.select2({
+                            placeholder: "👨‍🎓 Cari dan pilih nama intern...",
+                            width: '100%',
+                            closeOnSelect: false,
+                            allowClear: true
+                        });
+                    } else {
+                        internSelect.prop('disabled', true);
+                        internSelect.select2({
+                            placeholder: "⚠️ Tidak ada pemagang aktif",
+                            width: '100%',
+                            closeOnSelect: false,
+                            allowClear: true
+                        });
+                        $('#intern-empty-alert').removeClass('hidden').show();
+                    }
+
+                    internSelect.trigger('change');
+                })
+                .catch(error => {
+                    if (error.name === 'AbortError') return;
+                    console.error('Error fetching interns:', error);
+                    $('#intern-loading').addClass('hidden').hide();
+
+                    if (internSelect.data('select2')) {
+                        internSelect.select2('destroy');
+                    }
+                    internSelect.empty().prop('disabled', true).select2({
+                        placeholder: "❌ Gagal memuat data intern",
+                        width: '100%',
+                        closeOnSelect: false
+                    });
+                    $('#select-all-container').hide().removeClass('show');
+                });
+            }
+
             // Select All Checkbox functionality
             $('#select-all-interns').on('change', function() {
                 const isChecked = $(this).is(':checked');
                 
                 if (isChecked) {
-                    // Select all intern options
-                    $('#intern_ids option').prop('selected', true);
-                    $('#intern_ids').trigger('change');
+                    const allValues = [];
+                    $('#intern_ids option').each(function() {
+                        const val = $(this).val();
+                        if (val) {
+                            allValues.push(val);
+                        }
+                    });
+                    internSelect.val(allValues).trigger('change');
                 } else {
-                    // Deselect all intern options
-                    $('#intern_ids option').prop('selected', false);
-                    $('#intern_ids').trigger('change');
+                    internSelect.val([]).trigger('change');
                 }
             });
 
@@ -551,97 +754,22 @@
                         $('#select-all-interns').prop('checked', false);
                         $('#select-all-interns').prop('indeterminate', false);
                     }
+                } else {
+                    $('#select-all-interns').prop('checked', false);
+                    $('#select-all-interns').prop('indeterminate', false);
                 }
             }
-
-            // School selection handler
-            $('#school_ids').on('change', function () {
-                const schoolIds = $(this).val();
-
-                // Reset intern selection
-                internSelect.empty().prop('disabled', true);
-                $('#select-all-container').hide().removeClass('show');
-                $('#select-all-interns').prop('checked', false).prop('indeterminate', false);
-
-                if (schoolIds && schoolIds.length > 0) {
-                    currentStep = 2;
-                    $('.form-step[data-step="2"]').addClass('active');
-                    internSelect.select2({ placeholder: "⏳ Memuat data intern..." });
-
-                    fetch(`/admin/api/interns-by-schools`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ school_ids: schoolIds })
-                    })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-                            return response.json();
-                        })
-                        .then(data => {
-                            internSelect.prop('disabled', false);
-                            totalInternsCount = data.length;
-
-                            if (data.length > 0) {
-                                // Show select all container
-                                $('#total-interns-count').text(`(${data.length} intern)`);
-                                $('#select-all-container').show().addClass('show');
-                            }
-
-                            data.forEach(intern => {
-                                const option = new Option(intern.text, intern.id, false, false);
-                                internSelect.append(option);
-                            });
-
-                            internSelect.select2({
-                                placeholder: "👨‍🎓 Cari dan pilih nama intern...",
-                                closeOnSelect: false,
-                                allowClear: true
-                            });
-                            
-                            internSelect.trigger('change');
-                        })
-                        .catch(error => {
-                            console.error('Error fetching interns:', error);
-                            internSelect.select2({
-                                placeholder: "❌ Gagal memuat data intern",
-                                closeOnSelect: false
-                            });
-                            $('#select-all-container').hide().removeClass('show');
-                        });
-                } else {
-                    currentStep = 1;
-                    $('.form-step').removeClass('active');
-                    $('.form-step[data-step="1"]').addClass('active');
-                    internSelect.select2({
-                        placeholder: "👨‍🎓 Pilih sekolah terlebih dahulu...",
-                        closeOnSelect: false
-                    });
-                }
-            });
-
-            // Intern selection handler
-            $('#intern_ids').on('change', function() {
-                const internIds = $(this).val();
-                if (internIds && internIds.length > 0) {
-                    currentStep = 3;
-                    $('.form-step[data-step="3"]').addClass('active');
-                }
-            });
 
             // Date change handlers
             $('#start_date, #end_date, #shift_id').on('change', updateSummary);
 
-            // Form validation
+            // Form validation & submission
             $('#bulk-update-form').on('submit', function (e) {
                 const startDate = $('#start_date').val();
                 const endDate = $('#end_date').val();
                 const internIds = $('#intern_ids').val();
                 const schoolIds = $('#school_ids').val();
+                const shiftId = $('#shift_id').val();
 
                 if (!schoolIds || schoolIds.length === 0) {
                     e.preventDefault();
@@ -659,13 +787,35 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Intern Belum Dipilih',
-                        text: 'Harap pilih minimal satu intern.',
+                        text: 'Harap pilih minimal satu intern dari sekolah yang dipilih.',
                         confirmButtonColor: '#3b82f6'
                     });
                     return false;
                 }
 
-                if (startDate && endDate && startDate > endDate) {
+                if (!shiftId) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Shift Baru Belum Dipilih',
+                        text: 'Harap pilih shift baru terlebih dahulu.',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    return false;
+                }
+
+                if (!startDate || !endDate) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Rentang Tanggal Belum Lengkap',
+                        text: 'Harap tentukan tanggal mulai dan tanggal selesai.',
+                        confirmButtonColor: '#3b82f6'
+                    });
+                    return false;
+                }
+
+                if (startDate > endDate) {
                     e.preventDefault();
                     Swal.fire({
                         icon: 'error',
@@ -684,17 +834,17 @@
                 const shiftName = $('#shift_id option:selected').text();
                 
                 Swal.fire({
-                    title: 'Konfirmasi Perubahan',
+                    title: 'Konfirmasi Perubahan Shift',
                     html: `
-                        <div class="text-left">
-                            <p class="mb-3">Anda akan mengubah jadwal shift dengan detail berikut:</p>
-                            <div class="bg-gray-50 p-4 rounded-lg space-y-2">
-                                <div><strong>🏫 Sekolah:</strong> ${schoolCount} sekolah</div>
-                                <div><strong>👨‍🎓 Intern:</strong> ${internCount} intern</div>
+                        <div class="text-left text-sm">
+                            <p class="mb-3 text-gray-700">Anda akan mengubah jadwal shift dengan detail berikut:</p>
+                            <div class="bg-gray-50 p-4 rounded-lg space-y-2 border border-gray-200">
+                                <div><strong>🏫 Sekolah:</strong> ${schoolCount} sekolah dipilih</div>
+                                <div><strong>👨‍🎓 Intern:</strong> ${internCount} intern dipilih</div>
                                 <div><strong>🕐 Shift Baru:</strong> ${shiftName}</div>
                                 <div><strong>📅 Periode:</strong> ${startDate} s/d ${endDate}</div>
                             </div>
-                            <p class="mt-3 text-sm text-gray-600">Perubahan ini akan diterapkan untuk semua intern yang dipilih.</p>
+                            <p class="mt-3 text-xs text-amber-700">⚠️ Perubahan akan diterapkan untuk semua hari aktif dalam rentang tanggal yang dipilih.</p>
                         </div>
                     `,
                     icon: 'question',
@@ -711,7 +861,6 @@
                     }
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Show loading
                         Swal.fire({
                             title: 'Menyimpan Perubahan...',
                             html: 'Mohon tunggu sebentar.',
@@ -724,16 +873,13 @@
                             }
                         });
                         
-                        // Submit form
                         e.target.submit();
                     }
                 });
             });
 
-            // Initialize tooltips and animations
-            setTimeout(() => {
-                $('.form-step[data-step="1"]').addClass('active');
-            }, 300);
+            // Set initial step
+            setProgressStep(1);
         });
     </script>
 

@@ -47,12 +47,12 @@
                 </a>
             </li>
 
-            <!-- Menu Item: Persetujuan Log Aktivitas -->
+            <!-- Menu Item: Log Aktivitas -->
             <li>
                 <a href="{{ route('assistant.logactivity') }}"
                     class="flex items-center gap-x-4 px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('assistant-admin/log-activity*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">
-                    <i class="fa-solid fa-clipboard-check w-5 text-center {{ Request::is('assistant-admin/log-activity*') ? 'scale-110' : '' }}"></i>
-                    <span>Persetujuan Log</span>
+                    <i class="fa-solid fa-book-open w-5 text-center {{ Request::is('assistant-admin/log-activity*') ? 'scale-110' : '' }}"></i>
+                    <span>Log Aktivitas</span>
                 </a>
             </li>
 

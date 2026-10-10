@@ -37,6 +37,7 @@
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Izin Selesai</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Durasi</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alasan</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status Kebijakan</th>
                             </tr>
                         </thead>
                         <tbody class="bg-white divide-y divide-gray-200">
@@ -57,10 +58,21 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                                         {{ $log->reason ?? '-' }}
                                     </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-center text-xs">
+                                        @if(!$log->end_time)
+                                            <span class="px-2.5 py-1 rounded-full font-semibold bg-amber-100 text-amber-800 border border-amber-200">Sedang di Luar</span>
+                                        @elseif($log->is_mandatory_compensation === true || $log->is_mandatory_compensation === 1)
+                                            <span class="px-2.5 py-1 rounded-full font-semibold bg-purple-100 text-purple-800 border border-purple-200">Wajib Ganti ({{ $log->compensation_minutes ?? 0 }}m)</span>
+                                        @elseif($log->is_approved === true || $log->is_approved === 1 || $log->is_mandatory_compensation === false || $log->is_mandatory_compensation === 0)
+                                            <span class="px-2.5 py-1 rounded-full font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">Bebas Waktu</span>
+                                        @else
+                                            <span class="px-2.5 py-1 rounded-full font-semibold bg-slate-100 text-slate-700 border border-slate-200">Selesai</span>
+                                        @endif
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-12 text-center text-gray-500">
+                                    <td colspan="6" class="px-6 py-12 text-center text-gray-500">
                                         <div class="flex flex-col items-center">
                                             <i class="fas fa-box-open fa-3x text-gray-300"></i>
                                             <p class="mt-4">Tidak ada riwayat izin keluar untuk siswa ini.</p>

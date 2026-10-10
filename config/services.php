@@ -35,4 +35,12 @@ return [
         'url' => env('WHATSAPP_API_URL'),
     ],
 
+    'external' => [
+        'api_key' => env('EXTERNAL_API_KEY'),
+    ],
+
+    'intern_system' => [
+        'url' => env('INTERN_SYSTEM_URL', 'http://Internship_Management_System_SevenInc-develop.test'),
+    ],
+
 ];

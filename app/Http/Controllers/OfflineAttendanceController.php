@@ -117,7 +117,7 @@ class OfflineAttendanceController extends Controller
             ->keyBy('intern_id');
 
         // Gabungkan data online & offline untuk setiap pemagang
-        $mappedInterns = $allInterns->map(function ($intern) use ($offlineAttendances, $onlineAttendances, $detailSchedules, $latestSchedules, $firstOffice, $firstShift, $isAssistant) {
+        $mappedInterns = $allInterns->map(function ($intern) use ($date, $offlineAttendances, $onlineAttendances, $detailSchedules, $latestSchedules, $firstOffice, $firstShift, $isAssistant) {
             $offline = $offlineAttendances->get($intern->id);
             $online = $onlineAttendances->get($intern->id);
             $ds = $detailSchedules->get($intern->id);
@@ -174,6 +174,17 @@ class OfflineAttendanceController extends Controller
                 $onlineTime = Carbon::parse($online->start_time)->format('H:i');
                 $lateAbsence = $online->lateAbsences?->first();
                 $onlineLateMinutes = $lateAbsence?->late_minutes ?? 0;
+
+                if ($shiftStartTime) {
+                    $cOnline = Carbon::parse($date . ' ' . Carbon::parse($online->start_time)->format('H:i:s'));
+                    $cShift = Carbon::parse($date . ' ' . Carbon::parse($shiftStartTime)->format('H:i:s'));
+                    if ($cOnline->greaterThan($cShift)) {
+                        $diffMin = (int) $cShift->diffInMinutes($cOnline);
+                        if ($diffMin > $onlineLateMinutes) {
+                            $onlineLateMinutes = $diffMin;
+                        }
+                    }
+                }
 
                 if ($onlineLateMinutes > 0 || ($ds && $ds->attd_status_id == 4)) {
                     $onlineStatusKey = 'terlambat';
@@ -554,13 +565,16 @@ class OfflineAttendanceController extends Controller
 
         // Hitung menit keterlambatan otomatis dari selisih Waktu Masuk Fisik dan Jam Mulai Shift
         $lateMinutes = 0;
-        if ($dbStatus === 'terlambat' || (!empty($physicalCheckinTime) && in_array($dbStatus, ['hadir', 'terlambat']))) {
+        if (in_array($dbStatus, ['hadir', 'early', 'terlambat'])) {
             $checkTimeStr = $physicalCheckinTime ?: (!empty($validated['check_time']) ? $validated['check_time'] : now()->format('H:i:s'));
             $actualTime = Carbon::parse($validated['date'] . ' ' . $checkTimeStr);
             $shiftStartTime = Carbon::parse($validated['date'] . ' ' . $shift->start_time);
 
             if ($actualTime->greaterThan($shiftStartTime)) {
                 $lateMinutes = (int) $shiftStartTime->diffInMinutes($actualTime);
+                if ($dbStatus === 'hadir' || $dbStatus === 'early') {
+                    $dbStatus = 'terlambat';
+                }
             } elseif ($dbStatus === 'terlambat') {
                 $lateMinutes = (int) ($validated['late_minutes'] ?? 0);
                 if ($lateMinutes <= 0) {
@@ -812,10 +826,30 @@ class OfflineAttendanceController extends Controller
                 $detailSchedule->attd_status_id = 4; // Hadir dan Mengganti Jam / Terlambat
                 $detailSchedule->isChangeSchedule = 2;
                 $detailSchedule->save();
+
+                $onlineAttd = Attendance::where('intern_id', $intern->id)->whereDate('date', $validated['date'])->first();
+                if ($onlineAttd) {
+                    LateAbsence::updateOrCreate(
+                        [
+                            'intern_id' => $intern->id,
+                            'attendance_id' => $onlineAttd->id,
+                            'date' => $validated['date'],
+                        ],
+                        [
+                            'shift_id' => $shift->id,
+                            'absen_time' => Carbon::parse($validated['date'] . ' ' . $checkTime),
+                            'scheduled_time' => $shift->start_time,
+                            'late_minutes' => $lateMinutes,
+                            'status' => 'telat',
+                            'type' => 'checkin',
+                        ]
+                    );
+                }
             } elseif ($dbStatus === 'alpha') {
                 $detailSchedule->attd_status_id = 5; // Alpha
                 $detailSchedule->isChangeSchedule = 2;
                 $detailSchedule->is_change_schedule_approved = 0;
+                $detailSchedule->permit_reason_id = null;
                 $detailSchedule->save();
             }
 
@@ -952,8 +986,22 @@ class OfflineAttendanceController extends Controller
         $defaultShiftId = $assignedShift?->id ?? Shift::first()?->id;
         $defaultOfficeId = $assignedOffice?->id ?? Office::first()?->id;
 
+        $shiftStartTime = $detailSchedule?->start_time ?: $assignedShift?->start_time;
+
         $onlineTimeStr = ($onlineAttendance && $onlineAttendance->start_time) ? Carbon::parse($onlineAttendance->start_time)->format('H:i') : null;
         $lateMin = $onlineAttendance?->lateAbsences?->first()?->late_minutes ?? 0;
+
+        if ($onlineAttendance && $onlineAttendance->start_time && $shiftStartTime) {
+            $cOnline = Carbon::parse($date . ' ' . Carbon::parse($onlineAttendance->start_time)->format('H:i:s'));
+            $cShift = Carbon::parse($date . ' ' . Carbon::parse($shiftStartTime)->format('H:i:s'));
+            if ($cOnline->greaterThan($cShift)) {
+                $calcLateMin = (int) $cShift->diffInMinutes($cOnline);
+                if ($calcLateMin > $lateMin) {
+                    $lateMin = $calcLateMin;
+                }
+            }
+        }
+
         $onlineStatusKey = 'belum_absen';
         $onlineStatusLabel = 'Belum Absen Online';
 
@@ -1040,7 +1088,7 @@ class OfflineAttendanceController extends Controller
             if ($onlineStatusKey === 'terlambat') {
                 $alertType = 'warning';
                 $alertTitle = "Sudah Absen Online pukul {$onlineTimeStr} WIB (Terlambat {$lateMin}m)";
-                $alertMessage = "Pemagang telah check-in online pukul {$onlineTimeStr} WIB dengan keterlambatan {$lateMin} menit. Belum diperiksa/dicatat di Presensi Offline.";
+                $alertMessage = "Pemagang telah check-in online pukul {$onlineTimeStr} WIB dengan keterlambatan {$lateMin} menit. Silakan verifikasi apakah fisiknya benar ada di kantor.";
             } else {
                 $alertType = 'success';
                 $alertTitle = "Sudah Absen Online pukul {$onlineTimeStr} WIB (Hadir Tepat Waktu)";
@@ -1072,6 +1120,7 @@ class OfflineAttendanceController extends Controller
                 'status_key' => $onlineStatusKey,
                 'status_label' => $onlineStatusLabel,
                 'time' => $onlineTimeStr ? $onlineTimeStr . ' WIB' : null,
+                'raw_time' => $onlineTimeStr,
                 'late_minutes' => $lateMin,
             ],
             'status' => [
@@ -1227,6 +1276,7 @@ class OfflineAttendanceController extends Controller
                         $detailSchedule->attd_status_id = 5;
                         $detailSchedule->isChangeSchedule = 2;
                         $detailSchedule->is_change_schedule_approved = 0;
+                        $detailSchedule->permit_reason_id = null;
                         $detailSchedule->save();
                     }
                 } elseif ($dbStatus === 'izin') {
@@ -1254,6 +1304,7 @@ class OfflineAttendanceController extends Controller
                         $detailSchedule->attd_status_id = 5;
                         $detailSchedule->isChangeSchedule = 2;
                         $detailSchedule->is_change_schedule_approved = 0;
+                        $detailSchedule->permit_reason_id = null;
                         $detailSchedule->save();
                     }
                 }
@@ -1373,6 +1424,7 @@ class OfflineAttendanceController extends Controller
                     $detailSchedule->attd_status_id = 5; // 5 = ALPHA (Tidak Hadir)
                     $detailSchedule->isChangeSchedule = 2; // 2 = Wajib Ganti Jam
                     $detailSchedule->is_change_schedule_approved = 0; // Belum lunas
+                    $detailSchedule->permit_reason_id = null;
                     $detailSchedule->save();
                 }
 
@@ -1412,6 +1464,7 @@ class OfflineAttendanceController extends Controller
                 // Sanksi 2: Tanpa Ganti Jam (Absen Online Dianulir, Tetap Alpha)
                 if ($detailSchedule) {
                     $detailSchedule->attd_status_id = 5; // 5 = Alpha
+                    $detailSchedule->permit_reason_id = null;
                     $detailSchedule->save();
                 }
 

@@ -7,6 +7,25 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+# 🏢 Absen Djuragan
+
+Aplikasi Sistem Presensi Pemagang, Penjadwalan Shift Kerja Cerdas, dan Manajemen Absensi Seven Inc.
+
+---
+
+## 🔗 Dokumentasi Integrasi API & SSO (Web Absen ⟷ Web Intern)
+Panduan lengkap untuk menghubungkan, mengatur, dan mengganti endpoint API antara **Web Absen (`absen-djuragan`)** dan **Web Intern (`Internship Management System / IMS`)**:
+
+👉 **[Buka Dokumentasi Lengkap Integrasi API (API_DOCS_README.md)](./API_DOCS_README.md)**
+
+Ringkasan cakupan:
+- **Konfigurasi `.env`**: Penjelasan `EXTERNAL_API_KEY`, `INTERN_SYSTEM_URL`, dan variabel pasangannya.
+- **Cara Mengganti Domain / Port / URL API**: Panduan migrasi Laragon, `artisan serve` port berbeda, hingga live server produksi.
+- **Spesifikasi Endpoint**: Sinkronisasi pendaftaran pemagang saat di-ACC (`register-sync`), verifikasi fallback remote login admin (`verify-admin`), dan Single Sign-On (`SSO`).
+- **Troubleshooting**: Solusi error 401, 404, 500, dan cara testing dengan cURL.
+
+---
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

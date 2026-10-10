@@ -6,10 +6,16 @@ use Illuminate\Http\Request;
 use App\Services\UserService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Requests\StoreShiftRequest;
 use App\Http\Requests\UpdateShiftRequest;
 use App\Services\ShiftService;
-use App\Models\Shift; // <-- PERUBAHAN 1: Tambahkan ini untuk mengakses model Shift
+use App\Models\Shift;
+use App\Models\DetailSchedule;
+use App\Models\OfficeShiftCapacity;
+use App\Models\Intern;
+use App\Models\DivisionScheduleRule;
 
 class SettingShiftController extends Controller
 {
@@ -56,34 +62,83 @@ class SettingShiftController extends Controller
     }
 
     /**
-     * PERBAIKAN UTAMA ADA DI METHOD INI
+     * Hapus shift secara aman dengan opsi pembersihan jadwal terkait dan pemutusan relasi foreign key
      */
-    public function deleteShift(int $id)
+    public function deleteShift(Request $request, int $id)
     {
-        // Langkah 1: Cari shift dan hitung berapa banyak jadwal yang masih menggunakannya.
-        // `withCount('detailSchedules')` sangat efisien untuk ini.
         $shift = Shift::withCount('detailSchedules')->find($id);
 
-        // Jika shift tidak ditemukan, kembalikan error.
         if (!$shift) {
             return redirect()->back()->with('error', 'Shift tidak ditemukan!');
         }
 
-        // Langkah 2: Periksa hasil hitungan.
-        // Properti `detail_schedules_count` akan otomatis ada berkat `withCount`.
-        if ($shift->detail_schedules_count > 0) {
-            // Langkah 3: Jika count > 0, jangan hapus. Kembalikan dengan pesan error yang jelas.
-            $errorMessage = 'Gagal! Shift "' . $shift->name . '" tidak dapat dihapus karena masih digunakan oleh ' . $shift->detail_schedules_count . ' jadwal.';
+        // Shift 'none' (ID 1) tidak boleh dihapus karena merupakan default sistem
+        if ($shift->id === 1 || strtolower(trim($shift->name)) === 'none') {
+            return redirect()->back()->with('error', 'Shift sistem ("none") tidak dapat dihapus.');
+        }
+
+        $forceDelete = $request->boolean('force_delete') || $request->input('force_delete') == '1';
+
+        // Jika shift masih memiliki jadwal dan admin belum mencentang konfirmasi hapus paksa
+        if ($shift->detail_schedules_count > 0 && !$forceDelete) {
+            $errorMessage = 'Gagal! Shift "' . $shift->name . '" masih digunakan oleh ' . $shift->detail_schedules_count . ' jadwal. Centang opsi "Hapus beserta jadwal terkait" pada konfirmasi jika ingin tetap menghapusnya.';
             return redirect()->back()->with('error', $errorMessage);
         }
 
         $shiftName = $shift->name;
 
-        // Langkah 4: Jika aman (count == 0), baru panggil service untuk menghapus.
-        $this->shiftService->deleteShift($id);
+        try {
+            DB::transaction(function () use ($shift, $id, $forceDelete) {
+                // 1. Bersihkan detail schedules terkait jika forceDelete disetujui
+                if ($shift->detail_schedules_count > 0 && $forceDelete) {
+                    DetailSchedule::where('shift_id', $id)->delete();
+                }
 
-        \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus shift kerja: {$shiftName}");
+                // 2. Hapus referensi kapasitas kantor (menghindari SQL foreign key constraint error)
+                OfficeShiftCapacity::where('shift_id', $id)->delete();
 
-        return redirect()->back()->with('success', 'Data Shift berhasil dihapus!');
+                // 3. Lepaskan penugasan shift di data pemagang
+                Intern::where('shift_id', $id)->update(['shift_id' => null]);
+
+                // 4. Bersihkan ID shift dari aturan divisi (allowed_shift_ids)
+                $divisionRules = DivisionScheduleRule::all();
+                foreach ($divisionRules as $rule) {
+                    $allowed = $rule->allowed_shift_ids ?? [];
+                    if (is_array($allowed) && in_array($id, $allowed)) {
+                        $rule->allowed_shift_ids = array_values(array_diff($allowed, [$id]));
+                        $rule->save();
+                    }
+                }
+
+                // 5. Bersihkan riwayat pra-pendaftaran ganti jam jika ada
+                if (class_exists(\App\Models\ChangeTimeRegistration::class)) {
+                    \App\Models\ChangeTimeRegistration::where('shift_id', $id)->delete();
+                }
+
+                // 5b. Bersihkan ID shift dari pengaturan Ganti Jam (allowed_shift_ids)
+                if (class_exists(\App\Models\ChangeTimeSetting::class)) {
+                    foreach (\App\Models\ChangeTimeSetting::all() as $setting) {
+                        $allowed = $setting->allowed_shift_ids ?? [];
+                        if (is_array($allowed) && in_array($id, $allowed)) {
+                            $setting->allowed_shift_ids = array_values(array_diff($allowed, [$id]));
+                            $setting->save();
+                        }
+                    }
+                }
+
+                // 6. Hapus master shift
+                $this->shiftService->deleteShift($id);
+            });
+
+            \App\Helper\ActivityLogger::log('DELETE', 'Master Data', "Admin menghapus shift kerja: {$shiftName}");
+
+            return redirect()->route('admin.pengaturan.shift')->with('success', "Data Shift \"{$shiftName}\" berhasil dihapus!");
+        } catch (\Throwable $th) {
+            Log::error('Error deleteShift: ' . $th->getMessage(), [
+                'id' => $id,
+                'trace' => $th->getTraceAsString()
+            ]);
+            return redirect()->back()->with('error', 'Gagal menghapus shift: ' . $th->getMessage());
+        }
     }
 }

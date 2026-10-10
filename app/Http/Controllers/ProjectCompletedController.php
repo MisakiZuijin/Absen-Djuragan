@@ -71,7 +71,11 @@ class ProjectCompletedController extends Controller
             });
         }
 
-        $projects = $query->paginate(9)->withQueryString();
+        $perPage = in_array((int) $request->input('per_page'), [8, 12, 16], true)
+            ? (int) $request->input('per_page')
+            : 8;
+
+        $projects = $query->paginate($perPage)->appends($request->query());
 
         // Ringkasan Statistik Global (gunakan total paginator jika tanpa filter untuk menghindari duplikasi query)
         $totalCompletedProjects = $hasFilter
@@ -100,6 +104,7 @@ class ProjectCompletedController extends Controller
         $data = [
             'user' => $userData,
             'projects' => $projects,
+            'perPage' => $perPage,
             'divisions' => $allDivisions,
             'selectedDivision' => $divisionFilter,
             'searchKeyword' => $search,

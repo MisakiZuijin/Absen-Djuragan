@@ -138,7 +138,24 @@
                     </label>
                     <input type="file" id="iconDivisi" name="iconDivisi"
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                        accept="image/*" required>
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
+                    <p class="text-[11px] text-gray-400 mt-1">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
+                </div>
+
+                <!-- Info Penjadwalan Otomatis (Auto-Scheduling) -->
+                <div class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/80 mb-4 space-y-2">
+                    <div class="flex items-center gap-2 pb-1.5 border-b border-blue-200/60">
+                        <i class="fa-solid fa-wand-magic-sparkles text-blue-600 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aturan Penjadwalan Otomatis</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Aturan rotasi shift mingguan, shift yang diizinkan, serta pola WFO/WFH untuk divisi ini dikelola secara terpusat di menu <strong>Pusat Otomatisasi Jadwal (Tab 3: Pola Kerja Divisi)</strong> agar tidak terjadi bentrok pengaturan.
+                    </p>
+                    <a href="{{ route('admin.automation-rules.index') }}#tab-division-rules" target="_blank"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 pt-1">
+                        <span>Buka Aturan Divisi di Pusat Otomatisasi (Tab 3)</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                     <button type="button" onclick="$('#addDivisiModal').addClass('hidden')"
@@ -183,7 +200,24 @@
                     </label>
                     <input type="file" id="editIconDivisi" name="iconDivisi"
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
-                        accept="image/*">
+                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+                    <p class="text-[11px] text-gray-400 mt-1">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
+                </div>
+
+                <!-- Info Penjadwalan Otomatis (Auto-Scheduling) -->
+                <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4 space-y-2">
+                    <div class="flex items-center gap-2 pb-1.5 border-b border-amber-200/60">
+                        <i class="fa-solid fa-wand-magic-sparkles text-amber-600 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aturan Penjadwalan Otomatis</span>
+                    </div>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Pengaturan shift yang diizinkan, rotasi mingguan, pola hybrid, dan split-shift dikelola secara terpusat di menu <strong>Pusat Otomatisasi Jadwal (Tab 3: Pola Kerja Divisi)</strong> untuk menjamin akurasi algoritma.
+                    </p>
+                    <a href="{{ route('admin.automation-rules.index') }}#tab-division-rules" target="_blank"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 hover:text-amber-900 pt-1">
+                        <span>Atur di Pusat Otomatisasi (Tab 3)</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                     <button type="button" onclick="$('#editDivisiModal').addClass('hidden')"
@@ -272,11 +306,14 @@
                         <tr class="hover:bg-blue-50/30 transition-colors border-b border-gray-100">
                             <td class="py-3.5 px-4 sm:px-6 text-center text-gray-500 font-mono text-xs">${startIndex + index + 1}</td>
                             <td class="py-3.5 px-4 sm:px-6">${iconHtml}</td>
-                            <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800 whitespace-nowrap">${division.name}</td>
+                            <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800 whitespace-nowrap">
+                                <div>${division.name}</div>
+                            </td>
                             <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
                                     <button class="editDivisi px-2.5 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
-                                        data-id="${division.id}" data-nama="${division.name}" data-icon="${division.icon}" title="Edit Divisi">
+                                        data-id="${division.id}" data-nama="${division.name}" data-icon="${division.icon}"
+                                        title="Edit Divisi">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
                                     <button data-action="delete" class="deleteDivisi px-2.5 py-1.5 bg-rose-600 text-white hover:bg-rose-700 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
@@ -350,6 +387,8 @@
             });
 
             $('#addDivisiButton').on('click', function() {
+                $('#namaDivisi').val('');
+                $('#iconDivisi').val('');
                 $('#addDivisiModal').removeClass('hidden');
             });
 
@@ -365,6 +404,8 @@
                 var actionUrl = "{{ route('divisions.update', ':id') }}".replace(':id', divisiId);
                 $('#editDivisiForm').attr('action', actionUrl);
                 $('#editNamaDivisi').val(namaDivisi);
+                $('#editIconDivisi').val('');
+
                 $('#editDivisiModal').removeClass('hidden');
             });
 
@@ -382,6 +423,42 @@
 
             $('#closeDeleteDivisiModal').on('click', function() {
                 $('#deleteDivisiModal').addClass('hidden');
+            });
+
+            function validateDivisionIconFile(input) {
+                if (input.files && input.files[0]) {
+                    const file = input.files[0];
+                    const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+                    const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+                    const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+                    if (!allowedExts.includes(ext) && !allowedMimes.includes(file.type)) {
+                        const alertMsg = 'Format file tidak diizinkan. Harap unggah foto ikon divisi berformat JPG, JPEG, PNG, atau WebP.';
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Format Tidak Sesuai', text: alertMsg, confirmButtonColor: '#3085d6' });
+                        } else {
+                            alert(alertMsg);
+                        }
+                        input.value = '';
+                        return false;
+                    }
+
+                    if (file.size > 2 * 1024 * 1024) {
+                        const sizeMsg = `Ukuran foto (${(file.size / (1024 * 1024)).toFixed(2)} MB) melebihi batas maksimal 2MB.`;
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({ icon: 'warning', title: 'Ukuran Terlalu Besar', text: sizeMsg, confirmButtonColor: '#3085d6' });
+                        } else {
+                            alert(sizeMsg);
+                        }
+                        input.value = '';
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            $('#iconDivisi, #editIconDivisi').on('change', function() {
+                validateDivisionIconFile(this);
             });
 
             $(window).on('click', function(event) {

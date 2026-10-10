@@ -204,7 +204,14 @@ class RaiseHandNotificationManager {
             }
         }
 
-        // PENGULANGAN BUNYI: HANYA untuk permintaan yang masuk KONDISI URGENT.
+        this.currentCount = newCount;
+        this.urgentCount = urgentCount;
+        if (latestId > 0) this.lastLatestId = Math.max(this.lastLatestId, latestId);
+        if (latestMessageId > 0) this.lastLatestMessageId = Math.max(this.lastLatestMessageId, latestMessageId);
+
+        // PENGULANGAN BUNYI: HANYA untuk permintaan kondisi URGENT:
+        // - Bantuan: bunyi terus sampai selesai sesinya.
+        // - Selain bantuan: hanya mengulang jika belum mendapatkan tanggapan dari admin.
         if (urgentCount > 0) {
             this.startSoundRepeat(urgentCount);
         } else {
@@ -224,10 +231,6 @@ class RaiseHandNotificationManager {
             }
         }
 
-        this.currentCount = newCount;
-        this.urgentCount = urgentCount;
-        if (latestId > 0) this.lastLatestId = Math.max(this.lastLatestId, latestId);
-        if (latestMessageId > 0) this.lastLatestMessageId = Math.max(this.lastLatestMessageId, latestMessageId);
         this.isFirstRun = false;
     }
 

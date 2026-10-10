@@ -20,8 +20,39 @@ class Profile extends Model {
         "date_of_birth",
         "birth_place",
         "user_id",
-        "gender"
+        "gender",
+        "religion",
     ];
+
+    public function isMale(): bool
+    {
+        $gender = strtolower(trim($this->gender ?? ''));
+        return in_array($gender, ['l', 'laki-laki', 'male', 'pria', 'laki'], true);
+    }
+
+    public function isFemale(): bool
+    {
+        $gender = strtolower(trim($this->gender ?? ''));
+        return in_array($gender, ['p', 'perempuan', 'female', 'wanita'], true);
+    }
+
+    public function isMuslim(): bool
+    {
+        $religion = strtolower(trim($this->religion ?? ''));
+        return $religion === 'islam';
+    }
+
+    public function isMuslimMale(): bool
+    {
+        if (!$this->isMale()) {
+            return false;
+        }
+
+        // Jika data agama belum diisi (legacy data), anggap memenuhi syarat istirahat
+        // Jika sudah diisi, hanya pemagang beragama Islam yang mendapat aturan khusus Jumat
+        $religion = strtolower(trim($this->religion ?? ''));
+        return empty($religion) || $religion === 'islam';
+    }
 
 
 }

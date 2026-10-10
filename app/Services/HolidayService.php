@@ -43,6 +43,8 @@ class HolidayService
                 'name' => $validatedData['name'],
             ]);
 
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates_until_today');
+
             return new ActionResult(true, "Successfully added holiday data", $holiday);
         } catch (\Throwable $th) {
             captureException($th);
@@ -65,6 +67,8 @@ class HolidayService
                 'name' => $validatedData['name'],
             ]);
 
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates_until_today');
+
             return new ActionResult(true, "Successfully updated holiday data", $holiday);
         } catch (\Throwable $th) {
             captureException($th); // Error tracking
@@ -78,6 +82,8 @@ class HolidayService
             $holiday = Holiday::findOrFail($id);
 
             $holiday->delete();
+
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates_until_today');
 
             return new ActionResult(true, "Successfully deleted holiday", $holiday);
         } catch (\Throwable $th) {

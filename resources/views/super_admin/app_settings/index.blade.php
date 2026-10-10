@@ -130,7 +130,7 @@
                                 <input type="file" id="input_logo" name="logo" accept="image/png,image/jpeg,image/svg+xml,image/webp,image/x-icon" class="hidden" onchange="previewImage(this, ['logo-preview-dark', 'logo-preview-light'], 'logo-filename')">
                                 <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-1 block"></i>
                                 <span id="logo-filename" class="text-xs font-semibold text-slate-700 block">Pilih file logo atau klik di sini</span>
-                                <span class="text-[11px] text-slate-400 block mt-0.5">Format: SVG, PNG transparan, JPG, WEBP (Maks: 4 MB)</span>
+                                <span class="text-[11px] text-slate-400 block mt-0.5">Format: SVG, PNG transparan, JPG, WEBP (Maks: 2 MB)</span>
                             </div>
                         </div>
                     </div>
@@ -234,10 +234,10 @@
                                 Unggah Background Baru
                             </label>
                             <div class="relative border-2 border-dashed border-slate-300 hover:border-purple-500 rounded-2xl p-5 text-center cursor-pointer transition bg-slate-50/60 hover:bg-purple-50/20" onclick="document.getElementById('input_login_bg').click()">
-                                <input type="file" id="input_login_bg" name="login_background" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="previewImage(this, ['login-bg-preview'], 'login-bg-filename', true)">
+                                <input type="file" id="input_login_bg" name="login_background" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" onchange="previewImage(this, ['login-bg-preview'], 'login-bg-filename', true)">
                                 <i class="fa-solid fa-cloud-arrow-up text-2xl text-slate-400 mb-1 block"></i>
                                 <span id="login-bg-filename" class="text-xs font-semibold text-slate-700 block">Pilih gambar background login atau klik di sini</span>
-                                <span class="text-[11px] text-slate-400 block mt-0.5">Format: JPG, PNG, WEBP (Resolusi rekomendasi: 1200x1200 px atau lanskap, Maks: 6 MB)</span>
+                                <span class="text-[11px] text-slate-400 block mt-0.5">Format: JPG, JPEG, PNG, WEBP (Resolusi rekomendasi: 1200x1200 px atau lanskap, Maks: 2 MB)</span>
                             </div>
                         </div>
                     </div>
@@ -292,10 +292,10 @@
                                     Ganti Banner Utama
                                 </label>
                                 <div class="relative border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-2xl p-4 text-center cursor-pointer transition bg-white hover:bg-emerald-50/20" onclick="document.getElementById('input_banner').click()">
-                                    <input type="file" id="input_banner" name="intern_banner" accept="image/png,image/jpeg,image/webp" class="hidden" onchange="previewImage(this, ['banner-preview'], 'banner-filename')">
+                                    <input type="file" id="input_banner" name="intern_banner" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" class="hidden" onchange="previewImage(this, ['banner-preview'], 'banner-filename')">
                                     <i class="fa-solid fa-cloud-arrow-up text-xl text-slate-400 mb-1 block"></i>
                                     <span id="banner-filename" class="text-xs font-semibold text-slate-700 block">Pilih gambar banner utama atau klik di sini</span>
-                                    <span class="text-[10px] text-slate-400 block mt-0.5">Format: JPG, PNG, WEBP (Maks: 6 MB)</span>
+                                    <span class="text-[10px] text-slate-400 block mt-0.5">Format: JPG, JPEG, PNG, WEBP (Maks: 2 MB)</span>
                                 </div>
                             </div>
                         </div>
@@ -342,10 +342,10 @@
                                     + Tambah Slide Baru
                                 </label>
                                 <div class="relative border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-2xl p-4 text-center cursor-pointer transition bg-white hover:bg-emerald-50/30" onclick="document.getElementById('input_banner_slides').click()">
-                                    <input type="file" id="input_banner_slides" name="banner_slides[]" accept="image/png,image/jpeg,image/webp" multiple class="hidden" onchange="handleMultipleSlidesPreview(this)">
+                                    <input type="file" id="input_banner_slides" name="banner_slides[]" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" multiple class="hidden" onchange="handleMultipleSlidesPreview(this)">
                                     <i class="fa-solid fa-layer-group text-xl text-emerald-600 mb-1 block"></i>
                                     <span id="banner-slides-filename" class="text-xs font-semibold text-emerald-800 block">Klik untuk memilih 1 atau beberapa gambar slide</span>
-                                    <span class="text-[10px] text-slate-400 block mt-0.5">Format: JPG, PNG, WEBP (Maks: 6 MB per file)</span>
+                                    <span class="text-[10px] text-slate-400 block mt-0.5">Format: JPG, JPEG, PNG, WEBP (Maks: 2 MB per file)</span>
                                 </div>
                             </div>
                         </div>
@@ -386,6 +386,48 @@
     function handleMultipleSlidesPreview(input) {
         const fnEl = document.getElementById('banner-slides-filename');
         if (input.files && input.files.length > 0) {
+            const allowedExts = ['jpg', 'jpeg', 'png', 'webp'];
+            const allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+            for (let i = 0; i < input.files.length; i++) {
+                const file = input.files[i];
+                const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+                if (!allowedExts.includes(ext) && !allowedMimes.includes(file.type)) {
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Format Tidak Sesuai',
+                            text: `File "${file.name}" tidak diizinkan. Hanya format foto JPG, JPEG, PNG, atau WebP yang diperbolehkan.`,
+                            confirmButtonColor: '#3085d6'
+                        });
+                    } else {
+                        alert(`File "${file.name}" tidak diizinkan. Hanya format foto JPG, JPEG, PNG, atau WebP yang diperbolehkan.`);
+                    }
+                    input.value = '';
+                    if (fnEl) {
+                        fnEl.textContent = 'Klik untuk memilih 1 atau beberapa gambar slide';
+                        fnEl.classList.remove('text-emerald-700', 'font-bold');
+                    }
+                    return;
+                }
+
+                if (file.size > 2 * 1024 * 1024) {
+                    const sizeMsg = `Ukuran foto "${file.name}" (${(file.size / 1024 / 1024).toFixed(2)} MB) melebihi batas maksimal 2MB.`;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Ukuran Terlalu Besar', text: sizeMsg, confirmButtonColor: '#3085d6' });
+                    } else {
+                        alert(sizeMsg);
+                    }
+                    input.value = '';
+                    if (fnEl) {
+                        fnEl.textContent = 'Klik untuk memilih 1 atau beberapa gambar slide';
+                        fnEl.classList.remove('text-emerald-700', 'font-bold');
+                    }
+                    return;
+                }
+            }
+
             const count = input.files.length;
             if (fnEl) {
                 fnEl.textContent = count + ' file slide dipilih untuk diunggah';
@@ -430,6 +472,36 @@
     function previewImage(input, previewElementIds, filenameElementId, isBackground = false) {
         if (input.files && input.files[0]) {
             const file = input.files[0];
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+            // Strict format validation for photos (banner, login background)
+            if (input.id === 'input_login_bg' || input.id === 'input_banner') {
+                const photoExts = ['jpg', 'jpeg', 'png', 'webp'];
+                const photoMimes = ['image/jpeg', 'image/png', 'image/webp'];
+                if (!photoExts.includes(ext) && !photoMimes.includes(file.type)) {
+                    const alertMsg = `Format file "${file.name}" tidak diizinkan. Harap gunakan format JPG, JPEG, PNG, atau WebP.`;
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({ icon: 'warning', title: 'Format Tidak Sesuai', text: alertMsg, confirmButtonColor: '#3085d6' });
+                    } else {
+                        alert(alertMsg);
+                    }
+                    input.value = '';
+                    return;
+                }
+            }
+
+            // Universal 2MB size limit
+            if (file.size > 2 * 1024 * 1024) {
+                const sizeMsg = `Ukuran file "${file.name}" (${(file.size / 1024 / 1024).toFixed(2)} MB) melebihi batas maksimal 2MB.`;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({ icon: 'warning', title: 'Ukuran Terlalu Besar', text: sizeMsg, confirmButtonColor: '#3085d6' });
+                } else {
+                    alert(sizeMsg);
+                }
+                input.value = '';
+                return;
+            }
+
             const reader = new FileReader();
 
             reader.onload = function(e) {

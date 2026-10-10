@@ -24,15 +24,15 @@ class Brand extends Model
     ];
 
     /**
-     * Boot function to automatically generate slug if not provided.
+     * Boot function to automatically generate slug from name.
      */
     protected static function boot()
     {
         parent::boot();
 
-        static::creating(function ($brand) {
-            if (empty($brand->slug)) {
-                $brand->slug = Str::slug($brand->name);
+        static::saving(function ($brand) {
+            if (empty($brand->slug) || ($brand->isDirty('name') && !$brand->isDirty('slug'))) {
+                $brand->slug = Str::slug($brand->name) ?: ('brand-' . time());
             }
         });
     }

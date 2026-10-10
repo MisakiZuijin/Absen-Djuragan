@@ -109,7 +109,15 @@ class ShiftController extends Controller
 
     public function showBulkUpdateForm()
     {
-        $schools = School::orderBy('name')->get();
+        $schools = School::withCount(['interns' => function ($q) {
+            $q->whereHas('user', function ($uq) {
+                $uq->where('is_active', true);
+            })->where(function ($wq) {
+                $wq->where('work_placement_type', '!=', 'wfh_only')
+                    ->orWhereNull('work_placement_type');
+            });
+        }])->orderBy('name')->get();
+
         $shifts = Shift::where('name', '!=', 'None')
             ->where('name', '!=', 'none')
             ->get();
@@ -135,9 +143,26 @@ class ShiftController extends Controller
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);
 
-            // Cari dan update semua DetailSchedule untuk intern yang dipilih dalam rentang tanggal secara massal
-            $query = DetailSchedule::whereHas('schedule', function ($query) use ($internIds) {
-                $query->whereIn('intern_id', $internIds);
+            // Saring pemagang yang berstatus WFH Penuh (mengikuti sekolah remote atau manual wfh_only)
+            // Sesuai aturan: pemagang WFH Penuh terkunci dan tidak dapat diubah shiftnya secara massal
+            $eligibleInternIds = Intern::whereIn('id', $internIds)
+                ->where(function ($q) {
+                    $q->where('work_placement_type', '!=', 'wfh_only')
+                        ->orWhereNull('work_placement_type');
+                })
+                ->whereDoesntHave('school', function ($sq) {
+                    $sq->where('is_remote_school', true);
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (empty($eligibleInternIds)) {
+                return redirect()->back()->with('error', 'Semua pemagang yang dipilih berstatus WFH Penuh (Terkunci oleh aturan sekolah remote/kebijakan WFH) sehingga shiftnya tidak dapat diubah.');
+            }
+
+            // Cari dan update semua DetailSchedule untuk intern yang berhak dalam rentang tanggal secara massal
+            $query = DetailSchedule::whereHas('schedule', function ($query) use ($eligibleInternIds) {
+                $query->whereIn('intern_id', $eligibleInternIds);
             })->whereBetween('date', [$startDate, $endDate]);
 
             $updatedCount = $query->update(['shift_id' => $shiftId]);
@@ -163,6 +188,7 @@ class ShiftController extends Controller
 
     /**
      * Mengambil daftar intern berdasarkan beberapa sekolah untuk dropdown dinamis.
+     * Pemagang WFH Penuh (sekolah remote / wfh_only) disaring keluar agar tidak dapat diubah shiftnya.
      *
      * @param  \Illuminate\Http\Request $request
      * @return \Illuminate\Http\JsonResponse
@@ -177,18 +203,33 @@ class ShiftController extends Controller
         $schoolIds = $request->school_ids;
 
         $interns = Intern::whereIn('school_id', $schoolIds)
-            ->with(['user.profile', 'division'])
+            ->with(['user.profile', 'division', 'school'])
             ->whereHas('user', function ($q) {
                 $q->where('is_active', true);
             })
             ->get()
+            ->filter(function ($intern) {
+                // Kecualikan pemagang yang WFH penuh (sekolah remote atau wfh_only)
+                $isRemoteSchool = (bool) ($intern->school?->is_remote_school ?? false);
+                $isWfhFull = ($intern->work_placement_type === 'wfh_only');
+                return !$isRemoteSchool && !$isWfhFull;
+            })
+            ->sortBy(function ($intern) {
+                return $intern->user?->profile?->full_name ?? $intern->user?->username ?? '';
+            })
             ->map(function ($intern) {
+                $fullName = $intern->user?->profile?->full_name ?? $intern->user?->username ?? 'Tanpa Nama';
                 $div = $intern->division ? ' • ' . $intern->division->name : '';
                 return [
                     'id' => $intern->id,
-                    'text' => ($intern->user->profile->full_name ?? $intern->user->name) . $div
+                    'text' => $fullName . $div,
+                    'name' => $fullName,
+                    'school_id' => $intern->school_id,
+                    'school_name' => $intern->school?->name ?? 'Sekolah Lain',
+                    'division_name' => $intern->division?->name,
                 ];
-            });
+            })
+            ->values();
 
         return response()->json($interns);
     }
@@ -202,18 +243,33 @@ class ShiftController extends Controller
     public function getInternsBySchool(School $school)
     {
         $interns = $school->interns()
-            ->with(['user.profile', 'division'])
+            ->with(['user.profile', 'division', 'school'])
             ->whereHas('user', function ($q) {
                 $q->where('is_active', true);
             })
             ->get()
+            ->filter(function ($intern) {
+                // Kecualikan pemagang yang WFH penuh (sekolah remote atau wfh_only)
+                $isRemoteSchool = (bool) ($intern->school?->is_remote_school ?? false);
+                $isWfhFull = ($intern->work_placement_type === 'wfh_only');
+                return !$isRemoteSchool && !$isWfhFull;
+            })
+            ->sortBy(function ($intern) {
+                return $intern->user?->profile?->full_name ?? $intern->user?->username ?? '';
+            })
             ->map(function ($intern) {
+                $fullName = $intern->user?->profile?->full_name ?? $intern->user?->username ?? 'Tanpa Nama';
                 $div = $intern->division ? ' • ' . $intern->division->name : '';
                 return [
                     'id' => $intern->id,
-                    'text' => ($intern->user->profile->full_name ?? $intern->user->name) . $div
+                    'text' => $fullName . $div,
+                    'name' => $fullName,
+                    'school_id' => $intern->school_id,
+                    'school_name' => $intern->school?->name ?? 'Sekolah Lain',
+                    'division_name' => $intern->division?->name,
                 ];
-            });
+            })
+            ->values();
 
         return response()->json($interns);
     }

@@ -66,6 +66,9 @@ class InternController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
             'phone' => 'required|string|max:20',
             'gender' => 'required|string',
+            'religion' => 'required|string|in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu',
+            'address' => 'nullable|string|max:100',
+            'gmaps_url' => 'required|string|max:1000',
             'birth_place' => 'nullable|string|max:50',
             'date_of_birth' => 'nullable|date',
             'nip' => 'nullable|string|max:50',
@@ -80,6 +83,7 @@ class InternController extends Controller
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 6 karakter.',
             'password.confirmed' => 'Konfirmasi password tidak cocok.',
+            'gmaps_url.required' => 'Link Google Maps domisili / kos wajib diisi.',
             'school_id.required' => 'Asal sekolah/kampus wajib dipilih.',
             'division_id.required' => 'Divisi wajib dipilih.',
             'shift_id.required' => 'Shift kerja wajib dipilih.',
@@ -88,7 +92,17 @@ class InternController extends Controller
             'end_date.after_or_equal' => 'Tanggal selesai harus setelah atau sama dengan tanggal mulai.',
             'phone.required' => 'Nomor WhatsApp / HP wajib diisi.',
             'gender.required' => 'Jenis kelamin wajib dipilih.',
+            'religion.required' => 'Agama wajib dipilih.',
+            'religion.in' => 'Agama harus salah satu dari: Islam, Kristen, Katolik, Hindu, Buddha, Khonghucu.',
         ]);
+
+        // Resolusi titik koordinat dari link Google Maps
+        $coords = \App\Helper\GmapsHelper::resolveCoordinates($validated['gmaps_url']);
+        if (!$coords || !\App\Helper\GmapsHelper::isValidCoordinate($coords['lat'] ?? null, $coords['lng'] ?? null)) {
+            return redirect()->back()->withInput()->withErrors([
+                'gmaps_url' => 'Link Google Maps tidak valid atau titik koordinat tidak ditemukan. Pastikan link disalin dari Google Maps (contoh: https://maps.app.goo.gl/...).'
+            ]);
+        }
 
         DB::beginTransaction();
         try {
@@ -109,6 +123,9 @@ class InternController extends Controller
                 'device' => bin2hex(random_bytes(8)),
             ]);
 
+            $resolvedAddress = $coords['address'] ?? null;
+            $effectiveAddress = !empty($validated['address']) ? $validated['address'] : ($resolvedAddress ?: $validated['gmaps_url']);
+
             Profile::create([
                 'user_id' => $user->id,
                 'full_name' => $validated['full_name'],
@@ -116,6 +133,8 @@ class InternController extends Controller
                 'birth_place' => !empty($validated['birth_place']) ? $validated['birth_place'] : '-',
                 'date_of_birth' => !empty($validated['date_of_birth']) ? $validated['date_of_birth'] : now()->subYears(18)->toDateString(),
                 'gender' => $validated['gender'],
+                'religion' => $validated['religion'],
+                'address' => $effectiveAddress,
                 'NIP' => $validated['nip'] ?? null,
             ]);
 
@@ -124,9 +143,13 @@ class InternController extends Controller
                 'school_id' => $validated['school_id'],
                 'division_id' => $validated['division_id'],
                 'brand_id' => $validated['brand_id'] ?? null,
+                'shift_id' => $validated['shift_id'],
                 'nim' => $validated['nim'] ?? null,
                 'start_date' => $validated['start_date'],
                 'end_date' => $validated['end_date'],
+                'home_latitude' => $coords['lat'],
+                'home_longitude' => $coords['lng'],
+                'home_address_notes' => $effectiveAddress,
             ]);
 
             InternAccount::create([
@@ -185,7 +208,15 @@ class InternController extends Controller
                     ]);
 
                     if ($project) {
-                        $project->update(['status' => 'done']);
+                        $projectUpdates = ['status' => 'done'];
+                        if (empty($project->repository_url) && $user->intern) {
+                            $acc = $user->intern->account;
+                            if ($acc && !$acc->hasTaskLinkPlatform() && !empty($acc->gdrive_url)) {
+                                $projectUpdates['repository_url'] = $acc->gdrive_url;
+                            }
+                        }
+                        $project->update($projectUpdates);
+
                         HandRaise::where('user_id', $user->id)
                             ->where('project_id', $project->id)
                             ->where('type', 'new_task')

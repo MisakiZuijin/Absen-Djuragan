@@ -71,7 +71,7 @@
             <!-- Statistics Cards -->
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
-                    <div class="text-2xl font-bold text-gray-900 mb-1">{{ $stats['total'] + $stats['libur'] }}</div>
+                    <div class="text-2xl font-bold text-gray-900 mb-1">{{ $stats['total'] }}</div>
                     <div class="text-sm font-medium text-gray-600">Total Hari Kerja</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
@@ -79,8 +79,8 @@
                     <div class="text-sm font-medium text-gray-600">Hadir</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
-                    <div class="text-2xl font-bold text-yellow-600 mb-1">{{ $stats['izin'] + $stats['sakit'] }}</div>
-                    <div class="text-sm font-medium text-gray-600">Izin/Sakit</div>
+                    <div class="text-2xl font-bold text-yellow-600 mb-1">{{ $stats['izin'] }}</div>
+                    <div class="text-sm font-medium text-gray-600">Izin</div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 text-center">
                     <div class="text-2xl font-bold text-red-600 mb-1">{{ $stats['tidak_hadir'] }}</div>
@@ -138,8 +138,8 @@
                                     $statusClass = 'bg-yellow-100 text-yellow-800';
                                     $statusText = 'Izin';
                                 } elseif ($presensi->attd_status_id == 4) {
-                                    $statusClass = 'bg-blue-100 text-blue-800';
-                                    $statusText = 'Sakit';
+                                    $statusClass = 'bg-teal-100 text-teal-800';
+                                    $statusText = 'Hadir (Ganti Jam)';
                                 } elseif ($presensi->attd_status_id == 5) {
                                     $statusClass = 'bg-red-100 text-red-800';
                                     $statusText = 'Tidak Hadir';
@@ -173,18 +173,25 @@
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">
-                                            {{ $isSunday ? '-' : ($presensi->attendance->start_time ?? '-') }}
+                                            {{ $isSunday ? '-' : ($presensi->attendance ? ($presensi->attendance->formatted_start_time ?? ($presensi->attendance->start_time ? \Carbon\Carbon::parse($presensi->attendance->start_time)->format('H:i') : '-')) : '-') }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm font-medium text-gray-900">
-                                            {{ $isSunday ? '-' : ($presensi->attendance->end_time ?? '-') }}
+                                            {{ $isSunday ? '-' : ($presensi->attendance ? ($presensi->attendance->formatted_end_time ?? ($presensi->attendance->end_time ? \Carbon\Carbon::parse($presensi->attendance->end_time)->format('H:i') : '-')) : '-') }}
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="text-sm text-gray-600">
-                                            {{ $isSunday ? '-' : ($presensi->shift->name ?? '-') }}
-                                        </div>
+                                        @if($isSunday)
+                                            <div class="text-sm text-gray-400">-</div>
+                                        @elseif($presensi->shift)
+                                            <div class="text-sm font-medium text-gray-900">{{ $presensi->shift->name }}</div>
+                                            @if($presensi->shift->start_time && $presensi->shift->end_time)
+                                                <div class="text-xs text-gray-500 font-mono">{{ substr($presensi->shift->start_time, 0, 5) }} - {{ substr($presensi->shift->end_time, 0, 5) }}</div>
+                                            @endif
+                                        @else
+                                            <div class="text-sm text-gray-400">-</div>
+                                        @endif
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="text-sm text-gray-600">

@@ -5,10 +5,12 @@
     <div class="max-w-7xl mx-auto space-y-6">
 
         <!-- HEADER SECTION -->
-        <div class="relative bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl shadow-xl p-6 md:p-8 text-white overflow-hidden border border-slate-800">
-            <!-- Decorative Background Glow -->
-            <div class="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
-            <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl"></div>
+        <div class="relative bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl shadow-xl p-6 md:p-8 text-white border border-slate-800">
+            <!-- Decorative Background Glow (contained) -->
+            <div class="absolute inset-0 rounded-3xl overflow-hidden pointer-events-none">
+                <div class="absolute -right-10 -top-10 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl"></div>
+                <div class="absolute -left-10 -bottom-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl"></div>
+            </div>
 
             <div class="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div class="space-y-1.5">
@@ -25,15 +27,55 @@
                     </p>
                 </div>
 
-                <div class="flex items-center gap-2.5 flex-wrap">
-                    <a href="{{ route('super-admin.activity-logs.index') }}" class="px-4 py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-2xl text-xs font-medium transition shadow-sm flex items-center gap-2">
-                        <i class="fa-solid fa-list-check text-indigo-400"></i>
-                        <span>Audit Log Sistem</span>
-                    </a>
-                    <button type="button" onclick="openCreateModal()" class="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white rounded-2xl text-xs font-semibold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5 flex items-center gap-2">
-                        <i class="fa-solid fa-user-plus"></i>
-                        <span>Tambah Admin</span>
+                <!-- Action Toggle Dropdown -->
+                <div class="relative inline-block text-left" id="adminActionDropdownContainer">
+                    <button type="button" 
+                            onclick="toggleAdminActionDropdown(event)" 
+                            class="inline-flex items-center gap-2.5 px-4 py-2.5 bg-slate-800/90 hover:bg-slate-700/90 text-white rounded-2xl text-xs font-semibold border border-slate-700/80 shadow-md backdrop-blur-xs transition focus:outline-none focus:ring-2 focus:ring-indigo-500/40 cursor-pointer">
+                        <i class="fa-solid fa-ellipsis-vertical text-indigo-400 text-sm"></i>
+                        <span>Menu Aksi</span>
+                        <i id="adminActionChevron" class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"></i>
                     </button>
+
+                    <!-- Dropdown Menu -->
+                    <div id="adminActionMenu" 
+                         class="hidden absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 py-2 z-50 text-slate-700">
+                        
+                        <div class="px-3.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Aksi & Manajemen
+                        </div>
+
+                        <!-- Tambah Admin -->
+                        <button type="button" 
+                                onclick="openCreateModal(); closeAdminActionDropdown();" 
+                                class="w-full text-left px-3.5 py-2 hover:bg-indigo-50/70 flex items-center gap-3 transition cursor-pointer group">
+                            <span class="w-8 h-8 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200/50 group-hover:bg-indigo-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-user-plus text-xs"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-slate-800 group-hover:text-indigo-700">Tambah Admin</div>
+                                <div class="text-[10px] text-slate-500">Buat akun admin level 1 baru</div>
+                            </div>
+                        </button>
+
+                        <div class="my-1.5 border-t border-slate-100"></div>
+
+                        <div class="px-3.5 py-1.5 text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Audit & Riwayat
+                        </div>
+
+                        <!-- Audit Log Sistem -->
+                        <a href="{{ route('super-admin.activity-logs.index') }}" 
+                           class="w-full text-left px-3.5 py-2 hover:bg-indigo-50/70 flex items-center gap-3 transition group">
+                            <span class="w-8 h-8 rounded-xl bg-indigo-100/80 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-200/50 group-hover:bg-indigo-600 group-hover:text-white transition">
+                                <i class="fa-solid fa-list-check text-xs"></i>
+                            </span>
+                            <div class="min-w-0">
+                                <div class="text-xs font-semibold text-slate-800 group-hover:text-indigo-700">Audit Log Sistem</div>
+                                <div class="text-[10px] text-slate-500">Pantau seluruh riwayat aktivitas</div>
+                            </div>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -487,6 +529,47 @@
 </div>
 
 <script>
+    // Toggle Action Dropdown
+    function toggleAdminActionDropdown(event) {
+        event.stopPropagation();
+        const menu = document.getElementById('adminActionMenu');
+        const chevron = document.getElementById('adminActionChevron');
+        if (menu) {
+            const isHidden = menu.classList.toggle('hidden');
+            if (chevron) {
+                chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(180deg)';
+            }
+        }
+    }
+
+    function closeAdminActionDropdown() {
+        const menu = document.getElementById('adminActionMenu');
+        const chevron = document.getElementById('adminActionChevron');
+        if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+            if (chevron) {
+                chevron.style.transform = 'rotate(0deg)';
+            }
+        }
+    }
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#adminActionDropdownContainer')) {
+            closeAdminActionDropdown();
+        }
+    });
+
+    // Close on Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeAdminActionDropdown();
+            closeCreateModal();
+            closeEditModal();
+            closeDeleteModal();
+        }
+    });
+
     function openCreateModal() {
         document.getElementById('createAdminModal').classList.remove('hidden');
     }

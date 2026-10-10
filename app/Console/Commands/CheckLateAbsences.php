@@ -10,8 +10,8 @@ use Carbon\Carbon;
 
 class CheckLateAbsences extends Command
 {
-    protected $signature = 'attendance:check-late {date?}';
-    protected $description = 'Check dan debug keterlambatan untuk tanggal tertentu';
+    protected $signature = 'attendance:check-late {date?} {--auto-create : Otomatis buat data keterlambatan yang belum tersimpan}';
+    protected $description = 'Check dan sinkronkan keterlambatan untuk tanggal tertentu';
 
     public function handle()
     {
@@ -88,15 +88,22 @@ class CheckLateAbsences extends Command
                 } else {
                     $this->error("   ❌ Missing late_absence record! Should be {$lateMinutes} minutes late");
                     
-                    // Optionally create the record
-                    if ($this->confirm("Create missing late_absence record?")) {
+                    $shouldCreate = $this->option('auto-create') 
+                        || !$this->input->isInteractive() 
+                        || $this->confirm("Create missing late_absence record?");
+
+                    if ($shouldCreate) {
                         LateAbsence::create([
                             'intern_id' => $intern->id,
                             'shift_id' => $shift->id,
                             'attendance_id' => $attendance->id,
+                            'date' => $attendanceDate->format('Y-m-d'),
                             'absen_time' => $absenTime,
+                            'original_absen_time' => $absenTime,
+                            'scheduled_time' => $shift->start_time,
                             'late_minutes' => $lateMinutes,
-                            'status' => 'telat'
+                            'status' => 'telat',
+                            'type' => 'checkin'
                         ]);
                         $this->info("   ✅ Late absence record created!");
                     }

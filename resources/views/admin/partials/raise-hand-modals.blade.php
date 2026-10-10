@@ -959,6 +959,10 @@ $confirmUrlTemplate = $isAssistantAdmin
                             }
                         });
                     }
+
+                    if (window.raiseHandNotificationManager) {
+                        window.raiseHandNotificationManager.checkForUpdates();
+                    }
                 } else {
                     const errData = await res.json().catch(() => null);
                     alert(errData?.message || 'Gagal mengirim balasan. Silakan coba lagi.');

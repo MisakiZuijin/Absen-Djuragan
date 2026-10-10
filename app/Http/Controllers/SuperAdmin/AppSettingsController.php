@@ -32,23 +32,23 @@ class AppSettingsController extends Controller
     {
         $request->validate([
             'app_name' => 'nullable|string|max:100',
-            'logo' => 'nullable|file|mimes:jpeg,png,jpg,svg,webp,ico|max:4096',
+            'logo' => 'nullable|file|mimes:jpeg,png,jpg,svg,webp,ico|max:2048',
             'favicon' => 'nullable|file|mimes:ico,png,jpg,jpeg,svg|max:2048',
-            'intern_banner' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:6144',
+            'intern_banner' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:2048',
             'banner_slides' => 'nullable|array',
-            'banner_slides.*' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:6144',
-            'login_background' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:6144',
+            'banner_slides.*' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:2048',
+            'login_background' => 'nullable|file|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
             'logo.mimes' => 'Format logo harus berupa JPG, PNG, SVG, WEBP, atau ICO.',
-            'logo.max' => 'Ukuran file logo maksimal 4 MB.',
+            'logo.max' => 'Ukuran file logo maksimal 2 MB.',
             'favicon.mimes' => 'Format favicon harus berupa ICO, PNG, JPG, atau SVG.',
             'favicon.max' => 'Ukuran file favicon maksimal 2 MB.',
-            'intern_banner.mimes' => 'Format banner pemagang harus berupa JPG, PNG, atau WEBP.',
-            'intern_banner.max' => 'Ukuran file banner pemagang maksimal 6 MB.',
-            'banner_slides.*.mimes' => 'Format file slide banner harus berupa JPG, PNG, atau WEBP.',
-            'banner_slides.*.max' => 'Ukuran setiap file slide banner maksimal 6 MB.',
-            'login_background.mimes' => 'Format background login harus berupa JPG, PNG, atau WEBP.',
-            'login_background.max' => 'Ukuran file background login maksimal 6 MB.',
+            'intern_banner.mimes' => 'Format banner pemagang harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'intern_banner.max' => 'Ukuran file banner pemagang maksimal 2 MB.',
+            'banner_slides.*.mimes' => 'Format file slide banner harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'banner_slides.*.max' => 'Ukuran setiap file slide banner maksimal 2 MB.',
+            'login_background.mimes' => 'Format background login harus berupa JPG, JPEG, PNG, atau WEBP.',
+            'login_background.max' => 'Ukuran file background login maksimal 2 MB.',
         ]);
 
         $setting = AppSetting::first() ?? new AppSetting();

@@ -32,12 +32,16 @@ class InternScheduleRequest extends FormRequest {
 
 
     protected function failedValidation(Validator $validator) {
-        $errors = $validator->errors();
+        if ($this->expectsJson()) {
+            $errors = $validator->errors();
 
-        throw new HttpResponseException(response()->json([
-            'success' => false,
-            'message' => 'Validation errors',
-            'errors' => $errors
-        ], 422));
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Validation errors',
+                'errors' => $errors
+            ], 422));
+        }
+
+        parent::failedValidation($validator);
     }
 }

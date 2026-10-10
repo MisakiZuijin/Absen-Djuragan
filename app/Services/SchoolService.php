@@ -48,14 +48,17 @@ class SchoolService
     }
 
 
-    public function getCountSchool(): ActionResult
+    public function getCountSchool(?string $search = null): ActionResult
     {
         try {
-            $data = School::withCount('interns')->get();
+            $query = School::withCount('interns')->orderBy('name', 'asc');
 
-            if ($data->isEmpty()) {
-                return new ActionResult(false, "school is empty", null);
+            if (!empty($search)) {
+                $term = trim($search);
+                $query->where('name', 'like', "%{$term}%");
             }
+
+            $data = $query->get();
 
             foreach ($data as $school) {
                 $school->intern_total = $school->interns_count;
@@ -64,7 +67,7 @@ class SchoolService
             return new ActionResult(true, "success count data school", $data);
         } catch (\Throwable $th) {
             captureException($th);
-            return new ActionResult(false, "failed count school data", null);
+            return new ActionResult(false, "failed count school data", collect([]));
         }
     }
 
@@ -76,6 +79,7 @@ class SchoolService
             $data['name'] = $data['namaSekolah'];
             $data['educational_level_id'] = $data['schoolType1'];
             $data['address'] = $data['alamatSekolah'];
+            $data['is_remote_school'] = $storeSchoolRequest->boolean('is_remote_school');
 
             $result = $this->schoolRepository->store($data);
 
@@ -94,6 +98,7 @@ class SchoolService
             $data['name'] = $data['namaSekolah'];
             $data['address'] = $data['alamatSekolah'];
             $data['educational_level_id'] = $data['schoolType'];
+            $data['is_remote_school'] = $updateSchoolRequest->boolean('is_remote_school');
 
             $result = $this->schoolRepository->update($id, $data);
 

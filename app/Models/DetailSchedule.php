@@ -14,8 +14,16 @@ class DetailSchedule extends Model {
     protected $fillable = [
         "schedule_id", "attendance_id", "adjustable_attd_id", "attd_status_id",
         "office_id", "log_activity_id", "shift_id", "date", "type",
-        "start_time", "end_time", "work_type", "isChangeSchedule",
-        "isBackFirst", "is_change_schedule_approved", "permit_reason_id"
+        "start_time", "end_time", "work_type", "hybrid_pattern", "execution_tier", "is_spillover",
+        "isChangeSchedule", "isBackFirst", "is_change_schedule_approved", "permit_reason_id"
+    ];
+
+    protected $casts = [
+        'execution_tier' => 'integer',
+        'is_spillover' => 'boolean',
+        'isChangeSchedule' => 'boolean',
+        'isBackFirst' => 'boolean',
+        'is_change_schedule_approved' => 'boolean',
     ];
 
     public function shift(): BelongsTo {
@@ -44,5 +52,8 @@ class DetailSchedule extends Model {
     }
     public function office(): BelongsTo {
         return $this->belongsTo(Office::class, "office_id");
+    }
+    public function piketSchedule(): HasOne {
+        return $this->hasOne(PiketSchedule::class, "detail_schedule_id");
     }
 }

@@ -16,13 +16,30 @@ class Office extends Model {
         "name",
         "address",
         "capacity",
+        "is_hybrid_enabled",
         "radius",
         "sop_url",
         "rules_url",
         "rules_description",
         "piket_url",
-        "piket_description"
+        "piket_description",
+        "piket_max_per_week"
     ];
+
+    protected $casts = [
+        'is_hybrid_enabled' => 'boolean',
+        'piket_max_per_week' => 'integer',
+    ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('offices_all');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('offices_all');
+        });
+    }
 
 
     public function coordinates(): HasMany {
@@ -32,6 +49,26 @@ class Office extends Model {
     public function coordinate()
     {
         return $this->hasOne(Coordinate::class);
+    }
+
+    public function divisions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Division::class, 'office_divisions')->withPivot('is_active')->withTimestamps();
+    }
+
+    public function activeDivisions(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Division::class, 'office_divisions')->wherePivot('is_active', true)->withTimestamps();
+    }
+
+    public function shiftCapacities(): HasMany
+    {
+        return $this->hasMany(OfficeShiftCapacity::class, 'office_id');
+    }
+
+    public function officeDivisions(): HasMany
+    {
+        return $this->hasMany(OfficeDivision::class, 'office_id');
     }
 
     public function getRadiusAttribute(): int
@@ -50,5 +87,54 @@ class Office extends Model {
         }
 
         return 25;
+    }
+
+    /**
+     * Dapatkan titik koordinat utama kantor (is_main = 1)
+     */
+    public function getMainCoordinateAttribute(): ?Coordinate
+    {
+        if ($this->relationLoaded('coordinates')) {
+            return $this->coordinates->firstWhere('is_main', 1) 
+                ?? $this->coordinates->firstWhere('is_main', true) 
+                ?? $this->coordinates->first();
+        }
+
+        return $this->coordinates()->where('is_main', 1)->first() 
+            ?? $this->coordinates()->first();
+    }
+
+    /**
+     * Accessor latitude kantor dari tabel coordinates
+     */
+    public function getLatitudeAttribute(): ?float
+    {
+        if (isset($this->attributes['latitude']) && $this->attributes['latitude'] !== null && $this->attributes['latitude'] !== '') {
+            return (float) str_replace(',', '.', (string) $this->attributes['latitude']);
+        }
+
+        $coord = $this->main_coordinate;
+        if ($coord && !empty($coord->latitude)) {
+            return (float) str_replace(',', '.', (string) $coord->latitude);
+        }
+
+        return null;
+    }
+
+    /**
+     * Accessor longitude kantor dari tabel coordinates
+     */
+    public function getLongitudeAttribute(): ?float
+    {
+        if (isset($this->attributes['longitude']) && $this->attributes['longitude'] !== null && $this->attributes['longitude'] !== '') {
+            return (float) str_replace(',', '.', (string) $this->attributes['longitude']);
+        }
+
+        $coord = $this->main_coordinate;
+        if ($coord && !empty($coord->longitude)) {
+            return (float) str_replace(',', '.', (string) $coord->longitude);
+        }
+
+        return null;
     }
 }

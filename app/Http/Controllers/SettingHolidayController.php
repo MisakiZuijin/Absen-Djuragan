@@ -9,7 +9,11 @@ use Illuminate\Support\Facades\Auth;
 use App\Services\HolidayService;
 use App\Models\Holiday;
 use App\Models\Office;
+use App\Models\Shift;
 use Carbon\Carbon;
+use App\Services\HolidaySyncService;
+use App\Services\PiketSchedulingService;
+use App\Models\PiketSchedule;
 use Illuminate\Support\Facades\Artisan; // <--- GANTI Cache DENGAN Artisan
 
 class SettingHolidayController extends Controller
@@ -26,11 +30,13 @@ class SettingHolidayController extends Controller
     public function adminSettingHolidayView(Request $request): View
     {
         $userData = $this->userService->getUserLoggedData();
-        $holidaylist = Holiday::all()->map(function ($holiday) {
+        $holidaylist = Holiday::whereYear('date', 2026)->orderBy('date', 'asc')->get()->map(function ($holiday) {
+            $holiday->raw_date = $holiday->date;
             $holiday->date = Carbon::parse($holiday->date)->format('d-m-Y');
             return $holiday;
         });
         $offices = Office::all();
+        $shifts = Shift::orderBy('start_time')->get();
 
         $defaultOfficeId = (string)($offices->first()?->id ?? '1');
         $legacyOfficeId = $request->get('office_id');
@@ -42,17 +48,41 @@ class SettingHolidayController extends Controller
         // Peraturan Kantor: default spesifik per-kantor pertama agar tidak menimpa semua kantor
         $rulesOfficeId = $request->get('rules_office_id', ($activeTab === 'rules' && $legacyOfficeId) ? $legacyOfficeId : $defaultOfficeId);
 
-        // Jadwal Piket: default spesifik per-kantor pertama agar tidak menimpa semua kantor
-        $piketOfficeId = $request->get('piket_office_id', ($activeTab === 'piket' && $legacyOfficeId) ? $legacyOfficeId : $defaultOfficeId);
+        // Jadwal Piket: default 'all' (Semua Kantor) atau spesifik jika dipilih
+        $piketOfficeId = $request->get('piket_office_id', ($activeTab === 'piket' && $legacyOfficeId) ? $legacyOfficeId : 'all');
+
+        // Rentang Tanggal Piket Aktif: default minggu berjalan (Senin - Minggu)
+        $piketStartDate = $request->get('piket_start_date', now()->startOfWeek(Carbon::MONDAY)->toDateString());
+        $piketEndDate = $request->get('piket_end_date', now()->endOfWeek(Carbon::SUNDAY)->toDateString());
+        // Ambil seluruh roster piket pada rentang tanggal aktif agar tab filter per kantor di dalam list jadwal piket dapat berjalan instan tanpa reload halaman
+        $piketRoster = app(PiketSchedulingService::class)->getPiketRoster($piketStartDate, $piketEndDate, null);
+        $globalPiketCount = $piketRoster->count();
+        $officePiketCounts = $piketRoster->groupBy('office_id')->map->count()->toArray();
+        $totalPiketCount = $globalPiketCount;
+
+        $globalPiketMaxPerWeek = \App\Models\AutomationSetting::getInt('piket_max_per_week', 1);
+        $currentPiketLimit = ($piketOfficeId && $piketOfficeId !== 'all')
+            ? ($offices->firstWhere('id', (int)$piketOfficeId)?->piket_max_per_week ?? $globalPiketMaxPerWeek)
+            : ($offices->first()?->piket_max_per_week ?? $globalPiketMaxPerWeek);
+        $currentPiketLimit = max(1, min(7, (int)$currentPiketLimit));
 
         $data = [
             "holidaylist" => $holidaylist,
             "offices" => $offices,
+            "shifts" => $shifts,
             "user" => $userData,
             "activeTab" => $activeTab,
             "sopOfficeId" => $sopOfficeId,
             "rulesOfficeId" => $rulesOfficeId,
             "piketOfficeId" => $piketOfficeId,
+            "piketStartDate" => $piketStartDate,
+            "piketEndDate" => $piketEndDate,
+            "piketRoster" => $piketRoster,
+            "totalPiketCount" => $totalPiketCount,
+            "globalPiketCount" => $globalPiketCount,
+            "officePiketCounts" => $officePiketCounts,
+            "globalPiketMaxPerWeek" => $globalPiketMaxPerWeek,
+            "currentPiketLimit" => $currentPiketLimit,
         ];
 
         return view('admin.pengaturan-holiday')->with($data);
@@ -63,10 +93,13 @@ class SettingHolidayController extends Controller
      */
     private function clearAllCaches()
     {
-        // Perintah ini akan menjalankan 'php artisan optimize:clear' dari dalam kode.
-        // Ini jauh lebih kuat daripada Cache::flush() karena membersihkan
-        // cache aplikasi, view, config, dan route.
-        Artisan::call('optimize:clear');
+        \Illuminate\Support\Facades\Cache::forget('offices_all');
+        \Illuminate\Support\Facades\Cache::flush();
+        try {
+            Artisan::call('optimize:clear');
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("Artisan optimize:clear warning: " . $e->getMessage());
+        }
     }
 
     public function storeHoliday(Request $request)
@@ -159,6 +192,28 @@ class SettingHolidayController extends Controller
     }
 
     /**
+     * Sinkronkan hari libur nasional dari API publik.
+     */
+    public function syncHolidays(Request $request, HolidaySyncService $syncService)
+    {
+        $year = $request->input('year') ? (int) $request->input('year') : null;
+        $result = $syncService->syncHolidays($year);
+
+        if ($result['success']) {
+            \App\Helper\ActivityLogger::log('SYNC', 'Master Data', "Admin menyinkronkan {$result['synced_count']} hari libur nasional dari API" . ($year ? " (Tahun {$year})" : ""));
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json($result);
+        }
+
+        return redirect()->back()->with(
+            $result['success'] ? 'success' : 'error',
+            $result['message']
+        );
+    }
+
+    /**
      * Memulihkan kembali jadwal pemagang aktif ketika hari libur dibatalkan / dihapus.
      */
     public function restoreSchedulesForDate(string $date): void
@@ -245,20 +300,15 @@ class SettingHolidayController extends Controller
             'rules_description' => 'nullable|string',
             'piket_url' => 'nullable|string|max:1000',
             'piket_description' => 'nullable|string',
+            'piket_max_per_week' => 'nullable|integer|min:1|max:7',
         ]);
 
         $isCheckboxChecked = $request->boolean('apply_all');
         $officeId = $request->input('office_id');
 
-        if ($officeId === 'all') {
-            if ($isCheckboxChecked) {
-                $targetMode = 'all';
-            } else {
-                $targetMode = 'specific';
-                $officeId = Office::first()?->id;
-            }
-        } else {
-            $targetMode = $isCheckboxChecked ? 'all' : 'specific';
+        $targetMode = ($officeId === 'all' || $isCheckboxChecked) ? 'all' : 'specific';
+        if ($targetMode === 'specific' && (!$officeId || !is_numeric($officeId))) {
+            $officeId = Office::first()?->id;
         }
 
         $dataToUpdate = [];
@@ -276,6 +326,14 @@ class SettingHolidayController extends Controller
         }
         if ($request->has('piket_description')) {
             $dataToUpdate['piket_description'] = $request->input('piket_description');
+        }
+        if ($request->filled('piket_max_per_week')) {
+            $limitVal = max(1, min(7, (int)$request->input('piket_max_per_week', 1)));
+            $dataToUpdate['piket_max_per_week'] = $limitVal;
+            \App\Models\AutomationSetting::updateOrCreate(
+                ['key' => 'piket_max_per_week'],
+                ['value' => (string)$limitVal, 'description' => 'Batas maksimal pemagang ditugaskan piket per minggu']
+            );
         }
 
         if (!empty($dataToUpdate)) {
@@ -307,9 +365,121 @@ class SettingHolidayController extends Controller
             $redirectParams['rules_office_id'] = $targetOfficeParam;
         } elseif ($activeTab === 'piket') {
             $redirectParams['piket_office_id'] = $targetOfficeParam;
+            if ($request->filled('piket_start_date')) {
+                $redirectParams['piket_start_date'] = $request->input('piket_start_date');
+            }
+            if ($request->filled('piket_end_date')) {
+                $redirectParams['piket_end_date'] = $request->input('piket_end_date');
+            }
         }
 
         return redirect()->route('admin.pengaturan.holiday', $redirectParams)
             ->with('success', "Pengaturan dokumen {$tabLabel} berhasil diperbarui!");
+    }
+
+    /**
+     * Generate jadwal piket otomatis dari jadwal WFO yang aktif.
+     */
+    public function generatePiket(Request $request, PiketSchedulingService $piketService)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'office_id' => 'nullable',
+            'max_piket_per_week' => 'nullable|integer|min:1|max:7',
+        ]);
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $officeId = $request->input('office_id');
+        $targetOfficeId = ($officeId && $officeId !== 'all') ? (int)$officeId : null;
+        $maxPiketPerWeek = $request->filled('max_piket_per_week') ? (int)$request->input('max_piket_per_week') : null;
+
+        $result = $piketService->generatePiketForPeriod($startDate, $endDate, $targetOfficeId, $maxPiketPerWeek);
+
+        if ($result['success']) {
+            $officeName = $targetOfficeId ? (Office::find($targetOfficeId)?->name ?? 'Kantor') : 'Semua Kantor';
+            $limitNote = $maxPiketPerWeek ? "{$maxPiketPerWeek}x/minggu" : 'sesuai setting';
+            \App\Helper\ActivityLogger::log(
+                'CREATE',
+                'Master Data',
+                "Admin mengenerate jadwal piket otomatis periode {$startDate} s/d {$endDate} ({$officeName}, batas {$limitNote}): {$result['total_piket']} penugasan",
+                ['result' => $result]
+            );
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json($result);
+        }
+
+        return redirect()->route('admin.pengaturan.holiday', [
+            'tab' => 'piket',
+            'piket_office_id' => $officeId ?: 'all',
+            'piket_start_date' => $startDate,
+            'piket_end_date' => $endDate,
+        ])->with($result['success'] ? 'success' : 'error', $result['message']);
+    }
+
+    /**
+     * Reset / Hapus penugasan piket pada periode dan kantor tertentu.
+     */
+    public function resetPiket(Request $request, PiketSchedulingService $piketService)
+    {
+        $request->validate([
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+            'office_id' => 'nullable',
+        ]);
+
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+        $officeId = $request->input('office_id');
+        $targetOfficeId = ($officeId && $officeId !== 'all') ? (int)$officeId : null;
+
+        $deletedCount = $piketService->resetPiketForPeriod($startDate, $endDate, $targetOfficeId);
+
+        \App\Helper\ActivityLogger::log(
+            'DELETE',
+            'Master Data',
+            "Admin mereset {$deletedCount} jadwal piket periode {$startDate} s/d {$endDate}"
+        );
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => "Berhasil mereset {$deletedCount} penugasan piket pada periode tersebut.",
+                'deleted_count' => $deletedCount,
+            ]);
+        }
+
+        return redirect()->route('admin.pengaturan.holiday', [
+            'tab' => 'piket',
+            'piket_office_id' => $officeId ?: 'all',
+            'piket_start_date' => $startDate,
+            'piket_end_date' => $endDate,
+        ])->with('success', "Berhasil mereset {$deletedCount} penugasan piket.");
+    }
+
+    /**
+     * API Roster piket untuk update AJAX.
+     */
+    public function getPiketRoster(Request $request, PiketSchedulingService $piketService)
+    {
+        $startDate = $request->input('start_date', now()->startOfWeek(Carbon::MONDAY)->toDateString());
+        $endDate = $request->input('end_date', now()->endOfWeek(Carbon::SUNDAY)->toDateString());
+        $officeId = $request->input('office_id');
+        $targetOfficeId = ($officeId && $officeId !== 'all') ? (int)$officeId : null;
+
+        $roster = $piketService->getPiketRoster($startDate, $endDate, $targetOfficeId);
+
+        return response()->json([
+            'success' => true,
+            'roster' => $roster,
+            'total' => $roster->count(),
+            'period' => [
+                'start' => $startDate,
+                'end' => $endDate,
+            ]
+        ]);
     }
 }

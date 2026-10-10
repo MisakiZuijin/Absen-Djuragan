@@ -145,6 +145,20 @@
                         class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                         placeholder="Alamat lengkap institusi..." required></textarea>
                 </div>
+                <div class="mb-5 p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-xl">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" name="is_remote_school" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                        <div>
+                            <span class="block text-xs font-bold text-indigo-900">
+                                <i class="fa-solid fa-house-laptop text-indigo-600 mr-1"></i>
+                                Kampus / Sekolah Luar Kota (Full WFH Otomatis)
+                            </span>
+                            <span class="block text-[11px] text-indigo-700 mt-0.5 leading-relaxed">
+                                Jika dicentang, seluruh pemagang baru dari institusi ini otomatis mendapatkan status 100% Full WFH tanpa memakan kuota meja kantor.
+                            </span>
+                        </div>
+                    </label>
+                </div>
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                     <button type="button" onclick="$('#addSchoolModal').addClass('hidden')"
                         class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition">
@@ -202,6 +216,20 @@
                     <textarea id="editAlamatSekolah" name="alamatSekolah" rows="3"
                         class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                         required></textarea>
+                </div>
+                <div class="mb-5 p-3.5 bg-indigo-50/80 border border-indigo-200 rounded-xl">
+                    <label class="flex items-start gap-2.5 cursor-pointer">
+                        <input type="checkbox" id="editIsRemoteSchool" name="is_remote_school" value="1" class="mt-0.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 h-4 w-4">
+                        <div>
+                            <span class="block text-xs font-bold text-indigo-900">
+                                <i class="fa-solid fa-house-laptop text-indigo-600 mr-1"></i>
+                                Kampus / Sekolah Luar Kota (Full WFH Otomatis)
+                            </span>
+                            <span class="block text-[11px] text-indigo-700 mt-0.5 leading-relaxed">
+                                Jika dicentang, seluruh pemagang baru dari institusi ini otomatis mendapatkan status 100% Full WFH tanpa memakan kuota meja kantor.
+                            </span>
+                        </div>
+                    </label>
                 </div>
                 <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
                     <button type="button" onclick="$('#editSchoolModal').addClass('hidden')"
@@ -284,17 +312,21 @@
                 $('#pagination-info').text(`Menampilkan ${startEntry}-${endEntry} dari ${filteredData.length} sekolah`);
 
                 paginatedData.forEach((school, index) => {
+                    const isRemote = Boolean(school.is_remote_school);
                     $('#schoolTableBody').append(`
                         <tr class="hover:bg-blue-50/30 transition-colors border-b border-gray-100">
                             <td class="py-3.5 px-4 sm:px-6 text-center text-gray-500 font-mono text-xs">${start + index + 1}</td>
                             <td class="py-3.5 px-4 sm:px-6 whitespace-nowrap">
-                                <div class="font-bold text-gray-800">${school.name}</div>
+                                <div class="font-bold text-gray-800 flex items-center gap-2">
+                                    <span>${escapeHtml(school.name)}</span>
+                                    ${isRemote ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200"><i class="fa-solid fa-house-laptop"></i> Full WFH</span>' : ''}
+                                </div>
                             </td>
-                            <td class="py-3.5 px-4 sm:px-6 text-gray-600 text-xs max-w-sm truncate">${school.address || '-'}</td>
+                            <td class="py-3.5 px-4 sm:px-6 text-gray-600 text-xs max-w-sm truncate">${escapeHtml(school.address || '-')}</td>
                             <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
                                     <button class="editSchoolModal px-2.5 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
-                                        data-id="${school.id}" data-name="${school.name}" data-address="${school.address || ''}" data-type="${school.educational_level_id}"
+                                        data-id="${school.id}" data-name="${escapeHtml(school.name)}" data-address="${escapeHtml(school.address || '')}" data-type="${school.educational_level_id}" data-is-remote="${isRemote ? 1 : 0}"
                                         title="Edit Sekolah">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
@@ -308,6 +340,11 @@
                         </tr>
                     `);
                 });
+            }
+
+            function escapeHtml(text) {
+                if (!text) return '';
+                return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
             }
 
             function updatePagination() {
@@ -367,11 +404,13 @@
                 var namaSekolah = $(this).data('name');
                 var alamatSekolah = $(this).data('address');
                 var schoolType = $(this).data('type');
+                var isRemote = $(this).data('is-remote') == 1;
 
                 $('#editSchoolId').val(schoolId);
                 $('#editNamaSekolah').val(namaSekolah);
                 $('#editAlamatSekolah').val(alamatSekolah);
                 $('#schoolType').val(schoolType);
+                $('#editIsRemoteSchool').prop('checked', isRemote);
 
                 var actionUrl = "{{ route('schools.update', ':id') }}";
                 actionUrl = actionUrl.replace(':id', schoolId);

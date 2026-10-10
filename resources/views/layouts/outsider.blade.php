@@ -8,6 +8,7 @@
     <title>@yield('title') - {{ $appSetting->app_name ?? 'Outsider Panel' }}</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link rel="stylesheet" href="{{ asset('css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     @livewireStyles
 </head>
@@ -71,24 +72,75 @@
     </main>
 
     {{-- Logout Modal --}}
-    <div id="logout-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg shadow-lg p-6 w-4/5 md:w-1/3">
-            <h2 class="text-xl font-bold mb-4">Konfirmasi Keluar</h2>
-            <p>Apakah Anda yakin ingin keluar dari halaman ini?</p>
-            <div class="flex justify-end mt-4">
-                <button type="button" id="closeLogout" class="px-4 py-2 bg-gray-600 text-white rounded-lg mr-2">Batal</button>
-                <a href="{{ url('/logout') }}" class="px-4 py-2 bg-red-600 text-white rounded-lg">Keluar</a>
+    <div id="logout-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 transition-all">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm border border-slate-100">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mx-auto mb-3 text-xl shadow-xs">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <h2 class="text-lg font-bold text-slate-800 text-center mb-1">Konfirmasi Keluar</h2>
+            <p class="text-xs text-slate-500 text-center mb-5">Apakah Anda yakin ingin keluar dari akun Outsider ini?</p>
+            <div class="flex items-center justify-end gap-2">
+                <button type="button" id="closeLogout" class="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition">Batal</button>
+                <a href="{{ url('/logout') }}" class="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-semibold rounded-xl text-xs transition shadow-md shadow-rose-600/20">Keluar</a>
             </div>
         </div>
     </div>
 
-    {{-- Notifikasi --}}
-    <div id="success-box" class="floating-box {{ session('success') ? '' : 'hidden' }} bg-green-500 text-white p-4 rounded">
-        <i class="fa-solid fa-check-circle"></i> {{ session('success') ?? '' }}
-    </div>
+    {{-- Global Notification Toasts (Outsider Minimalist) --}}
+    <div id="outsider-toast-container" class="fixed top-5 right-5 z-[100] flex flex-col items-end gap-2 max-w-sm pointer-events-none px-4 sm:px-0">
+        @if(session('success'))
+            <div class="outsider-toast pointer-events-auto bg-emerald-600 text-white rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-lg shadow-emerald-950/20 flex items-center gap-2.5 transition-all duration-300 transform translate-y-0 opacity-100 max-w-xs sm:max-w-sm w-auto">
+                <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                <div class="text-xs sm:text-sm font-medium leading-snug min-w-0 flex-1">
+                    {{ session('success') }}
+                </div>
+                <button type="button" onclick="dismissOutsiderToast(this)" class="text-white/80 hover:text-white p-0.5 rounded-md transition-colors cursor-pointer shrink-0 ml-1.5" title="Tutup">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        @endif
 
-    <div id="error-box" class="floating-box {{ isset($error) ? '' : 'hidden' }} bg-red-500 text-white p-4 rounded">
-        <i class="fa-solid fa-triangle-exclamation"></i> {{ $error ?? '' }}
+        @php
+            $flashError = session('error') ?? session('failed') ?? ($error ?? null);
+            if (!$flashError && isset($errors) && $errors->any()) {
+                $flashError = $errors->first();
+            }
+        @endphp
+        @if($flashError)
+            <div class="outsider-toast pointer-events-auto bg-rose-600 text-white rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-lg shadow-rose-950/20 flex items-center gap-2.5 transition-all duration-300 transform translate-y-0 opacity-100 max-w-xs sm:max-w-sm w-auto">
+                <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div class="text-xs sm:text-sm font-medium leading-snug min-w-0 flex-1">
+                    {{ $flashError }}
+                </div>
+                <button type="button" onclick="dismissOutsiderToast(this)" class="text-white/80 hover:text-white p-0.5 rounded-md transition-colors cursor-pointer shrink-0 ml-1.5" title="Tutup">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        @endif
+
+        @if(session('info'))
+            <div class="outsider-toast pointer-events-auto bg-sky-600 text-white rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-lg shadow-sky-950/20 flex items-center gap-2.5 transition-all duration-300 transform translate-y-0 opacity-100 max-w-xs sm:max-w-sm w-auto">
+                <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div class="text-xs sm:text-sm font-medium leading-snug min-w-0 flex-1">
+                    {{ session('info') }}
+                </div>
+                <button type="button" onclick="dismissOutsiderToast(this)" class="text-white/80 hover:text-white p-0.5 rounded-md transition-colors cursor-pointer shrink-0 ml-1.5" title="Tutup">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        @endif
     </div>
 
     {{-- Quotes Data Payload --}}
@@ -100,10 +152,7 @@
     {{-- jQuery --}}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    {{-- Font Awesome --}}
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-
-    {{-- Clock + Typewriter Script --}}
+    {{-- Clock + Typewriter + Toast Script --}}
     <script>
         function updateClock() {
             const now = new Date();
@@ -112,6 +161,81 @@
         }
         setInterval(updateClock, 1000);
         updateClock();
+
+        function dismissOutsiderToast(btnOrEl) {
+            const toast = btnOrEl.closest('.outsider-toast');
+            if (!toast) return;
+            toast.classList.add('opacity-0', '-translate-y-2', 'scale-95');
+            setTimeout(() => {
+                if (toast && toast.parentNode) {
+                    toast.remove();
+                }
+            }, 300);
+        }
+
+        window.showOutsiderToast = function(message, type = 'success') {
+            let container = document.getElementById('outsider-toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'outsider-toast-container';
+                container.className = 'fixed top-5 right-5 z-[100] flex flex-col items-end gap-2 max-w-sm pointer-events-none px-4 sm:px-0';
+                document.body.appendChild(container);
+            }
+
+            const typeConfig = {
+                success: {
+                    bg: 'bg-emerald-600',
+                    shadow: 'shadow-emerald-950/20',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />'
+                },
+                error: {
+                    bg: 'bg-rose-600',
+                    shadow: 'shadow-rose-950/20',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />'
+                },
+                warning: {
+                    bg: 'bg-amber-600',
+                    shadow: 'shadow-amber-950/20',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />'
+                },
+                info: {
+                    bg: 'bg-sky-600',
+                    shadow: 'shadow-sky-950/20',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                }
+            };
+
+            const config = typeConfig[type] || typeConfig.success;
+
+            const toast = document.createElement('div');
+            toast.className = `outsider-toast pointer-events-auto ${config.bg} text-white rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 shadow-lg ${config.shadow} flex items-center gap-2.5 transition-all duration-300 transform -translate-y-2 opacity-0 max-w-xs sm:max-w-sm w-auto`;
+            toast.innerHTML = `
+                <svg class="w-4 h-4 text-white shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    ${config.svg}
+                </svg>
+                <div class="text-xs sm:text-sm font-medium leading-snug min-w-0 flex-1">
+                    ${message}
+                </div>
+                <button type="button" onclick="dismissOutsiderToast(this)" class="text-white/80 hover:text-white p-0.5 rounded-md transition-colors cursor-pointer shrink-0 ml-1.5" title="Tutup">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            `;
+
+            container.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('-translate-y-2', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+            });
+
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    dismissOutsiderToast(toast);
+                }
+            }, 5000);
+        };
 
         document.addEventListener('DOMContentLoaded', () => {
             const quotesEl = document.getElementById('quotes-data');
@@ -134,15 +258,14 @@
                 if (e.target.id === 'logout-modal') $('#logout-modal').addClass('hidden');
             });
 
-            // Notification Boxes Auto Hide
-            const successBox = document.getElementById('success-box');
-            if (successBox && !successBox.classList.contains('hidden')) {
-                setTimeout(() => successBox.classList.add('hidden'), 3000);
-            }
-            const errorBox = document.getElementById('error-box');
-            if (errorBox && !errorBox.classList.contains('hidden')) {
-                setTimeout(() => errorBox.classList.add('hidden'), 3000);
-            }
+            // Auto dismiss existing server-rendered toasts after 5 seconds
+            document.querySelectorAll('.outsider-toast').forEach(toast => {
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        dismissOutsiderToast(toast);
+                    }
+                }, 5000);
+            });
 
             if (typeof $ !== 'undefined') {
                 $.ajaxSetup({

@@ -19,11 +19,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 
-{{-- 
+{{--
     ========================================================================
     == PENDEKATAN TERBAIK UNTUK LAYOUT ADMIN DENGAN SIDEBAR FIXED
     ========================================================================
 --}}
+
 <body class="bg-gray-100 min-h-screen">
 
     {{-- 1. Sidebar Anda (yang 'position: fixed') akan dimuat di sini --}}
@@ -82,12 +83,12 @@
     <script src="{{ asset('js/admin/index.js') }}"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     @php
-        $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
-        $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
+    $raiseHandNotifInterval = \App\Models\PopupSetting::getInterval('raise_hand_notification', 5);
+    $raiseHandNotifEnabled = \App\Models\PopupSetting::isEnabled('raise_hand_notification', true);
     @endphp
     <script>
-        window.__raiseHandPollIntervalMs = {{ $raiseHandNotifInterval * 1000 }};
-        window.__raiseHandNotificationsEnabled = {{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? 'true' : 'false' }};
+        window.__raiseHandPollIntervalMs = Number("{{ $raiseHandNotifInterval * 1000 }}") || 0;
+        window.__raiseHandNotificationsEnabled = "{{ $raiseHandNotifEnabled && $raiseHandNotifInterval > 0 ? '1' : '0' }}" === "1";
     </script>
     <script src="{{ asset('js/admin/raise-hand-notifications.js') }}?v={{ file_exists(public_path('js/admin/raise-hand-notifications.js')) ? filemtime(public_path('js/admin/raise-hand-notifications.js')) : '1.0' }}"></script>
     <script>
@@ -97,17 +98,17 @@
                     'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                 },
                 statusCode: {
-                    419: function () {
+                    419: function() {
                         alert('Sesi Anda telah berakhir. Halaman akan dimuat ulang.');
                         window.location.reload();
                     },
-                    403: function () {
+                    403: function() {
                         alert('Anda tidak memiliki izin untuk melakukan tindakan ini.');
                     }
                 }
             });
         }
-        window.addEventListener('unhandledrejection', function (event) {
+        window.addEventListener('unhandledrejection', function(event) {
             if (event.reason && (event.reason.status === 419 || event.reason.status === 401)) {
                 window.location.reload();
             }

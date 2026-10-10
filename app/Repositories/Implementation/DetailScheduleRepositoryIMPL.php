@@ -96,7 +96,7 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
         }
 
         return $this->model
-            ->with(['shift', 'attdStatus', 'attendance.permitLogs', 'schedule'])
+            ->with(['shift', 'attdStatus', 'attendance.permitLogs', 'schedule', 'office'])
             ->whereHas('schedule', function ($query) use ($internId) {
                 $query->where('intern_id', $internId);
             })

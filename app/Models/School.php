@@ -16,7 +16,12 @@ class School extends Model {
     protected $fillable = [
         "name",
         "address",
-        "educational_level_id"
+        "educational_level_id",
+        "is_remote_school",
+    ];
+
+    protected $casts = [
+        'is_remote_school' => 'boolean',
     ];
 
     public function interns()

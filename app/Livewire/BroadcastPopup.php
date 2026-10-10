@@ -103,8 +103,9 @@ class BroadcastPopup extends Component
         $dismissedIds = session('dismissed_broadcast_ids', []);
         $excludedIds = array_unique(array_merge($answeredBroadcastIds, $dismissedIds));
 
-        // Ambil hanya 1 broadcast terbaru yang relevan dan belum dijawab langsung dari SQL database (hanya muncul pada hari H)
-        $pendingBroadcast = Broadcast::with('images')
+        // Ambil hanya 1 broadcast terbaru yang relevan dan belum dijawab langsung dari SQL database (hanya untuk kategori scheduled_broadcast pada hari H)
+        $pendingBroadcast = Broadcast::scheduledBroadcasts()
+            ->with('images')
             ->when(!empty($excludedIds), fn($q) => $q->whereNotIn('id', $excludedIds))
             ->where(function ($q) {
                 $q->where(function ($sq) {
