@@ -94,8 +94,8 @@ class ExternalRegistrationController extends Controller
                     'username'        => $candidateUsername,
                     'email'           => $validated['email'],
                     'role_id'         => 3, // Role Pemagang
-                    'is_active'       => false, // Belum aktif (menunggu aktivasi admin)
-                    'is_confirm'      => false, // Belum terkonfirmasi
+                    'is_active'       => true, // Diaktifkan karena telah disetujui / di-ACC dari IMS
+                    'is_confirm'      => true, // Dikonfirmasi
                     'is_gps_support'  => false,
                     'is_gps_activate' => false,
                     'os'              => 'Windows',
@@ -118,6 +118,8 @@ class ExternalRegistrationController extends Controller
                     $user->password = $validated['password'];
                 }
                 $user->role_id = 3;
+                $user->is_active = true;
+                $user->is_confirm = true;
                 $user->save();
             }
 
@@ -134,16 +136,21 @@ class ExternalRegistrationController extends Controller
                 }
             }
 
+            $existingProfile = Profile::where('user_id', $user->id)->first();
+            $effectiveAddress = !empty($validated['address']) && $validated['address'] !== '-'
+                ? $validated['address']
+                : ($existingProfile?->address ?? '-');
+
             $profile = Profile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'full_name'     => $validated['full_name'],
-                    'phone'         => !empty($validated['phone']) ? preg_replace('/[\s\-]+/', '', $validated['phone']) : '-',
-                    'date_of_birth' => !empty($validated['born_date']) ? $validated['born_date'] : now()->subYears(18)->toDateString(),
-                    'birth_place'   => !empty($validated['birth_place']) ? $validated['birth_place'] : '-',
-                    'gender'        => $gender,
-                    'religion'      => !empty($validated['religion']) ? $validated['religion'] : null,
-                    'address'       => $validated['address'] ?? '-',
+                    'phone'         => !empty($validated['phone']) && $validated['phone'] !== '-' ? preg_replace('/[\s\-]+/', '', $validated['phone']) : ($existingProfile?->phone ?? '-'),
+                    'date_of_birth' => !empty($validated['born_date']) ? $validated['born_date'] : ($existingProfile?->date_of_birth ?? now()->subYears(18)->toDateString()),
+                    'birth_place'   => !empty($validated['birth_place']) && $validated['birth_place'] !== '-' ? $validated['birth_place'] : ($existingProfile?->birth_place ?? '-'),
+                    'gender'        => $gender ?? ($existingProfile?->gender ?? null),
+                    'religion'      => !empty($validated['religion']) ? $validated['religion'] : ($existingProfile?->religion ?? null),
+                    'address'       => $effectiveAddress,
                 ]
             );
 
@@ -186,21 +193,27 @@ class ExternalRegistrationController extends Controller
             $shiftId = $shift ? $shift->id : null;
 
             // 7. Simpan / Perbarui Data Magang (Interns)
-            $startDate = !empty($validated['start_date']) ? $validated['start_date'] : now()->toDateString();
-            $endDate   = !empty($validated['end_date']) ? $validated['end_date'] : now()->addMonths(3)->toDateString();
+            $existingIntern = Intern::where('user_id', $user->id)->first();
+            $startDate = !empty($validated['start_date']) ? $validated['start_date'] : ($existingIntern?->start_date ?? now()->toDateString());
+            $endDate   = !empty($validated['end_date']) ? $validated['end_date'] : ($existingIntern?->end_date ?? now()->addMonths(3)->toDateString());
+            $effectiveNim = !empty($validated['student_id']) ? $validated['student_id'] : ($existingIntern?->nim ?? null);
+            $effectiveSchoolId = $schoolId ?: ($existingIntern?->school_id ?? null);
+            $effectiveDivisionId = $divisionId ?: ($existingIntern?->division_id ?? null);
+            $effectiveBrandId = $brandId ?: ($existingIntern?->brand_id ?? null);
+            $effectiveShiftId = $shiftId ?: ($existingIntern?->shift_id ?? null);
 
             $intern = Intern::updateOrCreate(
                 ['user_id' => $user->id],
                 [
-                    'school_id'           => $schoolId,
-                    'division_id'         => $divisionId,
-                    'brand_id'            => $brandId,
-                    'shift_id'            => $shiftId,
-                    'nim'                 => $validated['student_id'] ?? null,
+                    'school_id'           => $effectiveSchoolId,
+                    'division_id'         => $effectiveDivisionId,
+                    'brand_id'            => $effectiveBrandId,
+                    'shift_id'            => $effectiveShiftId,
+                    'nim'                 => $effectiveNim,
                     'start_date'          => $startDate,
                     'end_date'            => $endDate,
-                    'work_placement_type' => 'auto_office',
-                    'hybrid_group'        => 'auto',
+                    'work_placement_type' => $existingIntern?->work_placement_type ?? 'auto_office',
+                    'hybrid_group'        => $existingIntern?->hybrid_group ?? 'auto',
                 ]
             );
 

@@ -144,6 +144,18 @@ class UserService
 
             DB::commit();
 
+            // Sinkronisasi data pendaftaran pemagang ke Internship Management System via API
+            try {
+                $syncData = array_merge($data, [
+                    'effective_address' => $effectiveAddress,
+                    'home_latitude'     => $homeLat,
+                    'home_longitude'    => $homeLng,
+                ]);
+                \App\Services\InternSystemSyncService::syncRegistration($syncData);
+            } catch (\Throwable $syncErr) {
+                Log::warning('Sinkronisasi pendaftaran ke Intern System gagal (non-blocking): ' . $syncErr->getMessage());
+            }
+
             unset($userResult['password']);
 
             $result = [

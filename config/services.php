@@ -40,7 +40,7 @@ return [
     ],
 
     'intern_system' => [
-        'url' => env('INTERN_SYSTEM_URL', 'http://Internship_Management_System_SevenInc-develop.test'),
+        'url'     => env('INTERN_SYSTEM_URL', 'http://Internship_Management_System_SevenInc-develop.test'),
+        'api_key' => env('INTERN_SYSTEM_API_KEY', env('EXTERNAL_API_KEY', 'djuragan_ext_140633f34edfaf504a3d6812c8c2485c')),
     ],
-
 ];
