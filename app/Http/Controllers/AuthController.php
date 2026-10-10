@@ -50,15 +50,20 @@ class AuthController extends Controller
                 ->cookie($result->getData()['cookie']);
         }
 
-        $listSchool = $this->schoolService->getAllSchool();
-
-        $data = [];
-        if ($listSchool->isSuccess()) {
-            $data['schoolList'] = $listSchool->getData();
+        $failMessage = $result->getMessage() ?: 'Pendaftaran gagal.';
+        $fieldErrors = [];
+        if (str_contains(strtolower($failMessage), 'email')) {
+            $fieldErrors['email'] = 'Email ini sudah terdaftar. Silakan gunakan email lain.';
+        } elseif (str_contains(strtolower($failMessage), 'username')) {
+            $fieldErrors['username'] = 'Username ini sudah terdaftar. Silakan gunakan username lain.';
+        } else {
+            $fieldErrors['general'] = $failMessage;
         }
 
-        session()->flash('failed', 'Pendaftaran gagal !!!');
-        return view("register")->with($data);
+        return redirect()->back()
+            ->withInput()
+            ->withErrors($fieldErrors)
+            ->with('failed', $fieldErrors['email'] ?? $fieldErrors['username'] ?? $failMessage);
     }
 
     public function loginView(): View|\Illuminate\Http\RedirectResponse

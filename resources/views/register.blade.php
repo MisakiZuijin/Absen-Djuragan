@@ -74,7 +74,7 @@
             <div class="w-full max-w-md">
 
                 <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
-                <form method="POST" action="{{ route('register.action') }}">
+                <form id="registerForm" method="POST" action="{{ route('register.action') }}">
                     @csrf
                     <!-- Nama Lengkap -->
                     <div class="mb-3">
@@ -82,9 +82,13 @@
                             Nama Lengkap <span class="text-red-500">*</span>
                         </label>
                         <input
-                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                            class="shadow appearance-none border @error('full_name') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                             id="full_name" name="full_name" type="text" placeholder="Masukkan nama lengkap"
+                            required
                             value="{{ old('full_name') }}">
+                        @error('full_name')
+                            <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Email -->
@@ -93,9 +97,14 @@
                             Email <span class="text-red-500">*</span>
                         </label>
                         <input
-                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
-                            id="email" name="email" type="email" placeholder="Masukkan email"
+                            class="shadow appearance-none border @error('email') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
+                            id="email" name="email" type="text" placeholder="contoh: nama@gmail.com atau nama@yahoo.com"
+                            required
                             value="{{ old('email') }}">
+                        @error('email')
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
+                        <p id="email_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                     </div>
 
                     <!-- Username -->
@@ -104,9 +113,12 @@
                             Username <span class="text-red-500">*</span>
                         </label>
                         <input
-                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                            class="shadow appearance-none border @error('username') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                             id="username" name="username" type="text" placeholder="Masukkan username"
                             value="{{ old('username') }}">
+                        @error('username')
+                            <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Tempat Tanggal Lahir - Responsive Grid Layout -->
@@ -116,17 +128,23 @@
                                 Tempat Lahir <span class="text-red-500">*</span>
                             </label>
                             <input
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                class="shadow appearance-none border @error('birth_place') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                 id="birth_place" name="birth_place" type="text" placeholder="Masukkan tempat lahir"
                                 value="{{ old('birth_place') }}">
+                            @error('birth_place')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block text-gray-700 text-sm font-semibold mb-1" for="birth_date">
                                 Tanggal Lahir <span class="text-red-500">*</span>
                             </label>
                             <input
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                class="shadow appearance-none border @error('date_of_birth') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                 id="birth_date" name="date_of_birth" type="date" value="{{ old('date_of_birth') }}">
+                            @error('date_of_birth')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -137,19 +155,22 @@
                                 Jenis Kelamin <span class="text-red-500">*</span>
                             </label>
                             <select
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                class="shadow appearance-none border @error('gender') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                 id="gender" name="gender" required>
                                 <option value="" disabled {{ old('gender') ? '' : 'selected' }}>Pilih Jenis Kelamin</option>
                                 <option value="Laki-laki" {{ old('gender') == 'Laki-laki' ? 'selected' : '' }}>Laki-laki</option>
                                 <option value="Perempuan" {{ old('gender') == 'Perempuan' ? 'selected' : '' }}>Perempuan</option>
                             </select>
+                            @error('gender')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                         <div>
                             <label class="block text-gray-700 text-sm font-semibold mb-1" for="religion">
                                 Agama <span class="text-red-500">*</span>
                             </label>
                             <select
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                class="shadow appearance-none border @error('religion') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                 id="religion" name="religion" required>
                                 <option value="" disabled {{ old('religion') ? '' : 'selected' }}>Pilih Agama</option>
                                 <option value="Islam" {{ old('religion') == 'Islam' ? 'selected' : '' }}>Islam</option>
@@ -159,6 +180,9 @@
                                 <option value="Buddha" {{ old('religion') == 'Buddha' ? 'selected' : '' }}>Buddha</option>
                                 <option value="Khonghucu" {{ old('religion') == 'Khonghucu' ? 'selected' : '' }}>Khonghucu</option>
                             </select>
+                            @error('religion')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -169,7 +193,7 @@
                         </label>
                         <div class="relative">
                             <input
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 pl-3 pr-9 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
+                                class="shadow appearance-none border @error('gmaps_url') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 pl-3 pr-9 text-gray-700 leading-tight focus:outline-none focus:ring-1 text-sm"
                                 id="gmaps_url" name="gmaps_url" type="text" required
                                 placeholder="Contoh: https://maps.app.goo.gl/... atau link Google Maps"
                                 value="{{ old('gmaps_url') }}">
@@ -177,6 +201,9 @@
                                 <i class="fa-solid fa-location-dot"></i>
                             </span>
                         </div>
+                        @error('gmaps_url')
+                            <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
                         <input type="hidden" id="home_latitude" name="home_latitude" value="{{ old('home_latitude') }}">
                         <input type="hidden" id="home_longitude" name="home_longitude" value="{{ old('home_longitude') }}">
                         <div id="gmaps_status_msg" class="text-[11px] mt-1"></div>
@@ -210,9 +237,15 @@
                                 No Telp / WhatsApp <span class="text-red-500">*</span>
                             </label>
                             <input
-                                class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
-                                id="phone" name="phone" type="text" placeholder="08.. ... ...."
+                                class="shadow appearance-none border @error('phone') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
+                                id="phone" name="phone" type="text"
+                                placeholder="081234567890"
+                                required
                                 value="{{ old('phone') }}">
+                            @error('phone')
+                                <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
+                            <p id="phone_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                         </div>
                     </div>
 
@@ -222,7 +255,7 @@
                             Asal Sekolah/Kampus <span class="text-red-500">*</span>
                         </label>
                         <select
-                            class="shadow border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 select2"
+                            class="shadow border @error('school_origin_id') border-rose-500 @else border-gray-300 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 select2"
                             id="school" name="school_origin_id">
                             <option value="" disabled selected>--Pilih asal sekolah/kampus--</option>
                             @foreach ($schoolList as $school)
@@ -232,6 +265,9 @@
                             </option>
                             @endforeach
                         </select>
+                        @error('school_origin_id')
+                            <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
                     </div>
 
                     <!-- Password and Konfirmasi Password - 2 Grid Layout for Desktop, 1 Grid Layout for Mobile -->
@@ -243,12 +279,15 @@
                             </label>
                             <div class="relative">
                                 <input
-                                    class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                    class="shadow appearance-none border @error('password') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                     id="password" name="password" type="password"
                                     placeholder="Masukkan password">
                                 <i class="fa fa-eye absolute inset-y-0 right-0 mt-3 flex items-center pr-3 cursor-pointer text-gray-500"
                                     id="togglePassword3"></i>
                             </div>
+                            @error('password')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
 
                         <!-- Konfirmasi Password -->
@@ -287,6 +326,191 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             $('.select2').select2();
+
+            // Helper untuk menampilkan error inline dan border merah tanpa menghapus input
+            function setFieldError(inputEl, errorEl, message) {
+                if (inputEl) {
+                    inputEl.classList.add('border-rose-500', 'focus:ring-rose-500');
+                    inputEl.classList.remove('border-gray-300', 'focus:ring-gray-500');
+                }
+                if (errorEl) {
+                    // Sembunyikan error dari server jika ada agar tidak dobel
+                    const parent = errorEl.parentElement;
+                    if (parent) {
+                        const serverError = parent.querySelector('.server-error');
+                        if (serverError) serverError.style.display = 'none';
+                    }
+                    errorEl.innerHTML = '<i class="fa-solid fa-circle-exclamation mr-1"></i>' + message;
+                    errorEl.classList.remove('hidden');
+                }
+            }
+
+            function clearFieldError(inputEl, errorEl) {
+                if (inputEl) {
+                    inputEl.classList.remove('border-rose-500', 'focus:ring-rose-500');
+                    inputEl.classList.add('border-gray-300', 'focus:ring-gray-500');
+                }
+                if (errorEl) {
+                    const parent = errorEl.parentElement;
+                    if (parent) {
+                        const serverError = parent.querySelector('.server-error');
+                        if (serverError) serverError.style.display = 'none';
+                    }
+                    errorEl.innerHTML = '';
+                    errorEl.classList.add('hidden');
+                }
+            }
+
+            function showToast(message) {
+                const notifBox = document.getElementById('notification-box');
+                const notifMsg = document.getElementById('notification-message');
+                if (notifBox && notifMsg) {
+                    notifMsg.textContent = message;
+                    notifBox.classList.remove('hidden');
+                    notifBox.classList.add('show');
+                    clearTimeout(window.__notifTimer);
+                    window.__notifTimer = setTimeout(() => {
+                        notifBox.classList.remove('show');
+                        notifBox.classList.add('hidden');
+                    }, 4000);
+                }
+            }
+
+            // Validasi Input Nomor Telepon (Hanya Angka, Tanpa Huruf, Tanpa Tanda Minus)
+            const phoneInput = document.getElementById('phone');
+            const phoneError = document.getElementById('phone_error_msg');
+
+            function validatePhone(showRequired = false) {
+                if (!phoneInput) return true;
+                const rawVal = phoneInput.value;
+                const val = rawVal.trim();
+
+                if (!val) {
+                    if (showRequired) {
+                        setFieldError(phoneInput, phoneError, 'Nomor telepon/WhatsApp wajib diisi.');
+                        return false;
+                    }
+                    clearFieldError(phoneInput, phoneError);
+                    return true;
+                }
+
+                // Cek apakah ada tanda minus (-)
+                if (val.includes('-')) {
+                    setFieldError(phoneInput, phoneError, 'Nomor telepon tidak boleh ada tanda minus (-). Hanya boleh angka.');
+                    return false;
+                }
+
+                // Cek apakah ada huruf
+                if (/[a-zA-Z]/.test(val)) {
+                    setFieldError(phoneInput, phoneError, 'Nomor telepon tidak boleh ada huruf. Hanya boleh angka.');
+                    return false;
+                }
+
+                // Cek karakter lain selain angka (spasi, simbol, dll)
+                if (/[^0-9]/.test(val)) {
+                    setFieldError(phoneInput, phoneError, 'Nomor telepon hanya boleh berisi angka (tanpa spasi atau simbol).');
+                    return false;
+                }
+
+                // Cek panjang digit
+                if (val.length < 10) {
+                    setFieldError(phoneInput, phoneError, 'Nomor telepon minimal 10 digit angka (saat ini ' + val.length + ' digit).');
+                    return false;
+                }
+
+                if (val.length > 15) {
+                    setFieldError(phoneInput, phoneError, 'Nomor telepon maksimal 15 digit angka (saat ini ' + val.length + ' digit).');
+                    return false;
+                }
+
+                clearFieldError(phoneInput, phoneError);
+                return true;
+            }
+
+            if (phoneInput) {
+                // Jangan cegah pengetikan dan jangan hapus input! Berikan peringatan langsung jika ada karakter salah
+                phoneInput.addEventListener('input', function() {
+                    const val = this.value;
+                    // Jika terdeteksi minus atau huruf, langsung beri tahu tanpa menghapus
+                    if (val.includes('-') || /[a-zA-Z]/.test(val) || /[^0-9]/.test(val.trim())) {
+                        validatePhone(false);
+                    } else if (!phoneError.classList.contains('hidden')) {
+                        // Jika sebelumnya ada error, re-validasi saat pengguna memperbaiki
+                        validatePhone(false);
+                    }
+                });
+
+                phoneInput.addEventListener('blur', function() {
+                    validatePhone(false);
+                });
+            }
+
+            // Validasi Input Email (@gmail.com, @yahoo.com, @email.com)
+            const emailInput = document.getElementById('email');
+            const emailError = document.getElementById('email_error_msg');
+            const allowedEmailRegex = /^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|email\.com)$/i;
+
+            function validateEmail(showRequired = false) {
+                if (!emailInput) return true;
+                const rawVal = emailInput.value;
+                const val = rawVal.trim().toLowerCase();
+
+                if (!val) {
+                    if (showRequired) {
+                        setFieldError(emailInput, emailError, 'Email wajib diisi.');
+                        return false;
+                    }
+                    clearFieldError(emailInput, emailError);
+                    return true;
+                }
+
+                if (!val.includes('@')) {
+                    setFieldError(emailInput, emailError, "Email harus memiliki tanda '@' (contoh: nama@gmail.com, nama@yahoo.com, atau nama@email.com).");
+                    return false;
+                }
+
+                if (!allowedEmailRegex.test(val)) {
+                    setFieldError(emailInput, emailError, 'Email harus menggunakan domain @gmail.com, @yahoo.com, atau @email.com.');
+                    return false;
+                }
+
+                clearFieldError(emailInput, emailError);
+                return true;
+            }
+
+            if (emailInput) {
+                emailInput.addEventListener('input', function() {
+                    if (!emailError.classList.contains('hidden')) {
+                        validateEmail(false);
+                    }
+                });
+
+                emailInput.addEventListener('blur', function() {
+                    validateEmail(false);
+                });
+            }
+
+            // Validasi saat form di-submit
+            const regForm = document.getElementById('registerForm');
+            if (regForm) {
+                regForm.addEventListener('submit', function(e) {
+                    const isEmailValid = validateEmail(true);
+                    const isPhoneValid = validatePhone(true);
+
+                    if (!isEmailValid || !isPhoneValid) {
+                        e.preventDefault();
+
+                        // Fokuskan ke input yang pertama kali error tanpa menghapus input apapun
+                        if (!isEmailValid && emailInput) {
+                            emailInput.focus();
+                        } else if (!isPhoneValid && phoneInput) {
+                            phoneInput.focus();
+                        }
+
+                        showToast('Mohon periksa kembali kolom yang bertanda merah sebelum mendaftar.');
+                    }
+                });
+            }
 
             const gmapsInput = document.getElementById('gmaps_url');
             const gmapsStatus = document.getElementById('gmaps_status_msg');

@@ -15,6 +15,22 @@ class UserRequest extends FormRequest {
     }
 
     /**
+     * Prepare inputs before validation.
+     */
+    protected function prepareForValidation(): void {
+        if ($this->has('phone')) {
+            $this->merge([
+                'phone' => trim((string) $this->input('phone')),
+            ]);
+        }
+        if ($this->has('email')) {
+            $this->merge([
+                'email' => strtolower(trim((string) $this->input('email'))),
+            ]);
+        }
+    }
+
+    /**
      * Get the validation rules that apply to the request.
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
@@ -22,12 +38,25 @@ class UserRequest extends FormRequest {
     public function rules(): array {
         return [
             "username" => 'required|string|min:3|max:30|unique:users,username',
-            "email" => 'required|string|email|max:100|unique:users,email',
+            "email" => [
+                'required',
+                'string',
+                'email',
+                'max:100',
+                'unique:users,email',
+                'regex:/^[a-zA-Z0-9._%+-]+@(gmail\.com|yahoo\.com|yahoo\.co\.id|email\.com)$/i',
+            ],
             "password" => 'required|string|min:6|confirmed',
             "full_name" => 'required|string|max:100',
             "gmaps_url" => 'required|string|max:1000',
             "address" => 'nullable|string|max:255',
-            'phone' => 'required|string|max:20',
+            'phone' => [
+                'required',
+                'string',
+                'regex:/^[0-9]+$/',
+                'min:10',
+                'max:15',
+            ],
             "date_of_birth" => 'required|date',
             "birth_place" => "required|string|max:50",
             "school_origin_id" => 'required|integer|exists:schools,id',
@@ -76,6 +105,7 @@ class UserRequest extends FormRequest {
             'username.unique' => 'Username sudah terdaftar, silakan gunakan username lain.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
+            'email.regex' => 'Email harus menggunakan domain @gmail.com, @yahoo.com, atau @email.com.',
             'email.unique' => 'Email sudah terdaftar, silakan gunakan email lain.',
             'password.required' => 'Password wajib diisi.',
             'password.min' => 'Password minimal 6 karakter.',
@@ -83,6 +113,9 @@ class UserRequest extends FormRequest {
             'full_name.required' => 'Nama lengkap wajib diisi.',
             'gmaps_url.required' => 'Link Google Maps domisili / kos wajib diisi.',
             'phone.required' => 'Nomor telepon/WhatsApp wajib diisi.',
+            'phone.regex' => 'Nomor telepon hanya boleh berisi angka (tidak boleh ada huruf, spasi, atau tanda minus).',
+            'phone.min' => 'Nomor telepon minimal 10 digit angka.',
+            'phone.max' => 'Nomor telepon maksimal 15 digit angka.',
             'date_of_birth.required' => 'Tanggal lahir wajib diisi.',
             'birth_place.required' => 'Tempat lahir wajib diisi.',
             'school_origin_id.required' => 'Asal sekolah/kampus wajib dipilih.',
