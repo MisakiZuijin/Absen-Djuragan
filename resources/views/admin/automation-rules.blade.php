@@ -1185,14 +1185,6 @@
                             </span>
                             <span id="sim-text">Jalankan Simulasi</span>
                         </button>
-
-                        <button type="button" id="btn-deploy-schedule" onclick="confirmDeploySchedule()" disabled
-                            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs hover:shadow transition active:scale-[0.98] cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:border disabled:border-slate-200 disabled:shadow-none disabled:cursor-not-allowed disabled:transform-none">
-                            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                            <span>Setujui & Terapkan Jadwal</span>
-                        </button>
                     </div>
                 </div>
             </form>
@@ -1222,8 +1214,8 @@
                         </p>
                     </div>
                 </div>
-                <button type="button" onclick="confirmDeploySchedule()"
-                    class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs hover:shadow transition shrink-0 cursor-pointer">
+                <button type="button" id="btn-deploy-schedule" onclick="confirmDeploySchedule()"
+                    class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white shadow-xs hover:shadow transition shrink-0 cursor-pointer active:scale-[0.98]">
                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
@@ -2483,7 +2475,10 @@ foreach ($offices as $office) {
                 }
 
                 renderSimulationResults(data);
-                document.getElementById('btn-deploy-schedule').disabled = false;
+                const deployBtn = document.getElementById('btn-deploy-schedule');
+                if (deployBtn) {
+                    deployBtn.disabled = false;
+                }
 
                 Swal.fire({
                     toast: true,
