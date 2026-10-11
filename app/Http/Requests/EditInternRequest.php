@@ -64,7 +64,7 @@ class EditInternRequest extends FormRequest {
             "nim" => "nullable|string",
             "in_date" => "nullable|date",
             "out_date" => "nullable|date",
-            "nip" => "required|string",
+            "nip" => "nullable|string",
             "division_id" => "nullable|integer",
             "shift_id" => "nullable|integer|exists:shifts,id",
             "religion" => "nullable|string|in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu",

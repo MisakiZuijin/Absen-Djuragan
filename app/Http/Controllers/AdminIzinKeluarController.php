@@ -85,7 +85,7 @@ class AdminIzinKeluarController extends Controller
             : 0;
 
         $data = [
-            'authorized_by'           => $admin->profile->full_name ?? $admin->name ?? $admin->username,
+            'authorized_by'           => $admin->profile?->full_name ?? $admin->username ?? 'Admin',
             'agreed_duration_minutes' => $agreedMinutes,
             'is_mandatory_replace'    => $isMandatory,
             'approval_status'         => 'approved',
@@ -98,9 +98,9 @@ class AdminIzinKeluarController extends Controller
         $permitLog->update($data);
 
         $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
-            ?? $permitLog->attendance?->intern?->user?->name
+            ?? $permitLog->attendance?->intern?->user?->username
             ?? 'Pemagang';
-        $adminName = $admin->profile?->full_name ?? $admin->name ?? $admin->username;
+        $adminName = $admin->profile?->full_name ?? $admin->username ?? 'Admin';
         $statusMsg = $isMandatory ? "Wajib Ganti Jam ({$agreedMinutes} menit)" : "Bebas Waktu (Tanpa Ganti Jam)";
 
         ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} memproses Izin Keluar pemagang {$internName}: {$statusMsg}", [
@@ -124,7 +124,7 @@ class AdminIzinKeluarController extends Controller
         abort_unless($permitLog->type === 'leave', 404);
 
         $admin = $request->user();
-        $adminName = $admin->profile?->full_name ?? $admin->name ?? $admin->username;
+        $adminName = $admin->profile?->full_name ?? $admin->username ?? 'Admin';
 
         $permitLog->update([
             'authorized_by'           => $adminName,
@@ -134,7 +134,7 @@ class AdminIzinKeluarController extends Controller
         ]);
 
         $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
-            ?? $permitLog->attendance?->intern?->user?->name
+            ?? $permitLog->attendance?->intern?->user?->username
             ?? 'Pemagang';
 
         ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menetapkan Bebas Waktu pada Izin Keluar pemagang {$internName}", [
@@ -162,7 +162,7 @@ class AdminIzinKeluarController extends Controller
         ]);
 
         $admin = $request->user();
-        $adminName = $admin->profile?->full_name ?? $admin->name ?? $admin->username;
+        $adminName = $admin->profile?->full_name ?? $admin->username ?? 'Admin';
 
         $minutes = (int) ($validated['minutes'] ?? $permitLog->duration_in_minutes ?? 15);
         if ($minutes <= 0) $minutes = 15;
@@ -181,7 +181,7 @@ class AdminIzinKeluarController extends Controller
         $permitLog->update($data);
 
         $internName = $permitLog->attendance?->intern?->user?->profile?->full_name
-            ?? $permitLog->attendance?->intern?->user?->name
+            ?? $permitLog->attendance?->intern?->user?->username
             ?? 'Pemagang';
 
         ActivityLogger::log('APPROVE', 'Izin', "Admin {$adminName} menetapkan Wajib Ganti Waktu {$minutes} menit pada Izin Keluar pemagang {$internName}", [
@@ -207,7 +207,7 @@ class AdminIzinKeluarController extends Controller
         $admin = $request->user();
 
         $data = [
-            'authorized_by'   => $admin->profile->full_name ?? $admin->name ?? $admin->username,
+            'authorized_by'   => $admin->profile?->full_name ?? $admin->username ?? 'Admin',
             'approval_status' => 'rejected',
         ];
 
@@ -219,8 +219,8 @@ class AdminIzinKeluarController extends Controller
 
         $permitLog->update($data);
 
-        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name ?? 'Pemagang';
-        $adminName = $admin->profile?->full_name ?? $admin->name ?? $admin->username;
+        $internName = $permitLog->attendance?->intern?->user?->profile?->full_name ?? $permitLog->attendance?->intern?->user?->username ?? 'Pemagang';
+        $adminName = $admin->profile?->full_name ?? $admin->username ?? 'Admin';
         ActivityLogger::log('REJECT', 'Izin', "Admin {$adminName} menolak Izin Keluar pemagang {$internName}", [
             'permit_log_id' => $permitLog->id
         ]);

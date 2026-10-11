@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\Broadcast;
 use App\Models\BroadcastImage;
 use App\Models\Division;
@@ -28,6 +29,7 @@ class ScheduledBroadcastController extends Controller
                 'users:id,username',
                 'shifts:id,name,start_time,end_time',
                 'offices:id,name',
+                'brands:id,name',
                 'images:id,broadcast_id,image',
                 'reports.user.profile:id,user_id,full_name'
             ])
@@ -41,6 +43,7 @@ class ScheduledBroadcastController extends Controller
             ->get();
         $shifts = Shift::select('id', 'name', 'start_time', 'end_time')->orderBy('name')->get();
         $offices = Office::select('id', 'name')->orderBy('name')->get();
+        $brands = Brand::select('id', 'name')->where('is_active', true)->orderBy('name')->get();
 
         /** @var User|null $authUser */
         $authUser = auth()->user();
@@ -55,6 +58,7 @@ class ScheduledBroadcastController extends Controller
             'users' => $users,
             'shifts' => $shifts,
             'offices' => $offices,
+            'brands' => $brands,
             'totalDivisions' => $divisions->count(),
         ]);
     }
@@ -70,10 +74,12 @@ class ScheduledBroadcastController extends Controller
             'scheduled_at' => 'required|date',
             'shifts' => 'required|array|min:1',
             'shifts.*' => 'exists:shifts,id',
-            'broadcast_type' => 'required|in:all,division,specific,office,shift',
+            'broadcast_type' => 'required|in:all,division,specific,office,brand,shift',
             'divisions' => 'nullable|required_if:broadcast_type,division|array',
             'users' => 'nullable|required_if:broadcast_type,specific|array',
             'offices' => 'nullable|required_if:broadcast_type,office|array',
+            'brands' => 'nullable|required_if:broadcast_type,brand|array',
+            'brands.*' => 'exists:brands,id',
             'images' => 'nullable|array',
             'images.*' => 'image|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
@@ -118,6 +124,7 @@ class ScheduledBroadcastController extends Controller
             $broadcast->divisions()->sync($divisionIds);
             $broadcast->users()->sync($type === 'specific' ? ($validated['users'] ?? []) : []);
             $broadcast->offices()->sync($type === 'office' ? ($validated['offices'] ?? []) : []);
+            $broadcast->brands()->sync($type === 'brand' ? ($validated['brands'] ?? []) : []);
 
             if ($request->hasFile('images')) {
                 foreach ($request->file('images') as $file) {

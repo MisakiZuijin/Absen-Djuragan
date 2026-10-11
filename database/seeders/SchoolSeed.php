@@ -6,11 +6,13 @@ use App\Models\School;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class SchoolSeed extends Seeder {
+class SchoolSeed extends Seeder
+{
     /**
      * Run the database seeds.
      */
-    public function run(): void {
+    public function run(): void
+    {
         School::create([
             "name" => "Politeknik Negeri Jember",
             "address" => "Jl. Mastrip, Jember",
@@ -128,6 +130,12 @@ class SchoolSeed extends Seeder {
         School::create([
             "name" => "Universitas Hasanuddin",
             "address" => "Jl. Perintis Kemerdekaan, Makassar",
+            "educational_level_id" => 3
+        ]);
+
+        School::create([
+            "name" => "Universitas Duta Bangsa Surakarta",
+            "address" => "Jl. Bhayangkara, Surakarta",
             "educational_level_id" => 3
         ]);
 

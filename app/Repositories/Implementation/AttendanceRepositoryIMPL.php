@@ -330,8 +330,8 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
                 $q->orWhereHas('intern.user.profile', function ($p) use ($name) {
                     $p->where('full_name', 'LIKE', "%{$name}%");
                 })->orWhereHas('intern.user', function ($u) use ($name) {
-                    $u->where('name', 'LIKE', "%{$name}%")
-                      ->orWhere('username', 'LIKE', "%{$name}%");
+                    $u->where('username', 'LIKE', "%{$name}%")
+                      ->orWhere('email', 'LIKE', "%{$name}%");
                 })->orWhereHas('intern', function ($i) use ($name) {
                     $i->where('nim', 'LIKE', "%{$name}%");
                 })->orWhereHas('detailSchedules.schedule.intern.user.profile', function ($p) use ($name) {
@@ -390,8 +390,8 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
                 $q->orWhereHas('intern.user.profile', function ($p) use ($name) {
                     $p->where('full_name', 'LIKE', "%{$name}%");
                 })->orWhereHas('intern.user', function ($u) use ($name) {
-                    $u->where('name', 'LIKE', "%{$name}%")
-                      ->orWhere('username', 'LIKE', "%{$name}%");
+                    $u->where('username', 'LIKE', "%{$name}%")
+                      ->orWhere('email', 'LIKE', "%{$name}%");
                 })->orWhereHas('intern', function ($i) use ($name) {
                     $i->where('nim', 'LIKE', "%{$name}%");
                 })->orWhereHas('detailSchedules.schedule.intern.user.profile', function ($p) use ($name) {

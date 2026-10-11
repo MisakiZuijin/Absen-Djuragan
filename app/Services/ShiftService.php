@@ -9,6 +9,7 @@ use App\Http\Requests\UpdateShiftRequest;
 use App\Utils\DateNow;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 
 use function Sentry\captureException;
 
@@ -88,7 +89,7 @@ class ShiftService
                 $data['adt_end_break_time'] = $storeShiftRequest->input('adt_end_break_time');
             }
 
-            if ($storeShiftRequest->has('is_gps_active')) {
+            if ($storeShiftRequest->has('is_gps_active') && Schema::hasColumn('shifts', 'is_gps_active')) {
                 $data['is_gps_active'] = (int) $storeShiftRequest->input('is_gps_active');
             }
 
@@ -181,7 +182,7 @@ class ShiftService
                 || $updateShiftRequest->input('is_rolling') == '1';
             $data['is_rolling'] = $isRolling;
 
-            if ($updateShiftRequest->has('is_gps_active')) {
+            if ($updateShiftRequest->has('is_gps_active') && Schema::hasColumn('shifts', 'is_gps_active')) {
                 $data['is_gps_active'] = (int) $updateShiftRequest->input('is_gps_active');
             }
 

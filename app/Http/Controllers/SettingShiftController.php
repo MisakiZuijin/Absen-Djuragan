@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use App\Http\Requests\StoreShiftRequest;
 use App\Http\Requests\UpdateShiftRequest;
 use App\Services\ShiftService;
@@ -111,12 +112,12 @@ class SettingShiftController extends Controller
                 }
 
                 // 5. Bersihkan riwayat pra-pendaftaran ganti jam jika ada
-                if (class_exists(\App\Models\ChangeTimeRegistration::class)) {
+                if (class_exists(\App\Models\ChangeTimeRegistration::class) && Schema::hasTable('change_time_registrations')) {
                     \App\Models\ChangeTimeRegistration::where('shift_id', $id)->delete();
                 }
 
                 // 5b. Bersihkan ID shift dari pengaturan Ganti Jam (allowed_shift_ids)
-                if (class_exists(\App\Models\ChangeTimeSetting::class)) {
+                if (class_exists(\App\Models\ChangeTimeSetting::class) && Schema::hasTable('change_time_settings')) {
                     foreach (\App\Models\ChangeTimeSetting::all() as $setting) {
                         $allowed = $setting->allowed_shift_ids ?? [];
                         if (is_array($allowed) && in_array($id, $allowed)) {
@@ -124,6 +125,31 @@ class SettingShiftController extends Controller
                             $setting->save();
                         }
                     }
+                }
+
+                // 5c. Bersihkan referensi jadwal piket
+                if (class_exists(\App\Models\PiketSchedule::class) && Schema::hasTable('piket_schedules')) {
+                    \App\Models\PiketSchedule::where('shift_id', $id)->delete();
+                }
+
+                // 5d. Bersihkan sesi ganti jam
+                if (class_exists(\App\Models\ChangeTimeSession::class) && Schema::hasTable('change_time_sessions')) {
+                    \App\Models\ChangeTimeSession::where('shift_id', $id)->delete();
+                }
+
+                // 5e. Putuskan relasi offline attendances
+                if (Schema::hasTable('offline_attendances')) {
+                    DB::table('offline_attendances')->where('shift_id', $id)->update(['shift_id' => null]);
+                }
+
+                // 5f. Putuskan relasi late absences
+                if (Schema::hasTable('late_absences')) {
+                    DB::table('late_absences')->where('shift_id', $id)->update(['shift_id' => null]);
+                }
+
+                // 5g. Bersihkan pivot broadcast shift
+                if (Schema::hasTable('broadcast_shift')) {
+                    DB::table('broadcast_shift')->where('shift_id', $id)->delete();
                 }
 
                 // 6. Hapus master shift

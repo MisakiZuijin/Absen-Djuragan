@@ -205,9 +205,7 @@
                         placeholder="Contoh: 081234567890 atau 6281234567890">
                 </div>
                 <div class="mb-4">
-                    <label for="nip" class="block text-gray-700">
-                        NIP<span class="text-red-500">*</span>
-                    </label>
+                    <label for="nip" class="block text-gray-700">NIP</label>
                     <input type="text" id="nip" name="nip" value="{{ $team->profile->NIP }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>

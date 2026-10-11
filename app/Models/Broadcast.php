@@ -69,11 +69,19 @@ class Broadcast extends Model
     }
 
     /**
-     * Target per kantor/brand (Many-to-Many).
+     * Target per kantor (Many-to-Many).
      */
     public function offices()
     {
         return $this->belongsToMany(Office::class, 'broadcast_office', 'broadcast_id', 'office_id');
+    }
+
+    /**
+     * Target per brand (Many-to-Many).
+     */
+    public function brands()
+    {
+        return $this->belongsToMany(Brand::class, 'broadcast_brand', 'broadcast_id', 'brand_id');
     }
 
     /**

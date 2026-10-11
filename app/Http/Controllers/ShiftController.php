@@ -61,7 +61,7 @@ class ShiftController extends Controller
             ->get()
             ->unique('schedule.intern_id')
             ->sortBy(function ($item) {
-                return $item->schedule->intern->user->profile->full_name ?? $item->schedule->intern->user->name ?? '';
+                return $item->schedule?->intern?->user?->profile?->full_name ?? $item->schedule?->intern?->user?->username ?? '';
             });
 
         return view('admin.shift.index', [
@@ -171,7 +171,8 @@ class ShiftController extends Controller
                 return redirect()->back()->with('error', 'Tidak ada jadwal yang ditemukan untuk intern yang dipilih dalam rentang tanggal tersebut.');
             }
 
-            $adminName = auth()->user()?->name ?? 'Admin';
+            $adminUser = auth()->user();
+            $adminName = $adminUser?->profile?->full_name ?? $adminUser?->username ?? 'Admin';
             $targetShift = Shift::find($shiftId);
             \App\Helper\ActivityLogger::log('UPDATE', 'Master Data', "Admin {$adminName} memperbarui shift kerja massal ({$updatedCount} jadwal) menjadi shift {$targetShift?->name}", [
                 'shift_id' => $shiftId,

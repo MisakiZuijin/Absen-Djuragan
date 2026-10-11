@@ -138,11 +138,20 @@
                                 </span>
                                 @elseif($item->broadcast_type === 'office')
                                 <div class="flex flex-col gap-0.5">
-                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 w-fit">
-                                        <i class="fa-solid fa-building text-[10px]"></i> Per Kantor/Brand
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 w-fit">
+                                        <i class="fa-solid fa-building text-[10px]"></i> Per Kantor
                                     </span>
                                     <span class="text-[11px] text-gray-600 font-medium max-w-[160px] truncate pl-0.5">
                                         {{ $item->offices->pluck('name')->implode(', ') ?: '-' }}
+                                    </span>
+                                </div>
+                                @elseif($item->broadcast_type === 'brand')
+                                <div class="flex flex-col gap-0.5">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200/80 w-fit">
+                                        <i class="fa-solid fa-tag text-[10px]"></i> Per Brand
+                                    </span>
+                                    <span class="text-[11px] text-gray-600 font-medium max-w-[160px] truncate pl-0.5">
+                                        {{ $item->brands->pluck('name')->implode(', ') ?: '-' }}
                                     </span>
                                 </div>
                                 @elseif($item->broadcast_type === 'specific')
@@ -397,7 +406,8 @@
                 <select name="broadcast_type" id="broadcast_type" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 text-xs bg-white" onchange="handleTargetChange(this.value)">
                     <option value="all" {{ old('broadcast_type') == 'all' ? 'selected' : '' }}>Semua Pemagang pada Shift Tersebut</option>
                     <option value="division" {{ old('broadcast_type') == 'division' ? 'selected' : '' }}>Filter Berdasarkan Divisi</option>
-                    <option value="office" {{ old('broadcast_type') == 'office' ? 'selected' : '' }}>Filter Berdasarkan Kantor / Brand</option>
+                    <option value="office" {{ old('broadcast_type') == 'office' ? 'selected' : '' }}>Filter Berdasarkan Kantor</option>
+                    <option value="brand" {{ old('broadcast_type') == 'brand' ? 'selected' : '' }}>Filter Berdasarkan Brand</option>
                     <option value="specific" {{ old('broadcast_type') == 'specific' ? 'selected' : '' }}>Filter Pemagang Tertentu (Spesifik)</option>
                 </select>
 
@@ -420,14 +430,27 @@
                     </div>
                 </div>
 
-                <!-- Target: Kantor/Brand -->
+                <!-- Target: Kantor -->
                 <div id="target_office_wrapper" class="hidden p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <span class="block font-semibold text-gray-700 mb-1.5 text-[11px]">Pilih Kantor / Brand:</span>
+                    <span class="block font-semibold text-gray-700 mb-1.5 text-[11px]">Pilih Kantor:</span>
                     <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
                         @foreach($offices as $office)
                         <label class="flex items-center gap-1.5 text-[11px] text-gray-700 bg-white p-1.5 rounded border border-gray-200 hover:border-blue-400 cursor-pointer">
                             <input type="checkbox" name="offices[]" value="{{ $office->id }}" class="rounded text-blue-600 h-3.5 w-3.5">
                             <span class="truncate">{{ $office->name }}</span>
+                        </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <!-- Target: Brand -->
+                <div id="target_brand_wrapper" class="hidden p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <span class="block font-semibold text-gray-700 mb-1.5 text-[11px]">Pilih Brand:</span>
+                    <div class="grid grid-cols-2 gap-1.5 max-h-36 overflow-y-auto">
+                        @foreach($brands as $brand)
+                        <label class="flex items-center gap-1.5 text-[11px] text-gray-700 bg-white p-1.5 rounded border border-gray-200 hover:border-purple-400 cursor-pointer">
+                            <input type="checkbox" name="brands[]" value="{{ $brand->id }}" class="rounded text-purple-600 h-3.5 w-3.5">
+                            <span class="truncate">{{ $brand->name }}</span>
                         </label>
                         @endforeach
                     </div>
@@ -704,16 +727,20 @@
     function handleTargetChange(value) {
         const divWrap = document.getElementById('target_division_wrapper');
         const offWrap = document.getElementById('target_office_wrapper');
+        const brandWrap = document.getElementById('target_brand_wrapper');
         const specWrap = document.getElementById('target_specific_wrapper');
 
         if (divWrap) divWrap.classList.add('hidden');
         if (offWrap) offWrap.classList.add('hidden');
+        if (brandWrap) brandWrap.classList.add('hidden');
         if (specWrap) specWrap.classList.add('hidden');
 
         if (value === 'division' && divWrap) {
             divWrap.classList.remove('hidden');
         } else if (value === 'office' && offWrap) {
             offWrap.classList.remove('hidden');
+        } else if (value === 'brand' && brandWrap) {
+            brandWrap.classList.remove('hidden');
         } else if (value === 'specific' && specWrap) {
             specWrap.classList.remove('hidden');
         }

@@ -119,7 +119,7 @@ class InternService
                 "full_name" => $data['full_name'],
                 "birth_place" => $data['birth_place'],
                 "date_of_birth" => $data["birth_date"],
-                "NIP" => $data["nip"],
+                "NIP" => !empty($data["nip"]) ? $data["nip"] : null,
                 "phone" => $data["phone"],
                 "gender" => $data["gender"] ?? null,
                 "religion" => $data["religion"] ?? null,

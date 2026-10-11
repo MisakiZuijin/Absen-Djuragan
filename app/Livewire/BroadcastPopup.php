@@ -94,6 +94,7 @@ class BroadcastPopup extends Component
             $officeId = $todaysSchedule?->office_id ?? $user->intern?->office_id;
         }
         $divisionId = $user->intern?->division_id;
+        $brandId = $user->intern?->brand_id;
 
         // Ambil ID semua broadcast yang sudah pernah dijawab oleh pemagang ini atau di-dismiss di session
         $answeredBroadcastIds = BroadcastReport::where('user_id', $user->id)
@@ -127,7 +128,7 @@ class BroadcastPopup extends Component
                       }
                   });
             })
-            ->where(function ($q) use ($user, $officeId, $divisionId) {
+            ->where(function ($q) use ($user, $officeId, $divisionId, $brandId) {
                 $q->whereIn('broadcast_type', ['all', 'shift'])
                   ->orWhere(function ($sq) use ($divisionId) {
                       $sq->where('broadcast_type', 'division');
@@ -145,6 +146,14 @@ class BroadcastPopup extends Component
                       $sq->where('broadcast_type', 'office');
                       if ($officeId) {
                           $sq->whereHas('offices', fn($o) => $o->where('offices.id', $officeId));
+                      } else {
+                          $sq->whereRaw('1 = 0');
+                      }
+                  })
+                  ->orWhere(function ($sq) use ($brandId) {
+                      $sq->where('broadcast_type', 'brand');
+                      if ($brandId) {
+                          $sq->whereHas('brands', fn($b) => $b->where('brands.id', $brandId));
                       } else {
                           $sq->whereRaw('1 = 0');
                       }

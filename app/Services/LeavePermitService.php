@@ -38,8 +38,8 @@ class LeavePermitService
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user', function ($userQuery) use ($search) {
-                    $userQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('username', 'like', "%{$search}%")
+                    $userQuery->where('username', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
                         ->orWhereHas('profile', function ($profQuery) use ($search) {
                             $profQuery->where('full_name', 'like', "%{$search}%");
                         });
@@ -52,6 +52,16 @@ class LeavePermitService
                 });
             });
         }
+
+        $hasMandatoryCol = \Illuminate\Support\Facades\Schema::hasColumn('permit_logs', 'is_mandatory_replace');
+        $hasApprovalCol = \Illuminate\Support\Facades\Schema::hasColumn('permit_logs', 'approval_status');
+
+        $wajibGantiSql = ($hasMandatoryCol && $hasApprovalCol)
+            ? "MAX(CASE WHEN permit_logs.is_mandatory_replace = 1 AND permit_logs.approval_status = 'approved' THEN 1 ELSE 0 END)"
+            : "0";
+        $bebasWaktuSql = ($hasMandatoryCol && $hasApprovalCol)
+            ? "MAX(CASE WHEN permit_logs.is_mandatory_replace = 0 AND permit_logs.approval_status = 'approved' THEN 1 ELSE 0 END)"
+            : "0";
 
         // Subquery join untuk mengidentifikasi keberadaan izin keluar hari ini
         $query->leftJoin('attendances', function ($join) {
@@ -68,8 +78,8 @@ class LeavePermitService
             DB::raw('MAX(CASE WHEN permit_logs.id IS NOT NULL AND permit_logs.end_time IS NULL THEN 1 ELSE 0 END) AS is_active_leave'),
             DB::raw('MAX(CASE WHEN permit_logs.id IS NOT NULL THEN 1 ELSE 0 END) AS has_leave_today'),
             DB::raw('MAX(permit_logs.start_time) AS latest_leave_time'),
-            DB::raw('MAX(CASE WHEN permit_logs.is_mandatory_replace = 1 AND permit_logs.approval_status = "approved" THEN 1 ELSE 0 END) AS is_wajib_ganti'),
-            DB::raw('MAX(CASE WHEN permit_logs.is_mandatory_replace = 0 AND permit_logs.approval_status = "approved" THEN 1 ELSE 0 END) AS is_bebas_waktu')
+            DB::raw("{$wajibGantiSql} AS is_wajib_ganti"),
+            DB::raw("{$bebasWaktuSql} AS is_bebas_waktu")
         )
         ->groupBy('interns.id');
 
@@ -110,9 +120,19 @@ class LeavePermitService
         $activeAttendanceIds = $leaveLogs->whereNull('end_time')->pluck('attendance_id')->unique()->toArray();
         $activeCount = count($activeAttendanceIds);
         $completedCount = $leaveLogs->whereNotNull('end_time')->whereNotIn('attendance_id', $activeAttendanceIds)->pluck('attendance_id')->unique()->count();
-        $wajibGantiCount = $leaveLogs->where('is_mandatory_replace', true)->where('approval_status', 'approved')->pluck('attendance_id')->unique()->count();
-        $bebasWaktuCount = $leaveLogs->where('is_mandatory_replace', false)->where('approval_status', 'approved')->pluck('attendance_id')->unique()->count();
-        $pendingCount = $leaveLogs->where('approval_status', 'pending')->pluck('attendance_id')->unique()->count();
+
+        $hasMandatoryCol = \Illuminate\Support\Facades\Schema::hasColumn('permit_logs', 'is_mandatory_replace');
+        $hasApprovalCol = \Illuminate\Support\Facades\Schema::hasColumn('permit_logs', 'approval_status');
+
+        $wajibGantiCount = ($hasMandatoryCol && $hasApprovalCol)
+            ? $leaveLogs->where('is_mandatory_replace', true)->where('approval_status', 'approved')->pluck('attendance_id')->unique()->count()
+            : 0;
+        $bebasWaktuCount = ($hasMandatoryCol && $hasApprovalCol)
+            ? $leaveLogs->where('is_mandatory_replace', false)->where('approval_status', 'approved')->pluck('attendance_id')->unique()->count()
+            : 0;
+        $pendingCount = $hasApprovalCol
+            ? $leaveLogs->where('approval_status', 'pending')->pluck('attendance_id')->unique()->count()
+            : 0;
 
         return [
             'total_active' => $activeCount,
