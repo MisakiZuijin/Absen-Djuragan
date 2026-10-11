@@ -188,7 +188,7 @@ class AuthController extends Controller
         if ($result->isSuccess()) {
             return redirect()->route("notif.success.view");
         }
-        return redirect()->back();
+        return redirect()->back()->withInput()->with('error', $result->getMessage());
     }
 
     public function validationOptView()
@@ -198,17 +198,32 @@ class AuthController extends Controller
 
     public function changePasswordView(string $jwt)
     {
+        $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
+        try {
+            $decoded = \Firebase\JWT\JWT::decode($jwt, new \Firebase\JWT\Key($secretKey, 'HS256'));
+            $user = User::where('email', $decoded->email ?? null)->first();
+            if (!$user) {
+                return redirect()->route('forget-password.view')->with('error', 'Pengguna tidak ditemukan.');
+            }
+            if (isset($decoded->updated_at) && (string) $user->updated_at !== (string) $decoded->updated_at) {
+                return redirect()->route('forget-password.view')->with('error', 'Link reset password ini sudah pernah digunakan. Silakan ajukan permintaan baru.');
+            }
+        } catch (\Firebase\JWT\ExpiredException $e) {
+            return redirect()->route('forget-password.view')->with('error', 'Link reset password sudah kedaluwarsa. Silakan ajukan permintaan baru.');
+        } catch (\Throwable $e) {
+            return redirect()->route('forget-password.view')->with('error', 'Link reset password tidak valid atau rusak.');
+        }
+
         return view("reset-pass-page")->with(["key" => $jwt]);
     }
 
     public function changePasswordAction(Request $request, string $jwt)
     {
-
         $result = $this->userService->changePassword($request, $jwt);
         if ($result->isSuccess()) {
-            return redirect()->route('login.view')->with('success', 'Anda berhasil memperbarui password.');
+            return redirect()->route('login.view')->with('success', 'Password Anda berhasil diperbarui. Silakan login dengan password baru.');
         }
-        return redirect()->back();
+        return redirect()->back()->with('error', $result->getMessage());
     }
 
     public function successView()

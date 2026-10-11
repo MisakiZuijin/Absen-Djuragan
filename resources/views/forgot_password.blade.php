@@ -14,41 +14,38 @@
 </head>
 <body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
 
-    <div class="flex w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-cyan-400">
-        <!-- Panel Kiri dengan Logo -->
-        <div class="hidden md:flex w-1/2 bg-gray-800 items-center justify-center p-12">
-            <svg class="w-48 h-48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <g clip-path="url(#clip0_1_2)">
-                    <path d="M20 35 L50 20 L80 35 L80 65 L50 80 L20 65 Z" fill="#FFFFFF"/>
-                    <path d="M20 35 L50 50 L80 35" stroke="#1F2937" stroke-width="5"/>
-                    <path d="M50 50 L50 80" stroke="#1F2937" stroke-width="5"/>
-                    <path d="M25 40 L50 55 L75 40" fill="#FFFFFF"/>
-                    <path d="M25 40 L50 55 L75 40" stroke="#EF4444" stroke-width="5"/>
-                    <path d="M50 55 L50 75" stroke="#EF4444" stroke-width="5"/>
-                </g>
-                <defs>
-                    <clipPath id="clip0_1_2">
-                        <rect width="100" height="100" fill="white"/>
-                    </clipPath>
-                </defs>
-            </svg>
+    <div class="flex w-full max-w-4xl mx-auto bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-200">
+        <!-- Panel Kiri dengan Logo Web -->
+        <div class="hidden md:flex w-1/2 bg-gray-900 items-center justify-center p-12">
+            <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="w-56 h-56 object-contain drop-shadow-2xl">
         </div>
 
         <!-- Panel Kanan dengan Form -->
         <div class="w-full md:w-1/2 p-8 md:p-12">
             <div class="flex flex-col h-full justify-center">
                 <div class="text-center mb-8">
-                    <svg class="mx-auto h-8 w-8 text-gray-400 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <!-- Logo untuk tampilan mobile -->
+                    <div class="md:hidden mb-4 flex justify-center">
+                        <img src="{{ $appSetting->logo_url ?? asset('img/logo.svg') }}" alt="{{ $appSetting->app_name ?? 'Logo' }}" class="h-16 object-contain drop-shadow">
+                    </div>
+                    <svg class="mx-auto h-8 w-8 text-gray-400 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
                     </svg>
                     <h1 class="text-2xl font-bold text-gray-800">Reset Password</h1>
                     <p class="text-gray-500 mt-2 text-sm">Masukkan email Anda. Kami akan mengirimkan link konfirmasi untuk mengubah kata sandi Anda.</p>
                 </div>
                 
-                {{-- Menampilkan pesan sukses jika ada --}}
-                @if (session('status'))
-                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
-                        <p>{{ session('status') }}</p>
+                {{-- Menampilkan pesan sukses / status jika ada --}}
+                @if (session('status') || session('success'))
+                    <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-r" role="alert">
+                        <p class="text-sm font-medium">{{ session('status') ?? session('success') }}</p>
+                    </div>
+                @endif
+
+                {{-- Menampilkan pesan error jika ada --}}
+                @if (session('error'))
+                    <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-r" role="alert">
+                        <p class="text-sm font-medium">{{ session('error') }}</p>
                     </div>
                 @endif
                 

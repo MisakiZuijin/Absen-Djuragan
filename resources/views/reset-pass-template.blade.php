@@ -29,81 +29,72 @@
 
         .email-container {
             background-color: #ffffff;
-            border-radius: 10px;
+            border-radius: 12px;
             padding: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            width: 360px;
-            border: 1px solid #f0f0f0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            width: 100%;
+            max-width: 440px;
+            border: 1px solid #eaeaea;
             margin: auto;
             text-align: center;
         }
 
-        .logo {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background-image: url('http://localhost:8000/img/logo.png');
-            background-repeat: no-repeat;
-            background-position: center;
-            background-size: cover;
-            margin: 0 auto 20px;
-        }
-
         h2 {
-            color: #222;
-            font-size: 24px;
-            margin-bottom: 15px;
+            color: #1f2937;
+            font-size: 22px;
+            margin-bottom: 12px;
         }
 
         p {
-            margin: 20px 0;
+            margin: 16px 0;
             font-size: 14px;
-            color: #555;
-            line-height: 1.5;
+            color: #4b5563;
+            line-height: 1.6;
         }
 
         a.reset-button {
             display: inline-block;
-            padding: 12px 25px;
-            background-color: #ff5a5f;
-            color: #fff;
+            padding: 12px 28px;
+            background-color: #ef4444;
+            color: #ffffff !important;
             text-decoration: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-weight: 600;
-            transition: background-color 0.3s ease;
+            font-size: 14px;
         }
 
         a.reset-button:hover {
-            background-color: #e14b4e;
+            background-color: #dc2626;
         }
 
         .footer {
             font-size: 12px;
-            color: #777;
+            color: #9ca3af;
             margin-top: 20px;
+            line-height: 1.4;
         }
 
         .divider {
-            height: 5px;
-            background: linear-gradient(to right, #ff5a5f, #222);
-            margin-top: 30px;
+            height: 3px;
+            background: linear-gradient(to right, #ef4444, #1f2937);
+            margin-top: 24px;
+            border-radius: 2px;
         }
     </style>
 </head>
 
 <body>
-    <table>
+    <table role="presentation" width="100%">
         <tr>
-            <td>
+            <td align="center" style="padding: 40px 10px;">
                 <div class="email-container">
-                    <div class="logo"></div>
-
-                    <h2>Permintaan Ganti Password</h2>
-                    <p>Kami telah menerima permintaan untuk mengatur ulang kata sandi Anda. Klik tombol di bawah ini
-                        untuk
-                        melanjutkan proses.</p>
-                    <a href="{{ $details['url'] }}" class="reset-button">Reset Password</a>
-                    <div class="footer">Jika Anda tidak melakukan permintaan ini, abaikan email ini.</div>
+                    <h2>Permintaan Reset Password</h2>
+                    <p>Halo, kami telah menerima permintaan untuk mengatur ulang kata sandi akun Absensi Anda. Silakan klik tombol di bawah ini untuk membuat password baru:</p>
+                    <div style="margin: 25px 0;">
+                        <a href="{{ $details['url'] }}" class="reset-button">Reset Password Saya</a>
+                    </div>
+                    <p style="font-size: 12px; color: #6b7280;">Link ini bersifat rahasia dan hanya berlaku selama <strong>1 jam</strong>.</p>
+                    <div class="footer">Jika Anda tidak pernah meminta perubahan kata sandi, abaikan email ini dan akun Anda tetap aman.</div>
                     <div class="divider"></div>
                 </div>
             </td>

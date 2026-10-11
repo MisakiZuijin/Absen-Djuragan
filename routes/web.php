@@ -74,10 +74,6 @@ Route::get('/csrf-token', function () {
 // Route::post('/login') dihapus — method 'login' tidak ada di AuthController.
 // Login form submission menggunakan route 'login.action' (POST /loginAction).
 
-Route::post('/forgot-password', [UserService::class, 'forgotPassword'])
-    ->middleware('throttle:3,5')
-    ->name('forgot-password');
-
 // Authentication Routes
 Route::controller(AuthController::class)->group(function () {
     Route::get('/', 'loginView')->name('login.view');

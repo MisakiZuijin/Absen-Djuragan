@@ -323,17 +323,23 @@ class UserService
         try {
             $data = $request->validate([
                 'email' => 'required|email'
+            ], [
+                'email.required' => 'Email wajib diisi.',
+                'email.email' => 'Format email tidak valid.'
             ]);
 
             $user = $this->userRepository->findByEmail($data['email']);
 
             if (!$user) {
-                return new ActionResult(false, "Email not found", null);
+                return new ActionResult(false, "Email tidak terdaftar dalam sistem.", null);
             }
 
+            // Sertakan timestamp updated_at untuk proteksi sekali pakai (anti-replay)
             $payload = [
                 'email' => $user->email,
-                'exp' => time() + 3600
+                'user_id' => $user->id,
+                'updated_at' => (string) $user->updated_at,
+                'exp' => time() + 3600 // Berlaku 1 jam
             ];
 
             $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
@@ -342,40 +348,69 @@ class UserService
             $resetUrl = route('change-password.view', ['jwt' => $jwt]);
 
             $details = [
-                'body' => 'We have received a request to reset your password. Below is your reset link:',
+                'body' => 'Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda. Klik tombol di bawah ini untuk melanjutkan:',
                 'url' => $resetUrl
             ];
 
             Mail::to($data['email'])->send(new ResetPassMailable($details));
 
-            return new ActionResult(true, "Successfully sent password reset link, check your email", null);
+            return new ActionResult(true, "Link reset password berhasil dikirim ke email Anda. Silakan periksa inbox atau spam.", null);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return new ActionResult(false, $ve->validator->errors()->first(), null);
         } catch (\Throwable $th) {
             captureException($th);
-            return new ActionResult(false, "Failed to send password reset link", null);
+            Log::error('UserService forgetPassRequest error: ' . $th->getMessage());
+            return new ActionResult(false, "Gagal mengirim email reset password. Pastikan konfigurasi email (SMTP) sudah aktif.", null);
         }
     }
-    public function changePassword(Request $request, string $jwt)
+
+    public function changePassword(Request $request, string $jwt): ActionResult
     {
         try {
             $data = $request->validate([
                 "password" => 'required|min:8|confirmed',
+            ], [
+                'password.required' => 'Password baru wajib diisi.',
+                'password.min' => 'Password baru minimal harus 8 karakter.',
+                'password.confirmed' => 'Konfirmasi password tidak cocok dengan password baru.',
             ]);
-            $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
-            $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
 
-            $email = $decoded->email;
+            $secretKey = config('jwt.secret_key', 'default_absen_djuragan_secret_key_2026');
+
+            try {
+                $decoded = JWT::decode($jwt, new Key($secretKey, 'HS256'));
+            } catch (\Firebase\JWT\ExpiredException $e) {
+                return new ActionResult(false, "Link reset password sudah kedaluwarsa. Silakan ajukan permintaan baru.", null);
+            } catch (\Throwable $e) {
+                return new ActionResult(false, "Link reset password tidak valid atau rusak.", null);
+            }
+
+            $email = $decoded->email ?? null;
+            $tokenUpdatedAt = $decoded->updated_at ?? null;
+
+            if (!$email) {
+                return new ActionResult(false, "Token tidak valid.", null);
+            }
 
             $user = $this->userRepository->findByEmail($email);
             if (!$user) {
-                return response()->json(['error' => 'Invalid token'], 400);
+                return new ActionResult(false, "Pengguna tidak ditemukan.", null);
+            }
+
+            // Validasi anti-replay: jika user telah berganti password sejak token dibuat
+            if ($tokenUpdatedAt && (string) $user->updated_at !== (string) $tokenUpdatedAt) {
+                return new ActionResult(false, "Link reset password ini sudah pernah digunakan. Silakan ajukan permintaan baru.", null);
             }
 
             $this->userRepository->update($user->id, ["password" => $data['password']]);
 
-            return new ActionResult(true, "success change password", null);
-        } catch (\Exception $e) {
+            return new ActionResult(true, "Password berhasil diperbarui. Silakan login dengan password baru.", null);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return new ActionResult(false, $ve->validator->errors()->first(), null);
+        } catch (\Throwable $e) {
             captureException($e);
-            return new ActionResult(false, "failed change password", null);
+            Log::error('UserService changePassword error: ' . $e->getMessage());
+            return new ActionResult(false, "Gagal memperbarui password: " . $e->getMessage(), null);
         }
     }
 
