@@ -755,8 +755,8 @@
 <!-- ========================================================================= -->
 <!-- MODAL POPUP FORM PRESENSI OFFLINE                                         -->
 <!-- ========================================================================= -->
-<div id="offlineModal" class="hidden fixed inset-0 z-[9999] overflow-hidden bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
-    <div id="modalCard" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full overflow-hidden border border-gray-100 flex flex-col max-h-[90vh] sm:max-h-[88vh] my-auto animate-scale-up">
+<div id="offlineModal" class="hidden fixed inset-0 z-[9999] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+    <div id="modalCard" class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full border border-gray-100 flex flex-col max-h-[90vh] sm:max-h-[88vh] min-h-0 my-auto animate-scale-up relative overflow-hidden">
 
         <!-- Modal Header -->
         <div class="px-4 sm:px-6 py-3.5 sm:py-4.5 bg-gray-50 border-b border-gray-100 flex items-center justify-between shrink-0">
@@ -788,7 +788,7 @@
         </div>
 
         <!-- Modal Form Body (Scrollable) -->
-        <form action="{{ route($routePrefix . 'store') }}" method="POST" id="offlineForm" data-is-assistant="{{ $isAssistant ? '1' : '0' }}" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
+        <form action="{{ route($routePrefix . 'store') }}" method="POST" id="offlineForm" data-is-assistant="{{ $isAssistant ? '1' : '0' }}" class="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 space-y-4 sm:space-y-6 overscroll-contain">
             @csrf
             <input type="hidden" name="date" value="{{ $date }}">
 
@@ -1054,8 +1054,8 @@
                 <!-- 6 Interactive Radio Cards in 2 rows / 3 columns grid -->
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                     <!-- Tepat Waktu Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="hadir" class="sr-only" required
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="hadir" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10" required
                             {{ old('status', 'hadir') === 'hadir' || old('status') === 'tepat_waktu' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1070,8 +1070,8 @@
                     </label>
 
                     <!-- Early Check-in Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-cyan-500 hover:bg-cyan-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="early" class="sr-only"
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-cyan-500 hover:bg-cyan-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="early" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                             {{ old('status') === 'early' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-cyan-100 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1086,8 +1086,8 @@
                     </label>
 
                     <!-- Terlambat Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-amber-500 hover:bg-amber-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="terlambat" class="sr-only"
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-amber-500 hover:bg-amber-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="terlambat" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                             {{ old('status') === 'terlambat' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1102,8 +1102,8 @@
                     </label>
 
                     <!-- Izin Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-blue-500 hover:bg-blue-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="izin" class="sr-only"
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-blue-500 hover:bg-blue-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="izin" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                             {{ old('status') === 'izin' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1123,8 +1123,8 @@
                     </label>
 
                     <!-- Sakit Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-amber-500 hover:bg-amber-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="sakit" class="sr-only"
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-amber-500 hover:bg-amber-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="sakit" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                             {{ old('status') === 'sakit' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -1144,8 +1144,8 @@
                     </label>
 
                     <!-- Alpha Card -->
-                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-red-500 hover:bg-red-50/30 transition-all text-left group relative overflow-hidden">
-                        <input type="radio" name="status" value="alpha" class="sr-only"
+                    <label class="status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-red-500 hover:bg-red-50/30 transition-all text-left group relative overflow-hidden select-none">
+                        <input type="radio" name="status" value="alpha" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer z-10"
                             {{ old('status') === 'alpha' ? 'checked' : '' }}>
                         <div class="flex items-start justify-between mb-1">
                             <div class="w-8 h-8 rounded-xl bg-red-100 text-red-600 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -2167,22 +2167,23 @@
 
             statusCards.forEach(card => {
                 const radio = card.querySelector('input[type="radio"]');
-                if (radio.checked) {
+                const baseClasses = 'status-card cursor-pointer block border-2 rounded-2xl p-3.5 transition-all text-left group relative overflow-hidden select-none';
+                if (radio && radio.checked) {
                     if (radio.value === 'hadir' || radio.value === 'tepat_waktu') {
-                        card.className = 'status-card cursor-pointer block border-2 border-emerald-500 bg-emerald-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-emerald-500/20';
+                        card.className = `${baseClasses} border-emerald-500 bg-emerald-50/60 shadow-xs ring-2 ring-emerald-500/20`;
                     } else if (radio.value === 'early') {
-                        card.className = 'status-card cursor-pointer block border-2 border-cyan-500 bg-cyan-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-cyan-500/20';
+                        card.className = `${baseClasses} border-cyan-500 bg-cyan-50/60 shadow-xs ring-2 ring-cyan-500/20`;
                     } else if (radio.value === 'terlambat') {
-                        card.className = 'status-card cursor-pointer block border-2 border-amber-500 bg-amber-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-amber-500/20';
+                        card.className = `${baseClasses} border-amber-500 bg-amber-50/60 shadow-xs ring-2 ring-amber-500/20`;
                     } else if (radio.value === 'izin') {
-                        card.className = 'status-card cursor-pointer block border-2 border-blue-500 bg-blue-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-blue-500/20';
+                        card.className = `${baseClasses} border-blue-500 bg-blue-50/60 shadow-xs ring-2 ring-blue-500/20`;
                     } else if (radio.value === 'sakit') {
-                        card.className = 'status-card cursor-pointer block border-2 border-amber-500 bg-amber-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-amber-500/20';
+                        card.className = `${baseClasses} border-amber-500 bg-amber-50/60 shadow-xs ring-2 ring-amber-500/20`;
                     } else if (radio.value === 'alpha') {
-                        card.className = 'status-card cursor-pointer block border-2 border-red-500 bg-red-50/60 rounded-2xl p-3.5 transition-all text-left shadow-xs ring-2 ring-red-500/20';
+                        card.className = `${baseClasses} border-red-500 bg-red-50/60 shadow-xs ring-2 ring-red-500/20`;
                     }
                 } else {
-                    card.className = 'status-card cursor-pointer block border-2 border-gray-200 rounded-2xl p-3.5 hover:border-gray-300 transition-all text-left group';
+                    card.className = `${baseClasses} border-gray-200 hover:border-gray-300`;
                 }
             });
 
@@ -2462,7 +2463,7 @@
     }
 </script>
 
-@if(old('intern_id') || $errors->any())
+@if(old('intern_id') || (isset($errors) && $errors->any()))
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         openOfflineModal();

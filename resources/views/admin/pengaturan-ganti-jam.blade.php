@@ -103,8 +103,8 @@
                                     @php
                                         $isChecked = empty($allowedShifts) || in_array($shift->id, $allowedShifts);
                                     @endphp
-                                    <label class="relative p-4 rounded-xl border {{ $isChecked ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white' }} flex items-start gap-3 cursor-pointer hover:border-orange-400 transition shadow-2xs">
-                                        <input type="checkbox" name="allowed_shift_ids[]" value="{{ $shift->id }}" class="mt-1 w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500" {{ $isChecked ? 'checked' : '' }}>
+                                    <label class="shift-card relative p-4 rounded-xl border {{ $isChecked ? 'border-orange-300 bg-orange-50/30' : 'border-gray-200 bg-white' }} flex items-start gap-3 cursor-pointer hover:border-orange-400 transition shadow-2xs select-none">
+                                        <input type="checkbox" name="allowed_shift_ids[]" value="{{ $shift->id }}" class="mt-1 w-4 h-4 text-orange-600 rounded border-gray-300 focus:ring-orange-500" {{ $isChecked ? 'checked' : '' }} onchange="toggleShiftCard(this)">
                                         <div class="min-w-0 flex-1">
                                             <div class="font-bold text-xs sm:text-sm text-gray-900 truncate">{{ $shift->name }}</div>
                                             <div class="text-xs text-gray-500 font-mono mt-0.5">
@@ -146,9 +146,9 @@
                                         $isOfficeChecked = empty($allowedOffices) || in_array($office->id, $allowedOffices);
                                         $isDefaultOffice = $defaultOfficeId == $office->id;
                                     @endphp
-                                    <div class="p-4 rounded-xl border {{ $isOfficeChecked ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white' }} space-y-2 shadow-2xs">
+                                    <div class="office-card p-4 rounded-xl border {{ $isOfficeChecked ? 'border-blue-300 bg-blue-50/30' : 'border-gray-200 bg-white' }} space-y-2 shadow-2xs select-none">
                                         <label class="flex items-center gap-2.5 cursor-pointer">
-                                            <input type="checkbox" name="allowed_office_ids[]" value="{{ $office->id }}" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" {{ $isOfficeChecked ? 'checked' : '' }}>
+                                            <input type="checkbox" name="allowed_office_ids[]" value="{{ $office->id }}" class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" {{ $isOfficeChecked ? 'checked' : '' }} onchange="toggleOfficeCard(this)">
                                             <span class="font-bold text-xs sm:text-sm text-gray-900 capitalize">{{ $office->name }}</span>
                                         </label>
                                         <div class="pt-2 border-t border-gray-200/60 flex items-center justify-between text-xs">
@@ -157,7 +157,7 @@
                                                 <span class="text-[11px] font-semibold">Jadikan Default</span>
                                             </label>
                                             @if($isDefaultOffice)
-                                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Default Utama</span>
+                                             <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">Default Utama</span>
                                             @endif
                                         </div>
                                     </div>
@@ -167,6 +167,8 @@
                                     </div>
                                 @endforelse
                             </div>
+                        </div>
+
                         <!-- SECTION 4: CATATAN / PENGUMUMAN OTOMATIS UNTUK PEMAGANG -->
                         <div class="space-y-3 pt-3 border-t border-gray-100">
                             <div class="border-b border-gray-100 pb-2">
@@ -214,6 +216,30 @@
             if (parent) {
                 parent.classList.remove('border-gray-200');
                 parent.classList.add('border-blue-600', 'ring-1', 'ring-blue-600');
+            }
+        }
+
+        function toggleShiftCard(checkbox) {
+            const card = checkbox.closest('.shift-card');
+            if (!card) return;
+            if (checkbox.checked) {
+                card.classList.remove('border-gray-200', 'bg-white');
+                card.classList.add('border-orange-300', 'bg-orange-50/30');
+            } else {
+                card.classList.remove('border-orange-300', 'bg-orange-50/30');
+                card.classList.add('border-gray-200', 'bg-white');
+            }
+        }
+
+        function toggleOfficeCard(checkbox) {
+            const card = checkbox.closest('.office-card');
+            if (!card) return;
+            if (checkbox.checked) {
+                card.classList.remove('border-gray-200', 'bg-white');
+                card.classList.add('border-blue-300', 'bg-blue-50/30');
+            } else {
+                card.classList.remove('border-blue-300', 'bg-blue-50/30');
+                card.classList.add('border-gray-200', 'bg-white');
             }
         }
     </script>

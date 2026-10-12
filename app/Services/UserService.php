@@ -112,6 +112,9 @@ class UserService
             }
 
             $effectiveAddress = !empty($data['address']) ? $data['address'] : ($resolvedAddress ?: ($data['gmaps_url'] ?? null));
+            if ($effectiveAddress !== null) {
+                $effectiveAddress = mb_substr((string) $effectiveAddress, 0, 255);
+            }
 
             $profileData = [
                 'user_id' => $userResult->id,

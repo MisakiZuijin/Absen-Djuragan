@@ -14,6 +14,7 @@ class Shift extends Model
 
     protected $fillable = [
         "name",
+        "type",
         "description",
         "start_time",
         "break_time_in_minute",
@@ -23,6 +24,7 @@ class Shift extends Model
         "end_break_time",
         "adt_start_break_time",
         "adt_end_break_time",
+        "is_active",
         "is_gps_active",
         "is_friday_break_active",
         "friday_start_break_time",
@@ -37,6 +39,7 @@ class Shift extends Model
     ];
 
     protected $casts = [
+        'is_active' => 'boolean',
         'is_gps_active' => 'integer',
         'is_friday_break_active' => 'boolean',
         'is_split_shift' => 'boolean',

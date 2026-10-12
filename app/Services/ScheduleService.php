@@ -51,9 +51,14 @@ class ScheduleService
     {
         try {
             $result = $this->scheduleRepository->findByInternId($internId);
+            if (!$result) {
+                $result = \App\Models\Schedule::firstOrCreate([
+                    'intern_id' => $internId
+                ]);
+            }
             $data = [
                 "schedule"  => $result,
-                "schedule_data" => $result->detailSchedules
+                "schedule_data" => $result ? $result->detailSchedules : collect([])
             ];
 
             return new ActionResult(true, "success get data", $data);
@@ -335,6 +340,11 @@ class ScheduleService
     {
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
+            if (!$schedule) {
+                $schedule = \App\Models\Schedule::firstOrCreate([
+                    'intern_id' => $internId
+                ]);
+            }
             $existData = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $date);
             if (!$existData) {
                 $attData = [
@@ -379,7 +389,9 @@ class ScheduleService
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
             if (!$schedule) {
-                return new ActionResult(false, "schedule not found", null);
+                $schedule = \App\Models\Schedule::firstOrCreate([
+                    'intern_id' => $internId
+                ]);
             }
 
             $listDate = array_map('intval', explode(', ', $data["date"]));

@@ -20,6 +20,7 @@ interface AttendanceRepository
     public function updateStatusByShiftandDate(int $status, int $shift_id, string $dateNow, ?string $timeNow = null);
     public function updateEndTimeAll(string $dateNow, int $shift_id, string $end_time);
     public function updateTime(int $id, array $data);
+    public function updateAdjustableTime(int $id, array $data);
     public function getByIdAndAutomaticalyStatus(int $id, int $perPage = 10, int $currentPage = 1);
     public function getAllAutoEnd(int $perPage = 10, int $currentPage = 1);
     public function getAutoEndStatusByName(string $name, int $perPage = 10, int $currentPage = 1);

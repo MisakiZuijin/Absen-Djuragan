@@ -767,8 +767,12 @@ $userGdriveUrl = $internAccount?->gdrive_url ?? '';
         <div class="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 text-xs">
 
             <!-- FORM MANDIRI AKUN & PORTOFOLIO DIVISI -->
-            <form action="{{ route('user.account.update') }}" method="POST" class="space-y-4">
+            <form action="{{ route('user.account.update') }}" method="POST" class="space-y-4" autocomplete="off">
                 @csrf
+
+                <!-- Dummy inputs untuk mengelabui password manager / autofill browser -->
+                <input type="text" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="username">
+                <input type="password" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="current-password">
 
                 <div class="border border-gray-200 rounded-2xl p-3.5 sm:p-4 bg-white shadow-sm space-y-3.5 sm:space-y-4">
                     <div class="border-b pb-2">
@@ -804,7 +808,11 @@ $userGdriveUrl = $internAccount?->gdrive_url ?? '';
                                 </label>
                                 <input type="email" id="user_gmail_account" name="gmail_account"
                                     value="{{ old('gmail_account', $internAccount?->gmail_account) }}"
+                                    data-has-value="{{ !empty($internAccount?->gmail_account) ? '1' : '0' }}"
                                     placeholder="nama@gmail.com"
+                                    autocomplete="off"
+                                    readonly
+                                    onfocus="this.removeAttribute('readonly');"
                                     class="w-full p-2.5 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white">
                             </div>
                         </div>
@@ -815,8 +823,11 @@ $userGdriveUrl = $internAccount?->gdrive_url ?? '';
                             <div class="relative">
                                 <input type="password" id="user_gmail_password" name="gmail_password"
                                     value="{{ old('gmail_password', $internAccount?->gmail_password) }}"
+                                    data-has-value="{{ !empty($internAccount?->gmail_password) ? '1' : '0' }}"
                                     placeholder="{{ $internAccount?->gmail_password ? '•••••••• (Isi untuk mengganti)' : 'Masukkan password akun kantor' }}"
                                     autocomplete="new-password"
+                                    readonly
+                                    onfocus="this.removeAttribute('readonly');"
                                     class="w-full p-2.5 pr-10 border border-gray-300 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white font-mono">
                                 <button type="button" onclick="toggleTaskPasswordVisibility('user_gmail_password', this)"
                                     class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
@@ -1227,5 +1238,23 @@ $userGdriveUrl = $internAccount?->gdrive_url ?? '';
             }
         }
     }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        function resetUserAutofill() {
+            const emailEl = document.getElementById('user_gmail_account');
+            if (emailEl && emailEl.dataset.hasValue !== '1' && emailEl.value !== '') {
+                emailEl.value = '';
+            }
+            const pwdEl = document.getElementById('user_gmail_password');
+            if (pwdEl && pwdEl.dataset.hasValue !== '1' && pwdEl.value !== '') {
+                pwdEl.value = '';
+            }
+        }
+
+        resetUserAutofill();
+        setTimeout(resetUserAutofill, 50);
+        setTimeout(resetUserAutofill, 200);
+        setTimeout(resetUserAutofill, 500);
+    });
 </script>
 @endsection

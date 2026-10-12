@@ -41,29 +41,35 @@ class AuthController extends Controller
     {
         $userData = $request->validated();
 
-        $result =  $this->userService->createUser($userData);
+        $result = $this->userService->createUser($userData);
         if ($result->isSuccess()) {
-            session()->flash('success', 'Pendaftaran berhasil! Silakan menunggu aktivasi.');
-
-            return response()
-                ->view('login')
-                ->cookie($result->getData()['cookie']);
+            return redirect()
+                ->route('login.view')
+                ->with('success', 'Pendaftaran berhasil! Silakan menunggu aktivasi.')
+                ->withCookie($result->getData()['cookie']);
         }
 
-        $failMessage = $result->getMessage() ?: 'Pendaftaran gagal.';
+        $failMessage = $result->getMessage() ?: 'Terjadi kesalahan sistem saat memproses pendaftaran.';
+        $failLower = strtolower($failMessage);
+
         $fieldErrors = [];
-        if (str_contains(strtolower($failMessage), 'email')) {
-            $fieldErrors['email'] = 'Email ini sudah terdaftar. Silakan gunakan email lain.';
-        } elseif (str_contains(strtolower($failMessage), 'username')) {
-            $fieldErrors['username'] = 'Username ini sudah terdaftar. Silakan gunakan username lain.';
-        } else {
-            $fieldErrors['general'] = $failMessage;
+        if (str_contains($failLower, 'email')) {
+            $fieldErrors['email'] = 'Email sudah terdaftar, silakan gunakan email lain.';
+        } elseif (str_contains($failLower, 'username')) {
+            $fieldErrors['username'] = 'Username sudah terdaftar, silakan gunakan username lain.';
         }
 
+        // Jika error terkait input spesifik (email/username), arahkan langsung ke field inputnya tanpa popup fatal
+        if (!empty($fieldErrors)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors($fieldErrors);
+        }
+
+        // Jika kegagalan fatal/sistem yang tidak terkait field formulir, tampilkan lewat popup notifikasi atas
         return redirect()->back()
             ->withInput()
-            ->withErrors($fieldErrors)
-            ->with('failed', $fieldErrors['email'] ?? $fieldErrors['username'] ?? $failMessage);
+            ->with('fatal_error', $failMessage);
     }
 
     public function loginView(): View|\Illuminate\Http\RedirectResponse

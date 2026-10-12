@@ -233,7 +233,7 @@
                             <select id="shift"
                                 class="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm text-gray-800 bg-white">
                                 <option value="" disabled selected>-- Pilih Shift --</option>
-                                @foreach ($shifts as $shift)
+                                @foreach (($shifts ?? []) as $shift)
                                 <option value="{{ $shift->id }}">{{ $shift->name }}</option>
                                 @endforeach
                             </select>
@@ -273,7 +273,7 @@
                                 <select id="office"
                                     class="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm text-gray-800 bg-white">
                                     <option value="" disabled selected>-- Pilih Kantor --</option>
-                                    @foreach ($offices as $office)
+                                    @foreach (($offices ?? []) as $office)
                                     <option value="{{ $office->id }}">{{ $office->name }}</option>
                                     @endforeach
                                 </select>
@@ -328,7 +328,7 @@
                             </label>
                             <select id="shift_multi"
                                 class="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-gray-800 bg-white">
-                                @foreach ($shifts as $shift)
+                                @foreach (($shifts ?? []) as $shift)
                                 <option value="{{ $shift->id }}">{{ $shift->name }}</option>
                                 @endforeach
                             </select>
@@ -365,7 +365,7 @@
                             </label>
                             <select id="office_multi"
                                 class="w-full px-3 py-2 sm:py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-xs sm:text-sm text-gray-800 bg-white">
-                                @foreach ($offices as $office)
+                                @foreach (($offices ?? []) as $office)
                                 <option value="{{ $office->id }}">{{ $office->name }}</option>
                                 @endforeach
                             </select>
@@ -417,7 +417,9 @@
         {
             "internId": @json($intern_id),
             "scheduleData": @json($schedule_data),
-            "holidayData": @json($holiday_data)
+            "holidayData": @json($holiday_data),
+            "shiftsMap": @json(collect($shifts ?? [])->pluck('name', 'id')),
+            "officesMap": @json(collect($offices ?? [])->pluck('name', 'id'))
         }
     </script>
 
@@ -429,17 +431,8 @@
         const internId = initData.internId;
 
         // Lookup maps for shifts and offices
-        const shiftsMap = {
-            @foreach ($shifts as $s)
-                {{ $s->id }}: @json($s->name),
-            @endforeach
-        };
-
-        const officesMap = {
-            @foreach ($offices as $o)
-                {{ $o->id }}: @json($o->name),
-            @endforeach
-        };
+        const shiftsMap = initData.shiftsMap || {};
+        const officesMap = initData.officesMap || {};
 
         // Inputs & elements - Single Update
         const currentSelectedInput = document.getElementById("date-selected");

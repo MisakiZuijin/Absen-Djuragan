@@ -78,11 +78,14 @@ Route::get('/csrf-token', function () {
 Route::controller(AuthController::class)->group(function () {
     Route::get('/', 'loginView')->name('login.view');
     Route::post('/loginAction', 'loginAction')->middleware('throttle:10,1')->name('login.action');
+    Route::get('/loginAction', fn() => redirect()->route('login.view'));
     Route::get('/logout', 'logoutAction')->name('logout.action');
     Route::get('/user/create', 'registerView')->name('register.view');
     Route::post('/user/action/create', 'insertUser')->middleware('throttle:10,1')->name('register.action');
+    Route::get('/user/action/create', fn() => redirect()->route('register.view'));
     Route::get('/user/forget-password', 'forgetPasswordView')->name('forget-password.view');
     Route::post('/user/action/forget-password', 'forgetPasswordAction')->middleware('throttle:5,5')->name('forget-password.action');
+    Route::get('/user/action/forget-password', fn() => redirect()->route('forget-password.view'));
     Route::get('/user/verify/otp', 'validationOptView')->name('validation.view');
     Route::get('/user/change-password/{jwt}', 'changePasswordView')->name('change-password.view');
     Route::post('/user/action/change-password/{jwt}', 'changePasswordAction')->middleware('throttle:5,5')->name('change-password.action');

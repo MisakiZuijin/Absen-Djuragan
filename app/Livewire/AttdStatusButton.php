@@ -219,6 +219,11 @@ class AttdStatusButton extends Component
             return;
         }
 
+        if ($stageInt === AttendanceStatus::AttendanceIn->value && !$this->hasShift) {
+            $this->dispatch('post-created', status: false, message: "Jadwal shift Anda belum diatur oleh admin. Tombol presensi masuk akan aktif setelah jadwal dibuat.");
+            return;
+        }
+
         // ============================================================
         // [BARU GANTI JAM V2] Penanganan aksi ganti jam via ChangeTimeService
         // ============================================================
@@ -517,6 +522,24 @@ class AttdStatusButton extends Component
         $intern = $currentUser?->intern;
         if ($intern) {
             $internId = $intern->id;
+
+            // Sinkronisasi status shift jika sebelumnya belum ada jadwal
+            if (!$this->hasShift) {
+                $todayDetail = \App\Models\DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
+                    $q->where('intern_id', $internId);
+                })
+                    ->whereDate('date', today())
+                    ->with('shift')
+                    ->first();
+
+                if ($todayDetail && $todayDetail->shift) {
+                    $this->hasShift = true;
+                    $this->shift = $todayDetail->shift->name;
+                    $this->detailScheduleId = $todayDetail->id;
+                    $this->scheduleId = $todayDetail->schedule_id;
+                }
+            }
+
             $todayAttendance = $this->attendanceHistory ?? null;
             if (!$todayAttendance) {
                 $todayAttendance = \App\Models\Attendance::where('intern_id', $internId)

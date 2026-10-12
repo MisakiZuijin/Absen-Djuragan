@@ -193,7 +193,7 @@
                                     </span>
                                     @if($attd->intern?->school?->name)
                                     <span class="text-gray-300">•</span>
-                                    <span class="text-gray-400 truncate max-w-[150px]">{{ $attd->intern->school->name }}</span>
+                                    <span class="text-gray-400 truncate max-w-[150px]">{{ $attd->intern?->school?->name }}</span>
                                     @endif
                                 </div>
                             </div>

@@ -51,8 +51,13 @@
     </div>
     @endif
 
-    <form action="{{ route('admin.update.intern.action') }}" method="POST">
+    <form action="{{ route('admin.update.intern.action') }}" method="POST" autocomplete="off">
         @csrf
+
+        <!-- Dummy inputs untuk mengelabui password manager / autofill browser agar tidak mengisi akun lain -->
+        <input type="text" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="username">
+        <input type="password" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="current-password">
+
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-2">
 
             <input name="user_id" type="number" hidden value="{{ $team->id }}">
@@ -68,21 +73,32 @@
                     <label for="username" class="block text-gray-700">Username<span
                             class="text-red-500">*</span></label>
                     <input type="text" id="username" name="username" value="{{ $team->username }}"
+                        autocomplete="off"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
 
                 <div class="mb-4">
                     <label for="email" class="block text-gray-700">Email<span class="text-red-500">*</span></label>
                     <input type="email" id="email" name="email" value="{{ $team->email }}"
+                        autocomplete="off"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="password" class="block text-gray-700">Password</label>
-                    <input type="password" id="password" name="password" class="w-full mt-1 p-2 border border-gray-300 rounded">
+                    <input type="password" id="password" name="password"
+                        placeholder="•••••••• (Isi hanya jika ingin mengganti)"
+                        autocomplete="new-password"
+                        readonly
+                        onfocus="this.removeAttribute('readonly');"
+                        class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="confirm-password" class="block text-gray-700">Ulangi Password</label>
                     <input type="password" id="confirm-password" name="confirm_password"
+                        placeholder="•••••••• (Isi hanya jika ingin mengganti)"
+                        autocomplete="new-password"
+                        readonly
+                        onfocus="this.removeAttribute('readonly');"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
             </div>
@@ -96,7 +112,7 @@
 
                 <div class="mb-4">
                     <label for="nama" class="block text-gray-700">Nama<span class="text-red-500">*</span></label>
-                    <input type="text" id="nama" name="full_name" value="{{ $team->profile->full_name }}"
+                    <input type="text" id="nama" name="full_name" value="{{ $team->profile?->full_name }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
@@ -118,14 +134,14 @@
                     <label for="tempat-lahir" class="block text-gray-700">Tempat Lahir<span
                             class="text-red-500">*</span></label>
                     <input type="text" id="tempat-lahir" name="birth_place"
-                        value="{{ $team->profile->birth_place }}"
+                        value="{{ $team->profile?->birth_place }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="tanggal-lahir" class="block text-gray-700">Tanggal Lahir<span
                             class="text-red-500">*</span></label>
                     <input type="date" id="tanggal-lahir" name="birth_date"
-                        value="{{ $team->profile->date_of_birth }}"
+                        value="{{ $team->profile?->date_of_birth }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
 
@@ -134,7 +150,7 @@
                     <label for="gender" class="block text-gray-700">Jenis Kelamin<span
                             class="text-red-500">*</span></label>
                     @php
-                    $rawGender = strtolower(trim($team->profile->gender ?? ''));
+                    $rawGender = strtolower(trim($team->profile?->gender ?? ''));
                     $isMaleSelected = in_array($rawGender, ['l', 'laki-laki', 'male', 'pria'], true);
                     $isFemaleSelected = in_array($rawGender, ['p', 'perempuan', 'female', 'wanita'], true);
                     @endphp
@@ -152,7 +168,7 @@
                     <label for="religion" class="block text-gray-700">Agama<span
                             class="text-red-500">*</span></label>
                     @php
-                    $curReligion = $team->profile->religion ?? '';
+                    $curReligion = $team->profile?->religion ?? '';
                     $religions = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Khonghucu'];
                     @endphp
                     <select id="religion" name="religion" class="w-full mt-1 p-2 border border-gray-300 rounded">
@@ -163,17 +179,17 @@
                     </select>
                 </div>
 
-                <input type="hidden" id="address" name="address" value="{{ $team->profile->address ?? '' }}">
+                <input type="hidden" id="address" name="address" value="{{ $team->profile?->address ?? '' }}">
 
                 <div class="mb-4">
                     <label for="nomor-hp" class="block text-gray-700">Nomor HP<span
                             class="text-red-500">*</span></label>
-                    <input type="tel" id="nomor-hp" name="phone" value="{{ $team->profile->phone }}"
+                    <input type="tel" id="nomor-hp" name="phone" value="{{ $team->profile?->phone }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="nim" class="block text-gray-700">NIM</label>
-                    <input type="tel" id="nim" name="nim" value="{{ $team->intern->nim }}"
+                    <input type="tel" id="nim" name="nim" value="{{ $team->intern?->nim }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
             </div>
@@ -188,25 +204,25 @@
                 <div class="mb-4">
                     <label for="tanggal-masuk" class="block text-gray-700">Tanggal Masuk Magang</label>
                     <input type="date" id="tanggal-masuk" name="in_date"
-                        value="{{ $team->intern->start_date ?? '' }}"
+                        value="{{ $team->intern?->start_date ?? '' }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="tanggal-keluar" class="block text-gray-700">Tanggal Keluar Magang</label>
                     <input type="date" id="tanggal-keluar" name="out_date"
-                        value="{{ $team->intern->end_date ?? '' }}"
+                        value="{{ $team->intern?->end_date ?? '' }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
                     <label for="parent_whatsapp_number" class="block text-gray-700">Nomor WA Orang Tua</label>
                     <input type="text" id="parent_whatsapp_number" name="parent_whatsapp_number"
-                        value="{{ old('parent_whatsapp_number', $team->intern->whatsappNumber->phone_number ?? '') }}"
+                        value="{{ old('parent_whatsapp_number', $team->intern?->whatsappNumber?->phone_number ?? '') }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded"
                         placeholder="Contoh: 081234567890 atau 6281234567890">
                 </div>
                 <div class="mb-4">
                     <label for="nip" class="block text-gray-700">NIP</label>
-                    <input type="text" id="nip" name="nip" value="{{ $team->profile->NIP }}"
+                    <input type="text" id="nip" name="nip" value="{{ $team->profile?->NIP }}"
                         class="w-full mt-1 p-2 border border-gray-300 rounded">
                 </div>
                 <div class="mb-4">
@@ -215,12 +231,12 @@
                     <select
                         class="shadow border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
                         id="divisi" name="division_id">
-                        <option value="" {{ !isset($team->intern->division) ? 'selected' : '' }} disabled>
+                        <option value="" {{ !isset($team->intern?->division) ? 'selected' : '' }} disabled>
                             --Pilih Divisi--</option>
                         @foreach ($divisions as $division)
                         <option value="{{ $division->id }}"
                             data-name="{{ strtolower($division->name) }}"
-                            {{ isset($team->intern->division) && $team->intern->division->id == $division->id ? 'selected' : '' }}>
+                            {{ isset($team->intern?->division) && $team->intern->division->id == $division->id ? 'selected' : '' }}>
                             {{ $division->name }}
                         </option>
                         @endforeach
@@ -231,11 +247,11 @@
                     <select
                         class="shadow border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
                         id="brand_id" name="brand_id">
-                        <option value="" {{ !isset($team->intern->brand_id) ? 'selected' : '' }}>-- Tidak Memilih Brand --</option>
+                        <option value="" {{ !isset($team->intern?->brand_id) ? 'selected' : '' }}>-- Tidak Memilih Brand --</option>
                         @if(isset($brands))
                         @foreach ($brands as $brand)
                         <option value="{{ $brand->id }}"
-                            {{ isset($team->intern->brand_id) && $team->intern->brand_id == $brand->id ? 'selected' : '' }}>
+                            {{ isset($team->intern?->brand_id) && $team->intern->brand_id == $brand->id ? 'selected' : '' }}>
                             {{ $brand->name }}
                         </option>
                         @endforeach
@@ -732,15 +748,15 @@
                         <i class="fa-brands fa-google-drive text-amber-500 mr-1.5 text-base align-middle"></i>
                         Link Folder Google Drive (Tugas Pemagang)
                     </label>
-                    @if($team->intern?->account?->gdrive_url)
-                    <a href="{{ $team->intern->account->gdrive_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline font-medium">
+                    @if($account?->gdrive_url)
+                    <a href="{{ $account->gdrive_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-indigo-600 hover:text-indigo-800 hover:underline font-medium">
                         <span>Buka Folder Drive</span>
                         <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[11px]"></i>
                     </a>
                     @endif
                 </div>
                 <input type="url" id="gdrive_url" name="gdrive_url"
-                    value="{{ old('gdrive_url', $team->intern?->account?->gdrive_url) }}"
+                    value="{{ old('gdrive_url', $account?->gdrive_url) }}"
                     placeholder="https://drive.google.com/drive/folders/..."
                     class="w-full p-2.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500">
                 <p class="text-xs text-gray-500 mt-1.5">
@@ -756,15 +772,15 @@
                         <i class="fa-solid fa-file-excel text-emerald-600 mr-1.5 text-base align-middle"></i>
                         Link Google Spreadsheet (Monitoring & Rekap Tugas)
                     </label>
-                    @if($team->intern?->account?->spreadsheet_url)
-                    <a href="{{ $team->intern->account->spreadsheet_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-emerald-700 hover:text-emerald-900 hover:underline font-medium">
+                    @if($account?->spreadsheet_url)
+                    <a href="{{ $account->spreadsheet_url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center text-xs text-emerald-700 hover:text-emerald-900 hover:underline font-medium">
                         <span>Buka Spreadsheet</span>
                         <i class="fa-solid fa-arrow-up-right-from-square ml-1 text-[11px]"></i>
                     </a>
                     @endif
                 </div>
                 <input type="url" id="spreadsheet_url" name="spreadsheet_url"
-                    value="{{ old('spreadsheet_url', $team->intern?->account?->spreadsheet_url) }}"
+                    value="{{ old('spreadsheet_url', $account?->spreadsheet_url) }}"
                     placeholder="https://docs.google.com/spreadsheets/d/..."
                     class="w-full p-2.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500">
                 <p class="text-xs text-gray-500 mt-1.5">
@@ -785,11 +801,11 @@
                         <label for="github_url" class="block text-xs font-medium text-gray-700 mb-1">Link Profil / Repository GitHub</label>
                         <div class="flex items-center">
                             <input type="url" id="github_url" name="github_url"
-                                value="{{ old('github_url', $team->intern?->account?->github_url) }}"
+                                value="{{ old('github_url', $account?->github_url) }}"
                                 placeholder="https://github.com/username"
                                 class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500">
-                            @if($team->intern?->account?->github_url)
-                            <a href="{{ $team->intern->account->github_url }}" target="_blank" rel="noopener noreferrer" class="ml-2 px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs whitespace-nowrap" title="Buka GitHub">
+                            @if($account?->github_url)
+                            <a href="{{ $account->github_url }}" target="_blank" rel="noopener noreferrer" class="ml-2 px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs whitespace-nowrap" title="Buka GitHub">
                                 <i class="fa-solid fa-arrow-up-right-from-square"></i>
                             </a>
                             @endif
@@ -798,8 +814,12 @@
                     <div>
                         <label for="gmail_account" class="block text-xs font-medium text-gray-700 mb-1">Akun Gmail Kantor</label>
                         <input type="email" id="gmail_account" name="gmail_account"
-                            value="{{ old('gmail_account', $team->intern?->account?->gmail_account) }}"
+                            value="{{ old('gmail_account', $account?->gmail_account) }}"
+                            data-has-value="{{ !empty($account?->gmail_account) ? '1' : '0' }}"
                             placeholder="nama.pemagang@gmail.com"
+                            autocomplete="off"
+                            readonly
+                            onfocus="this.removeAttribute('readonly');"
                             class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500">
                     </div>
                 </div>
@@ -810,9 +830,12 @@
                     </label>
                     <div class="relative max-w-md">
                         <input type="password" id="gmail_password" name="gmail_password"
-                            value="{{ old('gmail_password', $team->intern?->account?->gmail_password) }}"
-                            placeholder="{{ $team->intern?->account?->gmail_password ? '•••••••• (Isi hanya jika ingin mengganti)' : 'Masukkan password akun' }}"
+                            value="{{ old('gmail_password', $account?->gmail_password) }}"
+                            data-has-value="{{ !empty($account?->gmail_password) ? '1' : '0' }}"
+                            placeholder="{{ $account?->gmail_password ? '•••••••• (Isi hanya jika ingin mengganti)' : 'Masukkan password akun' }}"
                             autocomplete="new-password"
+                            readonly
+                            onfocus="this.removeAttribute('readonly');"
                             class="w-full p-2 pr-10 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 font-mono">
                         <button type="button" onclick="togglePasswordVisibility('gmail_password', this)" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none" title="Lihat/Sembunyikan Password">
                             <i class="fa-regular fa-eye"></i>
@@ -834,11 +857,11 @@
                     <label for="figma_url" class="block text-xs font-medium text-gray-700 mb-1">Link Profil / Workspace / File Figma</label>
                     <div class="flex items-center">
                         <input type="url" id="figma_url" name="figma_url"
-                            value="{{ old('figma_url', $team->intern?->account?->figma_url) }}"
+                            value="{{ old('figma_url', $account?->figma_url) }}"
                             placeholder="https://www.figma.com/@username atau link file project"
                             class="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500">
-                        @if($team->intern?->account?->figma_url)
-                        <a href="{{ $team->intern->account->figma_url }}" target="_blank" rel="noopener noreferrer" class="ml-2 px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs whitespace-nowrap" title="Buka Figma">
+                        @if($account?->figma_url)
+                        <a href="{{ $account->figma_url }}" target="_blank" rel="noopener noreferrer" class="ml-2 px-2.5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-xs whitespace-nowrap" title="Buka Figma">
                             <i class="fa-solid fa-arrow-up-right-from-square"></i>
                         </a>
                         @endif
@@ -1009,8 +1032,8 @@
 <script>
     let kosMap = null;
     let kosMarker = null;
-    let currentKosLat = Number("{{ (float)($team->intern->home_latitude ?? ($offices->first()->latitude ?? -7.7828)) }}");
-    let currentKosLng = Number("{{ (float)($team->intern->home_longitude ?? ($offices->first()->longitude ?? 110.3670)) }}");
+    let currentKosLat = Number("{{ (float)($team->intern?->home_latitude ?? ($offices->first()?->latitude ?? -7.7828)) }}");
+    let currentKosLng = Number("{{ (float)($team->intern?->home_longitude ?? ($offices->first()?->longitude ?? 110.3670)) }}");
 
     function openKosMapModal() {
         const modal = document.getElementById('kosMapModal');
@@ -1541,6 +1564,27 @@
                 updateDivisionForm(divName);
             });
         }
+
+        // Cegah browser autofill mengisi akun/password jika di server aslinya kosong
+        function resetUnwantedAutofill() {
+            const gAcc = document.getElementById('gmail_account');
+            if (gAcc && gAcc.dataset.hasValue !== '1') {
+                gAcc.value = '';
+            }
+            const gPwd = document.getElementById('gmail_password');
+            if (gPwd && gPwd.dataset.hasValue !== '1') {
+                gPwd.value = '';
+            }
+            const pwd = document.getElementById('password');
+            const confPwd = document.getElementById('confirm-password');
+            if (pwd) pwd.value = '';
+            if (confPwd) confPwd.value = '';
+        }
+
+        resetUnwantedAutofill();
+        setTimeout(resetUnwantedAutofill, 50);
+        setTimeout(resetUnwantedAutofill, 200);
+        setTimeout(resetUnwantedAutofill, 500);
     });
 </script>
 @endsection

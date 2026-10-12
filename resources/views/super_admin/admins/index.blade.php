@@ -428,9 +428,14 @@
             </button>
         </div>
 
-        <form id="editAdminForm" action="" method="POST" class="space-y-3 sm:space-y-3.5 flex-1 overflow-y-auto pr-1">
+        <form id="editAdminForm" action="" method="POST" class="space-y-3 sm:space-y-3.5 flex-1 overflow-y-auto pr-1" autocomplete="off">
             @csrf
             @method('PUT')
+
+            <!-- Dummy inputs untuk mengelabui password manager / autofill browser -->
+            <input type="text" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="username">
+            <input type="password" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="current-password">
+
             <!-- Nama Lengkap -->
             <div>
                 <label for="edit_full_name" class="block text-xs font-semibold text-slate-700 mb-1">Nama Lengkap <span class="text-rose-500">*</span></label>
@@ -461,6 +466,9 @@
                         Password Baru <span class="text-[10px] text-slate-400 font-normal">(Kosongkan jika tetap)</span>
                     </label>
                     <input type="password" name="password" id="edit_password" placeholder="Kosongkan jika tidak diubah"
+                        autocomplete="new-password"
+                        readonly
+                        onfocus="this.removeAttribute('readonly');"
                         class="w-full px-3.5 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition">
                 </div>
 
@@ -601,6 +609,12 @@
         document.getElementById('edit_phone').value = data.phone;
         document.getElementById('edit_gender').value = data.gender;
         document.getElementById('edit_is_active').checked = data.is_active;
+
+        const pwd = document.getElementById('edit_password');
+        if (pwd) {
+            pwd.value = '';
+            pwd.setAttribute('readonly', 'readonly');
+        }
 
         document.getElementById('editAdminModal').classList.remove('hidden');
     }

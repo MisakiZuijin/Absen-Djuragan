@@ -116,9 +116,13 @@
     @endif
 
     <!-- Form -->
-    <form action="{{ route('admin.outsiders.update', $user->id) }}" method="POST" class="max-w-4xl" id="outsiderForm">
+    <form action="{{ route('admin.outsiders.update', $user->id) }}" method="POST" class="max-w-4xl" id="outsiderForm" autocomplete="off">
         @csrf
         @method('PUT')
+
+        <!-- Dummy inputs untuk mengelabui password manager / autofill browser -->
+        <input type="text" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="username">
+        <input type="password" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="current-password">
 
         <div class="bg-white rounded-lg shadow-sm border border-gray-200">
             <!-- Basic Information -->
@@ -160,6 +164,9 @@
                             Password Baru (Opsional)
                         </label>
                         <input type="password" name="password" id="password"
+                            autocomplete="new-password"
+                            readonly
+                            onfocus="this.removeAttribute('readonly');"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="Kosongkan jika tidak ingin mengubah">
                     </div>
@@ -359,6 +366,23 @@
                 }
             }
         });
+
+        // Reset autofill browser jika tidak sengaja terisi
+        function resetAutofill() {
+            const pwd = document.getElementById('password');
+            if (pwd && !pwd.dataset.manualFilled) pwd.value = '';
+        }
+        resetAutofill();
+        setTimeout(resetAutofill, 50);
+        setTimeout(resetAutofill, 200);
+        setTimeout(resetAutofill, 500);
+
+        const pwdInput = document.getElementById('password');
+        if (pwdInput) {
+            pwdInput.addEventListener('input', function() {
+                this.dataset.manualFilled = '1';
+            });
+        }
     });
 </script>
 @endsection

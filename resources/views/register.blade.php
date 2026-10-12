@@ -15,30 +15,41 @@
 
 <body class="h-screen bg-gray-100">
 
-    <div class="floating-box hidden" id="notification-box">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span id="notification-message">{{ session('failed') ?? ((isset($errors) ? $errors->first() : null) ?? 'Gagal Register') }}</span>
+    <!-- Slide Popup Notifikasi Atas (Hanya untuk Kegagalan Fatal / Sistem) -->
+    <div id="notification-box"
+        data-fatal-error="{{ session('fatal_error') ?? session('error') ?? '' }}"
+        class="fixed top-5 left-1/2 -translate-x-1/2 z-[9999] transition-all duration-300 ease-out transform -translate-y-16 opacity-0 pointer-events-none max-w-[92vw] sm:max-w-md w-auto"
+        role="alert">
+        <div class="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-rose-600 text-white shadow-2xl text-xs sm:text-sm font-medium border border-rose-500/50 backdrop-blur-sm">
+            <i class="fa-solid fa-circle-exclamation text-base shrink-0 text-white"></i>
+            <span id="notification-message" class="leading-snug break-words"></span>
+        </div>
     </div>
 
-    @if (session('failed') || (isset($errors) && $errors->any()))
     <script>
+        function showToast(message) {
+            const notifBox = document.getElementById('notification-box');
+            const notifMsg = document.getElementById('notification-message');
+            if (!notifBox || !notifMsg || !message) return;
+
+            notifMsg.textContent = message;
+            notifBox.classList.remove('-translate-y-16', 'opacity-0', 'pointer-events-none');
+            notifBox.classList.add('translate-y-0', 'opacity-100', 'pointer-events-auto');
+
+            clearTimeout(window.__notifTimer);
+            window.__notifTimer = setTimeout(() => {
+                notifBox.classList.remove('translate-y-0', 'opacity-100', 'pointer-events-auto');
+                notifBox.classList.add('-translate-y-16', 'opacity-0', 'pointer-events-none');
+            }, 5000);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             var box = document.getElementById('notification-box');
-            var message = "{{ session('failed') ?? (isset($errors) ? $errors->first() : '') }}";
-
-            if (message) {
-                document.getElementById('notification-message').innerText = message;
-                box.classList.remove('hidden');
-                box.classList.add('show');
-
-                setTimeout(function() {
-                    box.classList.remove('show');
-                    box.classList.add('hidden');
-                }, 3000);
+            if (box && box.dataset.fatalError) {
+                showToast(box.dataset.fatalError);
             }
         });
     </script>
-    @endif
 
     <div class="grid grid-cols-1 md:grid-cols-2 h-full">
 
@@ -74,6 +85,7 @@
             <div class="w-full max-w-md">
 
                 <h2 class="text-3xl font-bold text-gray-800 mb-6 text-center">Sign Up</h2>
+
                 <form id="registerForm" method="POST" action="{{ route('register.action') }}">
                     @csrf
                     <!-- Nama Lengkap -->
@@ -211,13 +223,20 @@
 
                     <!-- Keterangan Alamat / Nama Kos (Opsional) -->
                     <div class="mb-3">
-                        <label class="block text-gray-700 text-sm font-semibold mb-1" for="address">
-                            Alamat / Keterangan Kos <span class="text-xs text-gray-400 font-normal">(Opsional)</span>
-                        </label>
+                        <div class="flex justify-between items-center mb-1">
+                            <label class="block text-gray-700 text-sm font-semibold" for="address">
+                                Alamat / Keterangan Kos <span class="text-xs text-gray-400 font-normal">(Opsional)</span>
+                            </label>
+                            <span id="address_counter" class="text-xs text-gray-400 font-medium">0/255</span>
+                        </div>
                         <input
-                            class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 text-sm"
-                            id="address" name="address" type="text" placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 5"
+                            class="shadow appearance-none border @error('address') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-1 text-sm"
+                            id="address" name="address" type="text" maxlength="255" placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 5"
                             value="{{ old('address') }}">
+                        @error('address')
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
+                        <p id="address_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
@@ -297,12 +316,15 @@
                             </label>
                             <div class="relative">
                                 <input
-                                    class="shadow appearance-none border border-gray-300 rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500"
+                                    class="shadow appearance-none border @error('password_confirmation') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1"
                                     id="password_confirmation" name="password_confirmation" type="password"
                                     placeholder="Konfirmasi password">
                                 <i class="fa fa-eye absolute inset-y-0 right-0 mt-2 flex items-center pr-3 cursor-pointer text-gray-500"
                                     id="togglePassword4"></i>
                             </div>
+                            @error('password_confirmation')
+                                <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
 
@@ -358,21 +380,6 @@
                     }
                     errorEl.innerHTML = '';
                     errorEl.classList.add('hidden');
-                }
-            }
-
-            function showToast(message) {
-                const notifBox = document.getElementById('notification-box');
-                const notifMsg = document.getElementById('notification-message');
-                if (notifBox && notifMsg) {
-                    notifMsg.textContent = message;
-                    notifBox.classList.remove('hidden');
-                    notifBox.classList.add('show');
-                    clearTimeout(window.__notifTimer);
-                    window.__notifTimer = setTimeout(() => {
-                        notifBox.classList.remove('show');
-                        notifBox.classList.add('hidden');
-                    }, 4000);
                 }
             }
 
@@ -490,14 +497,56 @@
                 });
             }
 
+            // Validasi & Counter Karakter Alamat (Maksimal 255 Karakter)
+            const addressInput = document.getElementById('address');
+            const addressError = document.getElementById('address_error_msg');
+            const addressCounter = document.getElementById('address_counter');
+
+            function updateAddressCounter() {
+                if (!addressInput || !addressCounter) return true;
+                const len = addressInput.value.length;
+                addressCounter.textContent = `${len}/255`;
+
+                if (len > 255) {
+                    addressCounter.classList.remove('text-gray-400', 'text-amber-600');
+                    addressCounter.classList.add('text-rose-600', 'font-bold');
+                    setFieldError(addressInput, addressError, `Alamat / keterangan kos melebihi batas maksimal 255 karakter (saat ini ${len} karakter). Mohon persingkat isian.`);
+                    return false;
+                } else if (len === 255) {
+                    addressCounter.classList.remove('text-gray-400', 'text-rose-600');
+                    addressCounter.classList.add('text-amber-600', 'font-bold');
+                    if (addressError && !addressError.classList.contains('hidden')) {
+                        clearFieldError(addressInput, addressError);
+                    }
+                    return true;
+                } else {
+                    addressCounter.classList.remove('text-rose-600', 'text-amber-600', 'font-bold');
+                    addressCounter.classList.add('text-gray-400');
+                    if (addressError && !addressError.classList.contains('hidden')) {
+                        clearFieldError(addressInput, addressError);
+                    }
+                    return true;
+                }
+            }
+
+            if (addressInput) {
+                updateAddressCounter();
+                addressInput.addEventListener('input', updateAddressCounter);
+                addressInput.addEventListener('keyup', updateAddressCounter);
+                addressInput.addEventListener('paste', function() {
+                    setTimeout(updateAddressCounter, 50);
+                });
+            }
+
             // Validasi saat form di-submit
             const regForm = document.getElementById('registerForm');
             if (regForm) {
                 regForm.addEventListener('submit', function(e) {
                     const isEmailValid = validateEmail(true);
                     const isPhoneValid = validatePhone(true);
+                    const isAddressValid = updateAddressCounter();
 
-                    if (!isEmailValid || !isPhoneValid) {
+                    if (!isEmailValid || !isPhoneValid || !isAddressValid) {
                         e.preventDefault();
 
                         // Fokuskan ke input yang pertama kali error tanpa menghapus input apapun
@@ -505,9 +554,9 @@
                             emailInput.focus();
                         } else if (!isPhoneValid && phoneInput) {
                             phoneInput.focus();
+                        } else if (!isAddressValid && addressInput) {
+                            addressInput.focus();
                         }
-
-                        showToast('Mohon periksa kembali kolom yang bertanda merah sebelum mendaftar.');
                     }
                 });
             }
@@ -543,8 +592,9 @@
                                 if (data.address) {
                                     const addrField = document.getElementById('address');
                                     if (addrField && (!addrField.value || addrField.dataset.autoFilled === '1')) {
-                                        addrField.value = data.address;
+                                        addrField.value = data.address.slice(0, 255);
                                         addrField.dataset.autoFilled = '1';
+                                        updateAddressCounter();
                                     }
                                 }
                                 if (gmapsStatus) {

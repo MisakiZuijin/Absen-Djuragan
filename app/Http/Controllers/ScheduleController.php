@@ -307,9 +307,9 @@ class ScheduleController extends Controller
             "holiday_data" => $holidayData->isSuccess() ? $holidayData->getData() : [],
             "intern_id" => $internId,
             "workTypes" => $workType,
-            "shifts" => $shiftData->isSuccess() ? $shiftData->getData() : null,
-            "offices" => $officeData->isSuccess() ? $officeData->getData() : null,
-            "schedule_data" => $schedulData->isSuccess() ? $schedulData->getData() : null
+            "shifts" => $shiftData->isSuccess() ? $shiftData->getData() : collect([]),
+            "offices" => $officeData->isSuccess() ? $officeData->getData() : collect([]),
+            "schedule_data" => $schedulData->isSuccess() ? $schedulData->getData() : []
         ];
         return view('admin.shift_schedule.edit_shift_schedule', $data);
     }
@@ -317,9 +317,8 @@ class ScheduleController extends Controller
 
     public function scheduleUpdateSingle(Request $request, int $internId)
     {
-
         $requestData = $request->validate([
-            'date' => 'required|date_format:d',
+            'date' => 'required',
             'month' => 'required|integer|min:1|max:12',
             'year' => 'required|integer|min:1900|max:2100',
             'shift_id' => 'required|integer',
@@ -328,9 +327,14 @@ class ScheduleController extends Controller
             'schedule_type' => 'required|integer',
             'back_earlier' => 'required|integer'
         ]);
-        $date = $requestData["year"] . "-" . $requestData["month"] . "-" . $requestData["date"];
 
-        $this->scheduleService->updateScheduleSingleData($internId, $date, $requestData);
+        $date = sprintf('%04d-%02d-%02d', (int)$requestData["year"], (int)$requestData["month"], (int)$requestData["date"]);
+
+        $result = $this->scheduleService->updateScheduleSingleData($internId, $date, $requestData);
+
+        if (!$result->isSuccess()) {
+            return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal.'], 400);
+        }
 
         return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
     }
@@ -338,8 +342,6 @@ class ScheduleController extends Controller
 
     public function scheduleUpdateMulti(Request $request, int $internId)
     {
-
-
         $requestData = $request->validate([
             'date' => 'required|string',
             'month' => 'required|integer|min:1|max:12',
@@ -350,7 +352,11 @@ class ScheduleController extends Controller
             'schedule_type' => 'required|integer'
         ]);
 
-        $this->scheduleService->updateScheduleMultiData($internId, $requestData);
+        $result = $this->scheduleService->updateScheduleMultiData($internId, $requestData);
+
+        if (!$result->isSuccess()) {
+            return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal massal.'], 400);
+        }
 
         return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
     }

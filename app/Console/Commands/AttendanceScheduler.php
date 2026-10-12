@@ -42,29 +42,37 @@ class AttendanceScheduler extends Command
      */
     public function handle()
     {
-
         try {
-            $now = Carbon::now();
+            $now = Carbon::now('Asia/Jakarta');
+            $today = $now->toDateString();
             $shifts = $this->shiftRepository->getAll();
 
             foreach ($shifts as $shift) {
-                $startTime = Carbon::createFromFormat('H:i:s', $shift->start_time);
-                $endTime = Carbon::createFromFormat('H:i:s', $shift->end_time);
-
-
-                if ($now->greaterThan($startTime->copy()->addMinutes(30))) {
-                    $this->attendanceService->setAllAttdStatusByShift(5, $shift->id, $now->toDateString());
+                if (empty($shift->start_time) || empty($shift->end_time)) {
+                    continue;
                 }
 
+                $startTime = Carbon::createFromFormat('H:i:s', $shift->start_time, 'Asia/Jakarta')->setDateFrom($now);
+                $endTime = Carbon::createFromFormat('H:i:s', $shift->end_time, 'Asia/Jakarta')->setDateFrom($now);
 
-                if ($now->isSameMinute($endTime->copy()->addMinutes(20))) {
-                    $this->attendanceService->setToEndTime($now->toDateString(), $shift->id, $now->format("H:i:s"));
+                // Jika shift malam melewati tengah malam (end_time < start_time)
+                if ($shift->end_time < $shift->start_time) {
+                    $endTime->addDay();
+                }
+
+                if ($now->greaterThan($startTime->copy()->addMinutes(30))) {
+                    $this->attendanceService->setAllAttdStatusByShift(5, $shift->id, $today);
+                }
+
+                // Toleransi waktu: jika sekarang sudah mencapai atau melewati 20 menit setelah jam pulang shift
+                if ($now->greaterThanOrEqualTo($endTime->copy()->addMinutes(20))) {
+                    $this->attendanceService->setToEndTime($today, $shift->id, $shift->end_time);
                 }
             }
 
             $this->info('Attendance scheduling completed.');
         } catch (\Throwable $th) {
-            Log::info("error $th");
+            Log::error("AttendanceScheduler error: " . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
         }
     }
 }

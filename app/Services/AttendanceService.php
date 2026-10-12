@@ -187,7 +187,7 @@ class AttendanceService
                 $targetScheduleId = $activeChangeTimeSession->targets()->first()?->detail_schedule_id ?? $detailSchedule?->id;
                 $sessionShift = $activeChangeTimeSession->shift;
                 $nowTime = Carbon::now('Asia/Jakarta')->format('H:i:s');
-                
+
                 $isBreakMissed = false;
                 if (empty($activeChangeTimeSession->break_time)) {
                     if ($sessionShift && isset($sessionShift->break_time_in_minute) && (int) $sessionShift->break_time_in_minute <= 0) {
@@ -292,8 +292,8 @@ class AttendanceService
             $adjustableTimeData = \App\Models\AdjustableAttd::where('intern_id', $internId)
                 ->where(function ($q) use ($detailSchedule, $now) {
                     $q->whereDate('date', $now)
-                      ->orWhere('detail_schedule_id', $detailSchedule->id)
-                      ->orWhereNull('end_time');
+                        ->orWhere('detail_schedule_id', $detailSchedule->id)
+                        ->orWhereNull('end_time');
                 })
                 ->get();
 
@@ -454,10 +454,10 @@ class AttendanceService
 
 
             if (!is_null($adjustableTarget) && !is_null($adjustableTarget->start_time) && is_null($adjustableTarget->break_time)) {
-                $adjShift = $adjustableTarget instanceof \App\Models\ChangeTimeSession 
-                    ? $adjustableTarget->shift 
+                $adjShift = $adjustableTarget instanceof \App\Models\ChangeTimeSession
+                    ? $adjustableTarget->shift
                     : ($detailSchedule?->shift ?? null);
-                
+
                 $isAdjBreakMissed = false;
                 if ($adjShift && isset($adjShift->break_time_in_minute) && (int) $adjShift->break_time_in_minute <= 0) {
                     $isAdjBreakMissed = true;
@@ -516,8 +516,8 @@ class AttendanceService
                 $isRegularBreakMissed = true;
             }
 
-            $canTakeBreak = is_null($attendanceTarget?->break_time) 
-                && ($detailSchedule->shift?->break_time_in_minute ?? 0) > 0 
+            $canTakeBreak = is_null($attendanceTarget?->break_time)
+                && ($detailSchedule->shift?->break_time_in_minute ?? 0) > 0
                 && !$isRegularBreakMissed;
             $canTakePermit = is_null($attendanceTarget?->permit_start);
 
@@ -986,8 +986,8 @@ class AttendanceService
                     }
 
                     foreach ($item->adjustableAttendance as $key => $value) {
-                        $isApprovedVal = is_array($value->is_approved) 
-                            ? ($value->is_approved['value'] ?? 0) 
+                        $isApprovedVal = is_array($value->is_approved)
+                            ? ($value->is_approved['value'] ?? 0)
                             : ($value->is_approved->value ?? $value->is_approved ?? 0);
                         $totalMin = (int) ($value->total_min ?? 0);
                         $breakMin = (int) ($value->total_break_min ?? 0);
@@ -1115,7 +1115,10 @@ class AttendanceService
 
                 if ($day->attd_status_id == 2) $admissionTotal++;
 
-                $totalInMinute = $day->shift->total_time_in_minute;
+                $totalInMinute = (int) ($day->shift?->total_time_in_minute ?? 0);
+                if ($totalInMinute <= 0 && $day->shift && $day->shift->start_time && $day->shift->end_time && $day->shift->start_time !== '00:00:00') {
+                    $totalInMinute = max(0, \Carbon\Carbon::parse($day->shift->end_time)->diffInMinutes(\Carbon\Carbon::parse($day->shift->start_time)) - ($day->shift->break_time_in_minute ?? 0));
+                }
                 $workTimeTarget += $totalInMinute;
 
                 // Izin keluar wajib ganti jam menambah hutang waktu hari tersebut
@@ -1174,7 +1177,7 @@ class AttendanceService
                 })
                 ->paginate($pagination, ['*'], 'page', $currentPage);
 
-            $internIds = $interns->pluck('id')->toArray();
+            $internIds = collect($interns->items())->pluck('id')->toArray();
 
             // Hitung rekap kehadiran seluruh pemagang di halaman ini dalam 1 single query
             $attendanceSummaries = collect();
@@ -1258,25 +1261,25 @@ class AttendanceService
                 'attdStatus',
                 'permitReason.category'
             ])
-            ->whereHas('schedule', function ($q) use ($internId) {
-                $q->where('intern_id', $internId);
-            });
+                ->whereHas('schedule', function ($q) use ($internId) {
+                    $q->where('intern_id', $internId);
+                });
 
             // Sembunyikan jadwal hari libur dan Minggu yang kosong (tanpa presensi masuk, tanpa ganti jam, tanpa izin)
             if (!empty($holidayDates)) {
                 $query->where(function ($q) use ($holidayDates) {
                     $q->whereNotIn(\Illuminate\Support\Facades\DB::raw('DATE(date)'), $holidayDates)
-                      ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
-                      ->orWhereHas('adjustableAttendance')
-                      ->orWhere('attd_status_id', 3);
+                        ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
+                        ->orWhereHas('adjustableAttendance')
+                        ->orWhere('attd_status_id', 3);
                 });
             }
 
             $query->where(function ($q) {
                 $q->whereRaw('DAYOFWEEK(date) != 1')
-                  ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
-                  ->orWhereHas('adjustableAttendance')
-                  ->orWhere('attd_status_id', 3);
+                    ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
+                    ->orWhereHas('adjustableAttendance')
+                    ->orWhere('attd_status_id', 3);
             });
 
             if ($statusId) {
@@ -1387,8 +1390,8 @@ class AttendanceService
                             $gantiJamMinutes = max(0, $totalMins - $breakMins);
                         }
 
-                        $isApprovedVal = is_array($item['is_approved'] ?? null) 
-                            ? ($item['is_approved']['value'] ?? 0) 
+                        $isApprovedVal = is_array($item['is_approved'] ?? null)
+                            ? ($item['is_approved']['value'] ?? 0)
                             : ($item['is_approved'] ?? 0);
 
                         $item['total_min_format'] = \App\Helper\TimeHelper::formatMinutesToHours($gantiJamMinutes);
@@ -1800,7 +1803,7 @@ class AttendanceService
     {
         try {
             $shift = $this->shiftRepository->getById($shift_id);
-            if (!$shift) {
+            if (!$shift || empty($shift->end_time)) {
                 return;
             }
             $data = $this->attendanceRepository->getAttendanceStillNotBack($date, $shift_id);
@@ -1816,12 +1819,31 @@ class AttendanceService
             foreach ($data as $row) {
                 $id = (int)$row['id'];
                 $ids[] = $id;
-                $total_time = (int)DateNow::getDifferentInMinute($row["start_time"], $shift->end_time);
+
+                $attendanceDate = !empty($row['date']) ? Carbon::parse($row['date'])->format('Y-m-d') : $date;
+                $startTimePart = Carbon::parse($row['start_time'])->format('H:i:s');
+                $startDateTime = Carbon::parse($attendanceDate . ' ' . $startTimePart, 'Asia/Jakarta');
+
+                $endDateTime = Carbon::parse($attendanceDate . ' ' . $shift->end_time, 'Asia/Jakarta');
+                if ($shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+                    $endDateTime = $endDateTime->addDay();
+                }
+
+                if ($endDateTime->lessThan($startDateTime)) {
+                    $endDateTime = $startDateTime->copy();
+                }
+
+                $total_time = max(0, $startDateTime->diffInMinutes($endDateTime));
                 $casesTotalMin[] = "WHEN id = {$id} THEN {$total_time}";
 
                 if ($row["break_time"] != null && $row["back_time"] == null) {
                     $idsWithBreak[] = $id;
-                    $totalBreakMin = (int)DateNow::getDifferentInMinute($row["break_time"], $shift->end_time);
+                    $breakTimePart = Carbon::parse($row['break_time'])->format('H:i:s');
+                    $breakDateTime = Carbon::parse($attendanceDate . ' ' . $breakTimePart, 'Asia/Jakarta');
+                    if ($breakDateTime->lessThan($startDateTime)) {
+                        $breakDateTime = $breakDateTime->addDay();
+                    }
+                    $totalBreakMin = max(0, $breakDateTime->diffInMinutes($endDateTime));
                     $casesTotalBreakMin[] = "WHEN id = {$id} THEN {$totalBreakMin}";
                 }
             }
@@ -2251,10 +2273,10 @@ class AttendanceService
             'detailSchedules.shift',
             'detailSchedules.office'
         ])
-        ->whereDate('date', $date)
-        ->whereNotNull('start_time')
-        ->whereNull('end_time')
-        ->where('is_auto_end', false);
+            ->whereDate('date', $date)
+            ->whereNotNull('start_time')
+            ->whereNull('end_time')
+            ->where('is_auto_end', false);
 
         if (!empty($search)) {
             $query->whereHas('intern.user.profile', function ($q) use ($search) {
@@ -2267,20 +2289,29 @@ class AttendanceService
         // Filter: Hanya tampilkan pemagang yang waktu sekarang sudah MELEWATI jam pulang dari shiftnya
         return $attendances->filter(function ($attd) use ($now, $date) {
             $shift = $attd->detailSchedules?->shift ?? $attd->intern?->shift;
-            if (!$shift || !$shift->end_time) {
-                return Carbon::parse($date)->lessThan($now->copy()->startOfDay());
+
+            // Jam pulang mengikuti adjusted_end_time (jika ada penyesuaian jam pulang) atau jam pulang dari shift pemagang
+            $expectedEndTime = $attd->adjusted_end_time
+                ?: ($shift?->end_time ?: null);
+
+            // Jika pemagang tidak memiliki shift atau jam pulangnya tidak valid (00:00:00), lewati karena tidak ada acuan jam pulang
+            if (!$expectedEndTime || $expectedEndTime === '00:00:00') {
+                return false;
             }
 
+            $endTimeStr = is_string($expectedEndTime)
+                ? $expectedEndTime
+                : Carbon::parse($expectedEndTime)->format('H:i:s');
+
             $attdDateStr = $attd->date ? Carbon::parse($attd->date)->format('Y-m-d') : $date;
-            $endTimeStr = is_string($shift->end_time) ? $shift->end_time : Carbon::parse($shift->end_time)->format('H:i:s');
             $shiftEndDateTime = Carbon::parse($attdDateStr . ' ' . $endTimeStr, 'Asia/Jakarta');
 
             // Shift malam melewati tengah malam (end_time < start_time)
-            if ($shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+            if ($shift && $shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
                 $shiftEndDateTime = $shiftEndDateTime->addDay();
             }
 
-            // Hanya tampilkan jika sudah melewati batas jam pulang shift
+            // Hanya tampilkan jika sudah melewati batas jam pulang shift pemagang tersebut
             return $now->greaterThanOrEqualTo($shiftEndDateTime);
         })->values();
     }
@@ -2301,7 +2332,7 @@ class AttendanceService
         try {
             DB::beginTransaction();
 
-            $attendance = Attendance::with(['detailSchedules.shift', 'intern.user.profile'])->find($attendanceId);
+            $attendance = Attendance::with(['detailSchedules.shift', 'intern.shift', 'intern.user.profile'])->find($attendanceId);
             if (!$attendance) {
                 return new ActionResult(false, 'Data presensi tidak ditemukan.');
             }
@@ -2312,24 +2343,44 @@ class AttendanceService
 
             $shift = $attendance->detailSchedules?->shift ?? $attendance->intern?->shift;
 
+            // Jam pulang SELALU mengikuti shift masing-masing pemagang:
+            // 1. customEndTime (jika admin menentukan jam khusus secara eksplisit)
+            // 2. adjusted_end_time (jika ada penyesuaian jam pulang akibat keterlambatan)
+            // 3. end_time dari shift pemagang (Shift Pagi: 13:00, Shift Middle: 17:00, Shift Siang: 21:00, dll.)
             $endTime = $customEndTime;
             if (!$endTime) {
-                $endTime = $shift?->end_time ?? Carbon::now()->format('H:i:s');
+                $endTime = $attendance->adjusted_end_time
+                    ?: ($shift?->end_time ?: null);
+            }
+
+            if (!$endTime || $endTime === '00:00:00') {
+                DB::rollBack();
+                $internName = $attendance->intern?->user?->profile?->full_name ?? ($attendance->intern?->user?->name ?? 'Pemagang');
+                return new ActionResult(false, "Gagal memproses pulang otomatis: Pemagang {$internName} tidak memiliki shift kerja aktif yang valid. Jam pulang harus mengikuti shift pemagang.");
             }
 
             $endTimeStr = is_string($endTime) ? $endTime : Carbon::parse($endTime)->format('H:i:s');
 
-            // Hitung total menit kerja
-            $startTime = Carbon::parse($attendance->start_time);
-            $attendanceDate = $attendance->date ? Carbon::parse($attendance->date)->format('Y-m-d') : Carbon::today()->format('Y-m-d');
-            $endDateTime = Carbon::parse($attendanceDate . ' ' . $endTimeStr);
+            // Kunci tanggal presensi agar aman memproses presensi hari ini maupun hari kemarin
+            $attendanceDate = $attendance->date ? Carbon::parse($attendance->date)->format('Y-m-d') : Carbon::today('Asia/Jakarta')->format('Y-m-d');
+
+            // Parse start_time dengan mengaitkan tanggal presensi
+            $startTimePart = Carbon::parse($attendance->start_time)->format('H:i:s');
+            $startDateTime = Carbon::parse($attendanceDate . ' ' . $startTimePart, 'Asia/Jakarta');
+
+            $endDateTime = Carbon::parse($attendanceDate . ' ' . $endTimeStr, 'Asia/Jakarta');
 
             // Jika shift malam melewati tengah malam (end_time < start_time)
             if ($shift && $shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
                 $endDateTime = $endDateTime->addDay();
             }
 
-            $totalMin = max(0, $startTime->diffInMinutes($endDateTime));
+            // Pastikan endDateTime tidak lebih kecil dari startDateTime
+            if ($endDateTime->lessThan($startDateTime)) {
+                $endDateTime = $startDateTime->copy();
+            }
+
+            $totalMin = max(0, $startDateTime->diffInMinutes($endDateTime));
 
             $updateData = [
                 'end_time' => $endTimeStr,
@@ -2341,11 +2392,18 @@ class AttendanceService
 
             // Jika sedang izin istirahat tapi belum kembali
             if ($attendance->break_time && !$attendance->back_time) {
-                $breakStart = Carbon::parse($attendance->break_time);
+                $breakTimePart = Carbon::parse($attendance->break_time)->format('H:i:s');
+                $breakStart = Carbon::parse($attendanceDate . ' ' . $breakTimePart, 'Asia/Jakarta');
+                if ($breakStart->lessThan($startDateTime)) {
+                    $breakStart = $breakStart->addDay();
+                }
                 $totalBreak = max(0, $breakStart->diffInMinutes($endDateTime));
                 $updateData['back_time'] = $endTimeStr;
                 $updateData['total_break_min'] = $totalBreak;
                 $updateData['total_min'] = max(0, $totalMin - $totalBreak);
+            } else {
+                $existingBreak = (int) ($attendance->total_break_min ?? 0);
+                $updateData['total_min'] = max(0, $totalMin - $existingBreak);
             }
 
             $attendance->update($updateData);
@@ -2374,28 +2432,40 @@ class AttendanceService
     }
 
     /**
-     * Konfirmasi pulang otomatis massal untuk banyak pemagang.
+     * Konfirmasi pulang otomatis massal untuk banyak pemagang secara independen per transaksi.
      */
     public function bulkConfirmAutoEndAttendance(array $attendanceIds, ?string $note = null): ActionResult
     {
-        try {
-            DB::beginTransaction();
+        $successCount = 0;
+        $failCount = 0;
+        $errors = [];
 
-            $successCount = 0;
-            foreach ($attendanceIds as $id) {
+        foreach ($attendanceIds as $id) {
+            try {
                 $res = $this->confirmAutoEndAttendance((int)$id, $note);
                 if ($res->isSuccess()) {
                     $successCount++;
+                } else {
+                    $failCount++;
+                    $errors[] = "ID {$id}: " . $res->getMessage();
                 }
+            } catch (\Throwable $th) {
+                $failCount++;
+                $errors[] = "ID {$id}: " . $th->getMessage();
+                Log::error("bulkConfirmAutoEndAttendance error on ID {$id}: " . $th->getMessage());
             }
-
-            DB::commit();
-            return new ActionResult(true, "Berhasil memulangkan {$successCount} pemagang secara otomatis.");
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Log::error('bulkConfirmAutoEndAttendance error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
-            return new ActionResult(false, 'Gagal memproses pulang otomatis massal: ' . $th->getMessage());
         }
+
+        if ($successCount > 0) {
+            $msg = "Berhasil memulangkan {$successCount} pemagang secara otomatis.";
+            if ($failCount > 0) {
+                $msg .= " ({$failCount} pemagang gagal/dilewati)";
+            }
+            return new ActionResult(true, $msg);
+        }
+
+        $failMessage = !empty($errors) ? implode('; ', array_slice($errors, 0, 3)) : 'Tidak ada pemagang yang berhasil dipulangkan.';
+        return new ActionResult(false, 'Gagal memproses pulang otomatis massal: ' . $failMessage);
     }
 
     public function markMissedSchedulesAsAlpha(): int

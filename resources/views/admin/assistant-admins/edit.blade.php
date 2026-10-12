@@ -49,9 +49,13 @@
                 <p class="text-sm text-gray-600 mt-1">Lengkapi form di bawah untuk memperbarui data</p>
             </div>
 
-            <form action="{{ route('admin.assistant-admins.update', $assistant_admin->id) }}" method="POST" class="p-6">
+            <form action="{{ route('admin.assistant-admins.update', $assistant_admin->id) }}" method="POST" class="p-6" autocomplete="off">
                 @csrf
                 @method('PUT')
+
+                <!-- Dummy inputs untuk mengelabui password manager / autofill browser -->
+                <input type="text" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="username">
+                <input type="password" style="position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;" tabindex="-1" autocomplete="current-password">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- Input untuk Username -->
@@ -146,8 +150,11 @@
                             </div>
                         </label>
                         <input type="password" name="password" id="password"
+                               autocomplete="new-password"
+                               readonly
+                               onfocus="this.removeAttribute('readonly');"
                                class="mt-1 block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 @error('password') border-red-300 focus:ring-red-500 focus:border-red-500 @enderror"
-                               placeholder="Masukkan password baru (minimal 8 karakter)">
+                               placeholder="Masukkan password baru (kosongkan jika tidak diubah)">
                         @error('password')
                             <p class="mt-2 text-sm text-red-600 flex items-center">
                                 <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -169,6 +176,9 @@
                             </div>
                         </label>
                         <input type="password" name="password_confirmation" id="password_confirmation"
+                               autocomplete="new-password"
+                               readonly
+                               onfocus="this.removeAttribute('readonly');"
                                class="mt-1 block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                                placeholder="Ketik ulang password baru">
                     </div>
@@ -196,4 +206,32 @@
         </div>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function resetAutofill() {
+            const pwd = document.getElementById('password');
+            const conf = document.getElementById('password_confirmation');
+            if (pwd && !pwd.dataset.manualFilled) pwd.value = '';
+            if (conf && !conf.dataset.manualFilled) conf.value = '';
+        }
+        resetAutofill();
+        setTimeout(resetAutofill, 50);
+        setTimeout(resetAutofill, 200);
+        setTimeout(resetAutofill, 500);
+
+        const pwdInput = document.getElementById('password');
+        if (pwdInput) {
+            pwdInput.addEventListener('input', function() {
+                this.dataset.manualFilled = '1';
+            });
+        }
+        const confInput = document.getElementById('password_confirmation');
+        if (confInput) {
+            confInput.addEventListener('input', function() {
+                this.dataset.manualFilled = '1';
+            });
+        }
+    });
+</script>
 @endsection

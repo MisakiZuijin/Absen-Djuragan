@@ -4,12 +4,15 @@ namespace App\Http\Requests;
 
 use App\Helper\GmapsHelper;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
-class UserRequest extends FormRequest {
+class UserRequest extends FormRequest
+{
     /**
      * Determine if the user is authorized to make this request.
      */
-    public function authorize(): bool {
+    public function authorize(): bool
+    {
         // Ubah ini menjadi `true` jika otorisasi tidak diperlukan
         return true;
     }
@@ -17,7 +20,8 @@ class UserRequest extends FormRequest {
     /**
      * Prepare inputs before validation.
      */
-    protected function prepareForValidation(): void {
+    protected function prepareForValidation(): void
+    {
         if ($this->has('phone')) {
             $this->merge([
                 'phone' => trim((string) $this->input('phone')),
@@ -35,7 +39,8 @@ class UserRequest extends FormRequest {
      *
      * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
      */
-    public function rules(): array {
+    public function rules(): array
+    {
         return [
             "username" => 'required|string|min:3|max:30|unique:users,username',
             "email" => [
@@ -71,10 +76,13 @@ class UserRequest extends FormRequest {
 
     /**
      * Validasi ketersediaan koordinat dari link Google Maps yang dimasukkan
+     *
+     * @param  \Illuminate\Validation\Validator  $validator
+     * @return void
      */
-    public function withValidator($validator)
+    public function withValidator(Validator $validator): void
     {
-        $validator->after(function ($validator) {
+        $validator->after(function (Validator $validator) {
             $input = trim((string) $this->input('gmaps_url', ''));
             if (!empty($input)) {
                 $coords = GmapsHelper::resolveCoordinates($input);
@@ -97,7 +105,8 @@ class UserRequest extends FormRequest {
         });
     }
 
-    public function messages(): array {
+    public function messages(): array
+    {
         return [
             'username.required' => 'Username wajib diisi.',
             'username.min' => 'Username minimal 3 karakter.',
@@ -123,6 +132,7 @@ class UserRequest extends FormRequest {
             'gender.in' => 'Pilihan jenis kelamin harus Laki-laki atau Perempuan.',
             'religion.required' => 'Agama wajib dipilih.',
             'religion.in' => 'Pilihan agama harus salah satu dari 6 agama resmi di Indonesia (Islam, Kristen, Katolik, Hindu, Buddha, Khonghucu).',
+            'address.max' => 'Alamat / keterangan kos maksimal 255 karakter.',
         ];
     }
 }
