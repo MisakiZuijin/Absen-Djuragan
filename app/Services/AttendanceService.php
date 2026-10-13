@@ -1090,9 +1090,25 @@ class AttendanceService
 
             foreach ($totalAttendance as $day) {
                 if ($day->date > $dateNow) continue;
-                if (is_null($day->attendance->end_time)) continue;
 
                 $defaultAttendance = $day->attendance;
+                if (!$defaultAttendance && $day->schedule) {
+                    $defaultAttendance = Attendance::where('intern_id', $day->schedule->intern_id)
+                        ->whereDate('date', $day->date)
+                        ->first();
+                    if ($defaultAttendance && empty($day->attendance_id)) {
+                        $day->update(['attendance_id' => $defaultAttendance->id]);
+                    }
+                }
+
+                if (!$defaultAttendance || is_null($defaultAttendance->end_time)) continue;
+
+                // Self-healing: jika tercatat Alpha (5) tetapi pemagang sebenarnya hadir dan sudah memiliki jam masuk & pulang valid (> 0 menit):
+                if ((int)$day->attd_status_id === 5 && !empty($defaultAttendance->start_time) && !empty($defaultAttendance->end_time) && (int)($defaultAttendance->total_min ?? 0) > 0) {
+                    $day->update(['attd_status_id' => 2]);
+                    $day->attd_status_id = 2;
+                }
+
                 $adjustableAttendance = $day->adjustableAttendance;
                 $currentDay = 0;
 
@@ -1315,12 +1331,30 @@ class AttendanceService
                 unset($ds_data['end_time']);
                 unset($ds_data['attd_status_id']);
 
-                $dataAttendance = $detailSchedule->attendance ? $detailSchedule->attendance->toArray() : [];
+                $attendance = $detailSchedule->attendance;
+                if (!$attendance && $detailSchedule->schedule) {
+                    $attendance = \App\Models\Attendance::where('intern_id', $detailSchedule->schedule->intern_id)
+                        ->whereDate('date', $detailSchedule->date)
+                        ->first();
+                    if ($attendance && empty($detailSchedule->attendance_id)) {
+                        $detailSchedule->update(['attendance_id' => $attendance->id]);
+                        $detailSchedule->setRelation('attendance', $attendance);
+                    }
+                }
+
+                $dataAttendance = $attendance ? $attendance->toArray() : [];
                 $shift = $detailSchedule->shift;
                 $isExcused = \App\Helper\TimeHelper::isApprovedExcusedLeave($detailSchedule);
                 $isPermitStatus = (int)$detailSchedule->attd_status_id === 3;
                 // Hutang waktu tambahan dari izin keluar wajib ganti jam
-                $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($detailSchedule->attendance);
+                $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($attendance);
+
+                // Self-healing: jika tercatat Alpha (5) tetapi pemagang sebenarnya hadir dan sudah memiliki jam masuk & pulang valid (> 0 menit):
+                if ((int)$detailSchedule->attd_status_id === 5 && $attendance && !empty($attendance->start_time) && !empty($attendance->end_time) && (int)($attendance->total_min ?? 0) > 0) {
+                    $detailSchedule->update(['attd_status_id' => 2]);
+                    $detailSchedule->attd_status_id = 2;
+                    $detailSchedule->setRelation('attdStatus', \App\Models\AttdStatus::find(2));
+                }
 
                 if (($isExcused || $isPermitStatus) && $shift) {
                     $workData = \App\Helper\TimeHelper::calculateDailyWorkHours((object)$dataAttendance, $shift, $detailSchedule, $extraDebt);
@@ -1588,6 +1622,21 @@ class AttendanceService
 
                 if (!in_array($shift, $shifts)) $shifts[] = $shift;
                 $defaultAttendance = $day->attendance;
+                if (!$defaultAttendance && $day->schedule) {
+                    $defaultAttendance = Attendance::where('intern_id', $day->schedule->intern_id)
+                        ->whereDate('date', $day->date)
+                        ->first();
+                    if ($defaultAttendance && empty($day->attendance_id)) {
+                        $day->update(['attendance_id' => $defaultAttendance->id]);
+                    }
+                }
+
+                // Self-healing: jika tercatat Alpha (5) tetapi pemagang sebenarnya hadir dan sudah memiliki jam masuk & pulang valid (> 0 menit):
+                if ((int)$day->attd_status_id === 5 && $defaultAttendance && !empty($defaultAttendance->start_time) && !empty($defaultAttendance->end_time) && (int)($defaultAttendance->total_min ?? 0) > 0) {
+                    $day->update(['attd_status_id' => 2]);
+                    $day->attd_status_id = 2;
+                }
+
                 $adjustableAttendance = $day->adjustableAttendance;
 
                 $currentDay = 0; // Inisialisasi currentDay
@@ -1865,6 +1914,11 @@ class AttendanceService
                 }
 
                 Attendance::whereIn('id', $ids)->update($updateData);
+
+                // Sinkronkan status detail_schedules terkait menjadi Hadir (ID 2), kecuali izin (ID 3)
+                DetailSchedule::whereIn('attendance_id', $ids)
+                    ->where('attd_status_id', '!=', 3)
+                    ->update(['attd_status_id' => 2]);
             }
         } catch (\Throwable $th) {
             Log::error('setToEndTime error: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
@@ -2407,6 +2461,28 @@ class AttendanceService
             }
 
             $attendance->update($updateData);
+
+            // Sinkronkan status detail_schedules terkait menjadi Hadir (ID 2), bukan Alpha (ID 5) atau Dijadwalkan (ID 1)
+            $detailSchedules = DetailSchedule::where('attendance_id', $attendance->id)->get();
+            if ($detailSchedules->isEmpty() && $attendance->intern_id && $attendance->date) {
+                $detailSchedules = DetailSchedule::whereHas('schedule', function ($q) use ($attendance) {
+                    $q->where('intern_id', $attendance->intern_id);
+                })->whereDate('date', $attendance->date)->get();
+            }
+
+            foreach ($detailSchedules as $ds) {
+                $dsUpdate = [];
+                if (empty($ds->attendance_id)) {
+                    $dsUpdate['attendance_id'] = $attendance->id;
+                }
+                // Jika statusnya bukan izin (ID 3), pastikan statusnya menjadi Hadir (ID 2)
+                if ((int) $ds->attd_status_id !== 3 && (int) $ds->attd_status_id !== 2) {
+                    $dsUpdate['attd_status_id'] = 2; // Hadir
+                }
+                if (!empty($dsUpdate)) {
+                    $ds->update($dsUpdate);
+                }
+            }
 
             $internName = $attendance->intern?->user?->profile?->full_name ?? 'Pemagang';
             $adminName = auth()->user()?->name ?? 'Admin';

@@ -40,21 +40,42 @@ class AttendanceAutoEndCommand extends Command
         // =========================================================================
         // 1. PULANG OTOMATIS PRESENSI HARIAN
         // =========================================================================
-        $pendingAttendances = Attendance::whereDate('date', $date)
-            ->whereNotNull('start_time')
+        $isSpecificDate = $this->argument('date') !== null;
+        $query = Attendance::whereNotNull('start_time')
             ->whereNull('end_time')
             ->where('is_auto_end', false)
-            ->with(['intern.user.profile', 'detailSchedules.shift'])
-            ->get();
+            ->with(['intern.user.profile', 'detailSchedules.shift', 'intern.shift']);
+
+        if ($isSpecificDate) {
+            $query->whereDate('date', $date);
+        } else {
+            $query->whereDate('date', '<=', $date);
+        }
+
+        $pendingAttendances = $query->get();
 
         $autoEndCount = 0;
         $autoEndFailed = 0;
+        $now = Carbon::now($timezone);
 
         foreach ($pendingAttendances as $attendance) {
+            // Jika tanggalnya hari ini dan shift belum selesai (misal dipanggil manual siang hari), lewati
+            $attdDateStr = $attendance->date ? Carbon::parse($attendance->date)->format('Y-m-d') : $date;
+            $shift = $attendance->detailSchedules?->shift ?? $attendance->intern?->shift;
+            if ($attdDateStr === Carbon::today($timezone)->toDateString() && $shift && $shift->end_time) {
+                $shiftEndTime = Carbon::parse($attdDateStr . ' ' . $shift->end_time, $timezone);
+                if ($shift->start_time && $shift->end_time && $shift->end_time < $shift->start_time) {
+                    $shiftEndTime->addDay();
+                }
+                if ($now->lessThan($shiftEndTime)) {
+                    continue; // Shift belum berakhir hari ini
+                }
+            }
+
             try {
                 $result = $attendanceService->confirmAutoEndAttendance(
                     $attendance->id,
-                    'Dipulangkan otomatis oleh sistem (23:59:00)'
+                    'Dipulangkan otomatis oleh sistem'
                 );
 
                 if ($result->isSuccess()) {

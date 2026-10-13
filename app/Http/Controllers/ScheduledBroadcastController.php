@@ -176,7 +176,7 @@ class ScheduledBroadcastController extends Controller
                     'user_id' => $report->user_id,
                     'name' => $report->user->profile->full_name ?? $report->user->name ?? $report->user->username ?? 'N/A',
                     'report' => trim($report->report ?? ''),
-                    'submitted_at' => $report->created_at->format('d/m/Y H:i'),
+                    'submitted_at' => $report->created_at ? $report->created_at->format('d/m/Y H:i') : '-',
                     'unread_intern_chats' => $report->chats->where('is_from_admin', false)->where('is_read', false)->count(),
                     'chats' => $report->chats->map(function ($c) {
                         return [
@@ -286,7 +286,7 @@ class ScheduledBroadcastController extends Controller
                 'message' => $chat->message,
                 'is_from_admin' => true,
                 'sender_name' => $adminName,
-                'time' => $chat->created_at->format('d/m H:i'),
+                'time' => $chat->created_at ? $chat->created_at->format('d/m H:i') : '-',
             ],
         ]);
     }
@@ -331,7 +331,7 @@ class ScheduledBroadcastController extends Controller
                 'message' => $chat->message,
                 'is_from_admin' => false,
                 'sender_name' => $internName,
-                'time' => $chat->created_at->format('d/m H:i'),
+                'time' => $chat->created_at ? $chat->created_at->format('d/m H:i') : '-',
             ],
         ]);
     }

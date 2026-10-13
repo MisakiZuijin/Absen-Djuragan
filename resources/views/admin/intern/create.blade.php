@@ -267,13 +267,20 @@
 
                     <!-- Alamat Domisili / Kos -->
                     <div class="md:col-span-2">
-                        <label for="address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Alamat / Keterangan Kos <span class="text-[11px] text-slate-400 font-normal lowercase">(opsional)</span>
-                        </label>
-                        <input type="text" id="address" name="address"
+                        <div class="flex items-center justify-between mb-1.5">
+                            <label for="address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider">
+                                Alamat / Keterangan Kos <span class="text-[11px] text-slate-400 font-normal lowercase">(opsional)</span>
+                            </label>
+                            <span id="create_address_counter" class="text-xs text-slate-400 font-medium">0/255</span>
+                        </div>
+                        <input type="text" id="address" name="address" maxlength="255"
                             value="{{ old('address') }}"
                             placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 9, Sinduharjo, Ngaglik, Sleman"
-                            class="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
+                            class="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border @error('address') border-rose-500 @else border-slate-200 @enderror rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition font-medium text-slate-800">
+                        @error('address')
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
+                        <p id="create_address_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                     </div>
                 </div>
             </div>
@@ -441,8 +448,9 @@
                             if (data.address) {
                                 const addrField = document.getElementById('address');
                                 if (addrField && (!addrField.value || addrField.dataset.autoFilled === '1')) {
-                                    addrField.value = data.address;
+                                    addrField.value = data.address.slice(0, 255);
                                     addrField.dataset.autoFilled = '1';
+                                    if (typeof updateCreateAddressCounter === 'function') updateCreateAddressCounter();
                                 }
                             }
                         } else {
@@ -454,6 +462,66 @@
                         if (gmapsStatus) gmapsStatus.innerHTML = '';
                     }
                 }, 600);
+            });
+        }
+
+        // Counter & Validasi Alamat (Max 255)
+        const createAddr = document.getElementById('address');
+        const createCounter = document.getElementById('create_address_counter');
+        const createError = document.getElementById('create_address_error_msg');
+
+        function updateCreateAddressCounter() {
+            if (!createAddr) return true;
+            const len = createAddr.value.length;
+            if (createCounter) createCounter.textContent = `${len}/255`;
+
+            if (len > 255) {
+                if (createCounter) {
+                    createCounter.classList.remove('text-slate-400', 'text-amber-600');
+                    createCounter.classList.add('text-rose-600', 'font-bold');
+                }
+                if (createError) {
+                    createError.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i>Alamat / keterangan kos melebihi batas maksimal 255 karakter (saat ini ${len} karakter). Mohon persingkat isian.`;
+                    createError.classList.remove('hidden');
+                }
+                createAddr.classList.add('border-rose-500', 'focus:ring-rose-500');
+                createAddr.classList.remove('border-slate-200', 'focus:ring-indigo-500');
+                return false;
+            } else if (len === 255) {
+                if (createCounter) {
+                    createCounter.classList.remove('text-slate-400', 'text-rose-600');
+                    createCounter.classList.add('text-amber-600', 'font-bold');
+                }
+                if (createError) createError.classList.add('hidden');
+                createAddr.classList.remove('border-rose-500', 'focus:ring-rose-500');
+                createAddr.classList.add('border-slate-200', 'focus:ring-indigo-500');
+                return true;
+            } else {
+                if (createCounter) {
+                    createCounter.classList.remove('text-rose-600', 'text-amber-600', 'font-bold');
+                    createCounter.classList.add('text-slate-400');
+                }
+                if (createError) createError.classList.add('hidden');
+                createAddr.classList.remove('border-rose-500', 'focus:ring-rose-500');
+                createAddr.classList.add('border-slate-200', 'focus:ring-indigo-500');
+                return true;
+            }
+        }
+
+        if (createAddr) {
+            createAddr.addEventListener('input', updateCreateAddressCounter);
+            createAddr.addEventListener('paste', () => setTimeout(updateCreateAddressCounter, 50));
+            updateCreateAddressCounter();
+        }
+
+        const createForm = document.querySelector('form');
+        if (createForm) {
+            createForm.addEventListener('submit', function(e) {
+                if (!updateCreateAddressCounter()) {
+                    e.preventDefault();
+                    createAddr?.focus();
+                    return false;
+                }
             });
         }
     });

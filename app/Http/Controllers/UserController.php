@@ -849,15 +849,25 @@ class UserController extends Controller
 
             // 4. Skenario Alpha (Tidak Hadir)
             elseif ($schedule->attd_status_id == 5) {
-                $isDeficit = true;
-                $baseDeficitMinutes = $shiftMinutes;
-                $categoryName = "Alpha (Tidak Hadir)";
-                $badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
-                $type = "alpha";
+                // Self-healing: jika ternyata memiliki record presensi masuk dan pulang valid (> 0 menit)
+                if ($schedule->attendance && !empty($schedule->attendance->start_time) && !empty($schedule->attendance->end_time) && (int)($schedule->attendance->total_min ?? 0) > 0) {
+                    $updateData = ['attd_status_id' => 2];
+                    if (empty($schedule->attendance_id)) {
+                        $updateData['attendance_id'] = $schedule->attendance->id;
+                    }
+                    $schedule->update($updateData);
+                    $schedule->attd_status_id = 2;
+                } else {
+                    $isDeficit = true;
+                    $baseDeficitMinutes = $shiftMinutes;
+                    $categoryName = "Alpha (Tidak Hadir)";
+                    $badgeClass = "bg-rose-100 text-rose-800 border-rose-300";
+                    $type = "alpha";
+                }
             }
 
             // 5. Skenario Presensi Reguler (Hadir / Belum Absen / Pulang Awal / Lupa Absen)
-            elseif ($schedule->attd_status_id == 1 || $schedule->attd_status_id == 2) {
+            if ($schedule->attd_status_id == 1 || $schedule->attd_status_id == 2) {
                 $workingMinutes = 0;
                 if ($schedule->attendance && $schedule->attendance->start_time && $schedule->attendance->end_time) {
                     $startTime = Carbon::parse($schedule->attendance->start_time);

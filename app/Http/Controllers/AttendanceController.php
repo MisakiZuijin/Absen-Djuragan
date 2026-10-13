@@ -354,8 +354,21 @@ class AttendanceController extends Controller
 
         if ($result->isSuccess()) {
             \App\Helper\ActivityLogger::log('UPDATE', 'Presensi', "Admin memperbarui jam presensi pada record ID {$id}");
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Data Waktu berhasil diupdate!',
+                    'data' => $result->getData(),
+                ]);
+            }
             return redirect()->back()->with('status', 'Data Waktu berhasil diupdate!');
         } else {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => $result->getMessage(),
+                ], 422);
+            }
             return redirect()->back()->with('error', $result->getMessage());
         }
     }
@@ -839,18 +852,137 @@ class AttendanceController extends Controller
 
     public function updatestatusattd(int $id)
     {
-        $detailSchedule = DetailSchedule::find($id);
+        $detailSchedule = DetailSchedule::with(['schedule.intern.user', 'shift', 'attendance'])->find($id);
         if (!$detailSchedule) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['status' => false, 'message' => 'Data jadwal tidak ditemukan!'], 404);
+            }
             return redirect()->back()->with('error', 'Data tidak ditemukan!');
         }
-        if ($detailSchedule->attd_status_id == 2) {
-            $detailSchedule->attd_status_id = 5;
-        } else {
-            $detailSchedule->attd_status_id = 2;
-        }
-        $detailSchedule->save();
 
-        return redirect()->back()->with('status', 'Status berhasil diperbarui!');
+        $internId = $detailSchedule->schedule?->intern_id;
+        $internName = $detailSchedule->schedule?->intern?->user?->name ?? 'Pemagang';
+        $date = $detailSchedule->date;
+
+        // Ambil data shift yang berlaku
+        $shift = $detailSchedule->shift
+            ?? $detailSchedule->schedule?->shift
+            ?? Shift::where('id', '!=', 1)->first();
+
+        // Cari attendance yang sudah ada jika belum ter-relasi
+        $attendance = $detailSchedule->attendance;
+        if (!$attendance && $internId) {
+            $attendance = Attendance::where('intern_id', $internId)
+                ->whereDate('date', $date)
+                ->first();
+        }
+
+        if ((int) $detailSchedule->attd_status_id === 2) {
+            // Toggle dari Hadir -> Tidak Hadir (Alpha / ID 5)
+            $detailSchedule->attd_status_id = 5; // Alpha
+            $detailSchedule->save();
+
+            if ($attendance) {
+                $attendance->update([
+                    'start_time' => null,
+                    'end_time' => null,
+                    'break_time' => null,
+                    'back_time' => null,
+                    'total_min' => 0,
+                    'total_break_min' => 0,
+                    'start_time_message' => 'Diubah menjadi Tidak Hadir oleh Admin',
+                    'end_time_message' => 'Diubah menjadi Tidak Hadir oleh Admin',
+                    'keterangan' => 'Tidak Hadir (Alpha)',
+                ]);
+            }
+
+            \App\Helper\ActivityLogger::log(
+                'UPDATE',
+                'Presensi',
+                "Admin mengubah status presensi {$internName} tanggal {$date} menjadi Tidak Hadir (Alpha)",
+                ['detail_schedule_id' => $id]
+            );
+
+            $msg = "Status kehadiran tanggal {$date} berhasil diubah menjadi Tidak Hadir (Alpha).";
+        } else {
+            // Toggle dari Bukan Hadir -> Hadir (ID 2)
+            // Hitung jam kerja & jam istirahat sesuai shift
+            $shiftStartTime = $shift?->start_time ?? '09:00:00';
+            $shiftEndTime = $shift?->end_time ?? '17:00:00';
+            $shiftBreakStart = $shift?->start_break_time ?? '12:15:00';
+            $shiftBreakEnd = $shift?->end_break_time ?? '13:00:00';
+
+            $totalShiftMin = (int) ($shift?->total_time_in_minute ?? 0);
+            if ($totalShiftMin <= 0 && $shiftStartTime && $shiftEndTime) {
+                $cStart = Carbon::parse($shiftStartTime);
+                $cEnd = Carbon::parse($shiftEndTime);
+                $brk = (int) ($shift?->break_time_in_minute ?? 0);
+                $totalShiftMin = max(0, $cEnd->diffInMinutes($cStart) - $brk);
+            }
+            if ($totalShiftMin <= 0) {
+                $totalShiftMin = 435; // Default 7 jam 15 menit
+            }
+
+            $breakMin = (int) ($shift?->break_time_in_minute ?? 0);
+            if ($breakMin <= 0 && $shiftBreakStart && $shiftBreakEnd) {
+                $breakMin = max(0, Carbon::parse($shiftBreakEnd)->diffInMinutes(Carbon::parse($shiftBreakStart)));
+            }
+
+            $attPayload = [
+                'start_time' => $shiftStartTime,
+                'end_time' => $shiftEndTime,
+                'break_time' => $shiftBreakStart,
+                'back_time' => $shiftBreakEnd,
+                'total_min' => $totalShiftMin,
+                'total_break_min' => $breakMin,
+                'start_time_message' => 'Dihadapkan oleh Admin (Sesuai Shift)',
+                'end_time_message' => 'Dihadapkan oleh Admin (Sesuai Shift)',
+                'break_time_message' => 'Sesuai Shift',
+                'back_time_message' => 'Sesuai Shift',
+                'keterangan' => 'Hadir disahkan oleh Admin',
+            ];
+
+            if (!$attendance && $internId) {
+                $attendance = Attendance::create(array_merge([
+                    'intern_id' => $internId,
+                    'date' => $date,
+                ], $attPayload));
+            } elseif ($attendance) {
+                $attendance->update($attPayload);
+            }
+
+            $detailSchedule->attd_status_id = 2; // Hadir
+            if ($attendance && empty($detailSchedule->attendance_id)) {
+                $detailSchedule->attendance_id = $attendance->id;
+            }
+            $detailSchedule->save();
+
+            // Hapus catatan keterlambatan jika ada
+            if ($internId) {
+                \App\Models\LateAbsence::where('intern_id', $internId)
+                    ->whereDate('date', $date)
+                    ->delete();
+            }
+
+            \App\Helper\ActivityLogger::log(
+                'UPDATE',
+                'Presensi',
+                "Admin mengubah status presensi {$internName} tanggal {$date} menjadi Hadir (diset sesuai jam shift)",
+                ['detail_schedule_id' => $id]
+            );
+
+            $msg = "Status kehadiran tanggal {$date} berhasil diubah menjadi Hadir. Jam masuk, istirahat, dan pulang disesuaikan dengan shift ({$shiftStartTime} - {$shiftEndTime}).";
+        }
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'status' => true,
+                'success' => true,
+                'message' => $msg,
+            ]);
+        }
+
+        return redirect()->back()->with('status', $msg);
     }
 
     public function reset(int $id)

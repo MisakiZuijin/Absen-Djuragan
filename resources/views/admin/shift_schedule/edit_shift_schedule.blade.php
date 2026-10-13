@@ -790,11 +790,16 @@
                 },
                 body: JSON.stringify(payload)
             })
-            .then(response => {
+            .then(async response => {
+                const isJson = response.headers.get('content-type')?.includes('application/json');
+                const data = isJson ? await response.json() : null;
                 if (!response.ok) {
-                    throw new Error(response.statusText || 'Gagal menyimpan perubahan');
+                    const message = (data && (data.message || data.error))
+                        || response.statusText
+                        || 'Gagal menyimpan perubahan jadwal';
+                    throw new Error(message);
                 }
-                return response.json();
+                return data;
             })
             .then(res => {
                 // Update local memory data for instant live UI update
@@ -891,11 +896,16 @@
                         },
                         body: JSON.stringify(payload)
                     })
-                    .then(response => {
+                    .then(async response => {
+                        const isJson = response.headers.get('content-type')?.includes('application/json');
+                        const data = isJson ? await response.json() : null;
                         if (!response.ok) {
-                            throw new Error(response.statusText || 'Gagal menerapkan update massal');
+                            const message = (data && (data.message || data.error))
+                                || response.statusText
+                                || 'Gagal menerapkan perubahan jadwal massal';
+                            throw new Error(message);
                         }
-                        return response.json();
+                        return data;
                     })
                     .then(res => {
                         // Live update local data

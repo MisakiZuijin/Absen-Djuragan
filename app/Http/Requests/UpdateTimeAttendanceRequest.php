@@ -20,6 +20,9 @@ class UpdateTimeAttendanceRequest extends FormRequest {
             'field' => 'required|string',
             'time' => 'required',
             'message' => 'nullable',
+            'detail_schedule_id' => 'nullable',
+            'attendance_id' => 'nullable',
+            'current_page' => 'nullable',
         ];
     }
 }

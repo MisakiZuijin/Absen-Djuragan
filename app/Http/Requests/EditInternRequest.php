@@ -68,7 +68,7 @@ class EditInternRequest extends FormRequest {
             "division_id" => "nullable|integer",
             "shift_id" => "nullable|integer|exists:shifts,id",
             "religion" => "nullable|string|in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu",
-            "address" => "nullable|string|max:100",
+            "address" => "nullable|string|max:255",
             "brand_id" => "nullable|integer|exists:brands,id",
             "project_id" => "nullable|integer",
             "os" => "required|string",
@@ -95,7 +95,7 @@ class EditInternRequest extends FormRequest {
             "notes" => "nullable|string|max:2000",
             "home_latitude" => "nullable|numeric",
             "home_longitude" => "nullable|numeric",
-            "home_address_notes" => "nullable|string|max:500",
+            "home_address_notes" => "nullable|string|max:255",
             "work_placement_type" => "nullable|string|in:auto_office,wfo_only,wfh_only,hybrid",
             "locked_office_id" => "nullable|integer|exists:offices,id",
             "blacklisted_office_id" => "nullable|integer|exists:offices,id",
@@ -108,6 +108,8 @@ class EditInternRequest extends FormRequest {
         return [
             'parent_whatsapp_number.starts_with' => 'Nomor WhatsApp orang tua harus diawali dengan 0 atau 62.',
             'parent_whatsapp_number.numeric' => 'Nomor WhatsApp orang tua hanya boleh berisi angka.',
+            'address.max' => 'Alamat / keterangan kos maksimal 255 karakter.',
+            'home_address_notes.max' => 'Alamat / keterangan kos maksimal 255 karakter.',
         ];
     }
 }

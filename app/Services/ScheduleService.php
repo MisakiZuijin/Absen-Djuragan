@@ -52,9 +52,16 @@ class ScheduleService
         try {
             $result = $this->scheduleRepository->findByInternId($internId);
             if (!$result) {
-                $result = \App\Models\Schedule::firstOrCreate([
-                    'intern_id' => $internId
-                ]);
+                $intern = \App\Models\Intern::find($internId);
+                $result = \App\Models\Schedule::firstOrCreate(
+                    ['intern_id' => $internId],
+                    [
+                        'office_id' => $intern?->locked_office_id ?? 1,
+                        'start_period' => $intern?->start_date ?? now()->toDateString(),
+                        'end_period' => $intern?->end_date ?? now()->addMonths(3)->toDateString(),
+                        'type' => 'daily',
+                    ]
+                );
             }
             $data = [
                 "schedule"  => $result,
@@ -341,9 +348,16 @@ class ScheduleService
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
             if (!$schedule) {
-                $schedule = \App\Models\Schedule::firstOrCreate([
-                    'intern_id' => $internId
-                ]);
+                $intern = \App\Models\Intern::find($internId);
+                $schedule = \App\Models\Schedule::firstOrCreate(
+                    ['intern_id' => $internId],
+                    [
+                        'office_id' => (int) ($data['office_id'] ?? ($intern?->locked_office_id ?? 1)),
+                        'start_period' => $intern?->start_date ?? $date,
+                        'end_period' => $intern?->end_date ?? $date,
+                        'type' => 'daily',
+                    ]
+                );
             }
             $existData = $this->detailScheduleRepository->findByScheduleIdAndDate($schedule->id, $date);
             if (!$existData) {
@@ -389,9 +403,16 @@ class ScheduleService
         try {
             $schedule = $this->scheduleRepository->findByInternId($internId);
             if (!$schedule) {
-                $schedule = \App\Models\Schedule::firstOrCreate([
-                    'intern_id' => $internId
-                ]);
+                $intern = \App\Models\Intern::find($internId);
+                $schedule = \App\Models\Schedule::firstOrCreate(
+                    ['intern_id' => $internId],
+                    [
+                        'office_id' => (int) ($data['office_id'] ?? ($intern?->locked_office_id ?? 1)),
+                        'start_period' => $intern?->start_date ?? now()->toDateString(),
+                        'end_period' => $intern?->end_date ?? now()->addMonths(3)->toDateString(),
+                        'type' => 'daily',
+                    ]
+                );
             }
 
             $listDate = array_map('intval', explode(', ', $data["date"]));

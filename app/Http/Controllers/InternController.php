@@ -67,7 +67,7 @@ class InternController extends Controller
             'phone' => 'required|string|max:20',
             'gender' => 'required|string',
             'religion' => 'required|string|in:Islam,Kristen,Katolik,Hindu,Buddha,Khonghucu',
-            'address' => 'nullable|string|max:100',
+            'address' => 'nullable|string|max:255',
             'gmaps_url' => 'required|string|max:1000',
             'birth_place' => 'nullable|string|max:50',
             'date_of_birth' => 'nullable|date',
@@ -94,6 +94,7 @@ class InternController extends Controller
             'gender.required' => 'Jenis kelamin wajib dipilih.',
             'religion.required' => 'Agama wajib dipilih.',
             'religion.in' => 'Agama harus salah satu dari: Islam, Kristen, Katolik, Hindu, Buddha, Khonghucu.',
+            'address.max' => 'Alamat / keterangan kos maksimal 255 karakter.',
         ]);
 
         // Resolusi titik koordinat dari link Google Maps

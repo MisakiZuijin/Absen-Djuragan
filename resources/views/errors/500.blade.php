@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>500 - Terjadi Kesalahan Server | Absen Djuragan</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -27,15 +28,19 @@
             </a>
             @php
                 $homeUrl = url('/');
-                if (auth()->check()) {
-                    $roleId = (int) auth()->user()->role_id;
-                    $homeUrl = match($roleId) {
-                        1, 7 => route('admin.home'),
-                        3 => route('user.home'),
-                        5 => route('outsider.dashboard'),
-                        6 => route('assistant.dashboard'),
-                        default => url('/'),
-                    };
+                try {
+                    if (auth()->check()) {
+                        $roleId = (int) auth()->user()->role_id;
+                        $homeUrl = match($roleId) {
+                            1, 7 => route('admin.home'),
+                            3 => route('user.home'),
+                            5 => route('outsider.dashboard'),
+                            6 => route('assistant.dashboard'),
+                            default => url('/'),
+                        };
+                    }
+                } catch (\Throwable $e) {
+                    $homeUrl = url('/');
                 }
             @endphp
             <a href="{{ $homeUrl }}" class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white font-semibold text-sm hover:bg-slate-800 shadow-md shadow-slate-200 transition">

@@ -45,7 +45,7 @@
         </div>
         @endif
 
-        @if ($errors->any())
+        @if (isset($errors) && $errors->any())
         <div class="p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl shadow-sm">
             <p class="font-bold flex items-center gap-2 mb-1">
                 <i class="fa-solid fa-triangle-exclamation"></i>

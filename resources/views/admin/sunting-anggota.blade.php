@@ -51,7 +51,7 @@
     </div>
     @endif
 
-    <form action="{{ route('admin.update.intern.action') }}" method="POST" autocomplete="off">
+    <form id="editInternForm" action="{{ route('admin.update.intern.action') }}" method="POST" autocomplete="off">
         @csrf
 
         <!-- Dummy inputs untuk mengelabui password manager / autofill browser agar tidak mengisi akun lain -->
@@ -481,11 +481,21 @@
                             <label for="home_address_notes" class="block text-xs font-semibold text-gray-700">
                                 Alamat Lengkap / Keterangan Kos <span class="text-xs text-gray-400 font-normal">(Opsional)</span>
                             </label>
-                            <span class="text-[11px] text-gray-400">Nama kos, jalan, atau daerah</span>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-gray-400 hidden sm:inline">Nama kos, jalan, atau daerah</span>
+                                <span id="address_notes_counter" class="text-xs text-gray-400 font-medium">0/255</span>
+                            </div>
                         </div>
-                        <textarea id="home_address_notes" name="home_address_notes" rows="2"
+                        <textarea id="home_address_notes" name="home_address_notes" rows="2" maxlength="255"
                             placeholder="Contoh: Kos Putri Melati, Jl. Kaliurang KM 5 Gang Pandega Marta No. 10..."
-                            class="w-full p-2.5 border border-gray-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none">{{ old('home_address_notes', $team->intern->home_address_notes ?? '') }}</textarea>
+                            class="w-full p-2.5 border @error('home_address_notes') border-rose-500 @else border-gray-300 @enderror rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition resize-none">{{ old('home_address_notes', $team->intern->home_address_notes ?? '') }}</textarea>
+                        @error('home_address_notes')
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
+                        @error('address')
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                        @enderror
+                        <p id="address_notes_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                     </div>
 
                 </div>
@@ -1255,10 +1265,16 @@
         if (lngInput) lngInput.value = lng.toFixed(7);
 
         if (address) {
+            const cleanAddress = address.slice(0, 255);
             const notesInput = document.getElementById('home_address_notes');
-            if (notesInput) notesInput.value = address;
+            if (notesInput) {
+                notesInput.value = cleanAddress;
+                if (typeof updateAddressNotesCounter === 'function') {
+                    updateAddressNotesCounter();
+                }
+            }
             const addrInput = document.getElementById('address');
-            if (addrInput) addrInput.value = address;
+            if (addrInput) addrInput.value = cleanAddress;
         }
 
         currentKosLat = lat;
@@ -1464,9 +1480,68 @@
         }
     });
 
-    document.getElementById('home_address_notes')?.addEventListener('input', function() {
-        const addr = document.getElementById('address');
-        if (addr) addr.value = this.value;
+    const notesInput = document.getElementById('home_address_notes');
+    const notesCounter = document.getElementById('address_notes_counter');
+    const notesError = document.getElementById('address_notes_error_msg');
+    const addrInput = document.getElementById('address');
+
+    function updateAddressNotesCounter() {
+        if (!notesInput) return true;
+        const len = notesInput.value.length;
+        if (notesCounter) {
+            notesCounter.textContent = `${len}/255`;
+        }
+        if (addrInput) {
+            addrInput.value = notesInput.value;
+        }
+
+        if (len > 255) {
+            if (notesCounter) {
+                notesCounter.classList.remove('text-gray-400', 'text-amber-600');
+                notesCounter.classList.add('text-rose-600', 'font-bold');
+            }
+            if (notesError) {
+                notesError.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i>Alamat / keterangan kos melebihi batas maksimal 255 karakter (saat ini ${len} karakter). Mohon persingkat isian.`;
+                notesError.classList.remove('hidden');
+            }
+            notesInput.classList.add('border-rose-500', 'focus:ring-rose-500');
+            notesInput.classList.remove('border-gray-300', 'focus:ring-blue-500');
+            return false;
+        } else if (len === 255) {
+            if (notesCounter) {
+                notesCounter.classList.remove('text-gray-400', 'text-rose-600');
+                notesCounter.classList.add('text-amber-600', 'font-bold');
+            }
+            if (notesError) notesError.classList.add('hidden');
+            notesInput.classList.remove('border-rose-500', 'focus:ring-rose-500');
+            notesInput.classList.add('border-gray-300', 'focus:ring-blue-500');
+            return true;
+        } else {
+            if (notesCounter) {
+                notesCounter.classList.remove('text-rose-600', 'text-amber-600', 'font-bold');
+                notesCounter.classList.add('text-gray-400');
+            }
+            if (notesError) notesError.classList.add('hidden');
+            notesInput.classList.remove('border-rose-500', 'focus:ring-rose-500');
+            notesInput.classList.add('border-gray-300', 'focus:ring-blue-500');
+            return true;
+        }
+    }
+
+    if (notesInput) {
+        notesInput.addEventListener('input', updateAddressNotesCounter);
+        notesInput.addEventListener('paste', function() {
+            setTimeout(updateAddressNotesCounter, 50);
+        });
+        updateAddressNotesCounter();
+    }
+
+    document.getElementById('editInternForm')?.addEventListener('submit', function(e) {
+        if (!updateAddressNotesCounter()) {
+            e.preventDefault();
+            notesInput?.focus();
+            return false;
+        }
     });
 
     function togglePasswordVisibility(fieldId, btn) {

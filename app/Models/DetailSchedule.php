@@ -21,7 +21,7 @@ class DetailSchedule extends Model {
     protected $casts = [
         'execution_tier' => 'integer',
         'is_spillover' => 'boolean',
-        'isChangeSchedule' => 'boolean',
+        'isChangeSchedule' => 'integer',
         'isBackFirst' => 'boolean',
         'is_change_schedule_approved' => 'boolean',
     ];

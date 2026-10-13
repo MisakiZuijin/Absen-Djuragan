@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/x-icon" href="{{ $appSetting->favicon_url ?? asset('favicon.ico') }}">
     <title>419 - Sesi Kedaluwarsa | {{ $appSetting->app_name ?? 'Absen Djuragan' }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     @vite('resources/css/app.css')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,15 +25,19 @@
         </p>
         @php
             $homeUrl = url('/');
-            if (auth()->check()) {
-                $roleId = (int) auth()->user()->role_id;
-                $homeUrl = match($roleId) {
-                    1, 7 => route('admin.home'),
-                    3 => route('user.home'),
-                    5 => route('outsider.dashboard'),
-                    6 => route('assistant.dashboard'),
-                    default => url('/'),
-                };
+            try {
+                if (auth()->check()) {
+                    $roleId = (int) auth()->user()->role_id;
+                    $homeUrl = match($roleId) {
+                        1, 7 => route('admin.home'),
+                        3 => route('user.home'),
+                        5 => route('outsider.dashboard'),
+                        6 => route('assistant.dashboard'),
+                        default => url('/'),
+                    };
+                }
+            } catch (\Throwable $e) {
+                $homeUrl = url('/');
             }
         @endphp
         <div class="flex flex-col sm:flex-row gap-3 justify-center">

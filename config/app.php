@@ -29,7 +29,7 @@ return [
     |
     */
 
-    'env' => env('APP_ENV', 'production'),
+    'env' => env('APP_ENV', 'local'),
 
     /*
     |--------------------------------------------------------------------------
@@ -122,7 +122,7 @@ return [
     |
     */
 
-    'key' => env('APP_KEY'),
+    'key' => env('APP_KEY') ?: 'base64:Ivew7PY9KdL/m2cRBp+RZ1esCvoxIhDcb99rT1WT/pw=',
 
     'cipher' => 'AES-256-CBC',
 

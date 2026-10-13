@@ -182,6 +182,21 @@ class TimeHelper
         if ($detailSchedule) {
             $attdStatusId = is_array($detailSchedule) ? ($detailSchedule['attd_status_id'] ?? null) : ($detailSchedule->attd_status_id ?? null);
             $isChange = is_array($detailSchedule) ? ($detailSchedule['isChangeSchedule'] ?? null) : ($detailSchedule->isChangeSchedule ?? null);
+
+            // Self-healing jika tercatat Alpha (5) tetapi pemagang sebenarnya hadir dan sudah dipulangkan:
+            $attObj = is_object($attendance) ? $attendance : (is_array($attendance) ? (object) $attendance : null);
+            $hasValidPunches = $attObj && !empty($attObj->start_time) && !empty($attObj->end_time) && (int) ($attObj->total_min ?? 0) > 0;
+            if ((int) $attdStatusId === 5 && $hasValidPunches) {
+                if (is_object($detailSchedule) && method_exists($detailSchedule, 'update')) {
+                    $detailSchedule->update(['attd_status_id' => 2]);
+                    $detailSchedule->attd_status_id = 2;
+                    if (method_exists($detailSchedule, 'setRelation')) {
+                        $detailSchedule->setRelation('attdStatus', \App\Models\AttdStatus::find(2));
+                    }
+                }
+                $attdStatusId = 2;
+            }
+
             if ((int)$attdStatusId === 5 || ((int)$attdStatusId === 3 && (int)$isChange === 2)) {
                 $isDeficitFullShift = true;
             }
@@ -329,16 +344,20 @@ class TimeHelper
                 ->first();
         }
 
+        $isGantiJam = ((int)$detailSchedule->isChangeSchedule === 2);
+        $permitStatusText = $isGantiJam ? 'Izin (Wajib Ganti Jam)' : 'Izin disetujui (sesuai jadwal)';
+        $permitMessage = $isGantiJam ? 'Izin (Wajib Ganti Jam)' : 'Izin disetujui';
+
         $attPayload = [
             'start_time' => $startTime,
             'end_time' => $endTime,
             'break_time' => $breakTime,
             'back_time' => $backTime,
-            'total_min' => ((int)$detailSchedule->isChangeSchedule === 2) ? 0 : $totalMin,
+            'total_min' => $isGantiJam ? 0 : $totalMin,
             'total_break_min' => $totalBreakMin,
-            'keterangan' => 'Izin disetujui (sesuai jadwal)',
-            'start_time_message' => 'Izin disetujui',
-            'end_time_message' => 'Izin disetujui',
+            'keterangan' => $permitStatusText,
+            'start_time_message' => $permitMessage,
+            'end_time_message' => $permitMessage,
         ];
 
         if (!$attendance && $internId) {
@@ -350,7 +369,7 @@ class TimeHelper
             $detailSchedule->attendance_id = $attendance->id;
             $detailSchedule->save();
         } elseif ($attendance) {
-            $attPayload['keterangan'] = $attendance->keterangan ?: 'Izin disetujui (sesuai jadwal)';
+            $attPayload['keterangan'] = $isGantiJam ? 'Izin (Wajib Ganti Jam)' : ($attendance->keterangan ?: $permitStatusText);
             $attendance->update($attPayload);
 
             if (!$detailSchedule->attendance_id) {

@@ -317,47 +317,61 @@ class ScheduleController extends Controller
 
     public function scheduleUpdateSingle(Request $request, int $internId)
     {
-        $requestData = $request->validate([
-            'date' => 'required',
-            'month' => 'required|integer|min:1|max:12',
-            'year' => 'required|integer|min:1900|max:2100',
-            'shift_id' => 'required|integer',
-            'work_type' => 'required|string|in:wfo,wfh',
-            'office_id' => 'required|integer',
-            'schedule_type' => 'required|integer',
-            'back_earlier' => 'required|integer'
-        ]);
+        try {
+            $requestData = $request->validate([
+                'date' => 'required',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:1900|max:2100',
+                'shift_id' => 'required|integer',
+                'work_type' => 'required|string|in:wfo,wfh',
+                'office_id' => 'required|integer',
+                'schedule_type' => 'required|integer',
+                'back_earlier' => 'required|integer'
+            ]);
 
-        $date = sprintf('%04d-%02d-%02d', (int)$requestData["year"], (int)$requestData["month"], (int)$requestData["date"]);
+            $date = sprintf('%04d-%02d-%02d', (int)$requestData["year"], (int)$requestData["month"], (int)$requestData["date"]);
 
-        $result = $this->scheduleService->updateScheduleSingleData($internId, $date, $requestData);
+            $result = $this->scheduleService->updateScheduleSingleData($internId, $date, $requestData);
 
-        if (!$result->isSuccess()) {
-            return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal.'], 400);
+            if (!$result->isSuccess()) {
+                return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal.'], 400);
+            }
+
+            return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return response()->json(['message' => $ve->validator->errors()->first() ?: 'Data yang dikirim tidak valid.'], 422);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('scheduleUpdateSingle error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['message' => 'Terjadi kesalahan pada server saat memperbarui jadwal: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
     }
 
 
     public function scheduleUpdateMulti(Request $request, int $internId)
     {
-        $requestData = $request->validate([
-            'date' => 'required|string',
-            'month' => 'required|integer|min:1|max:12',
-            'year' => 'required|integer|min:1900|max:2100',
-            'shift_id' => 'required|integer',
-            'work_type' => 'required|string|in:wfo,wfh',
-            'office_id' => 'required|integer',
-            'schedule_type' => 'required|integer'
-        ]);
+        try {
+            $requestData = $request->validate([
+                'date' => 'required|string',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:1900|max:2100',
+                'shift_id' => 'required|integer',
+                'work_type' => 'required|string|in:wfo,wfh',
+                'office_id' => 'required|integer',
+                'schedule_type' => 'required|integer'
+            ]);
 
-        $result = $this->scheduleService->updateScheduleMultiData($internId, $requestData);
+            $result = $this->scheduleService->updateScheduleMultiData($internId, $requestData);
 
-        if (!$result->isSuccess()) {
-            return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal massal.'], 400);
+            if (!$result->isSuccess()) {
+                return response()->json(['message' => $result->getMessage() ?: 'Gagal memperbarui jadwal massal.'], 400);
+            }
+
+            return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
+        } catch (\Illuminate\Validation\ValidationException $ve) {
+            return response()->json(['message' => $ve->validator->errors()->first() ?: 'Data yang dikirim tidak valid.'], 422);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('scheduleUpdateMulti error: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json(['message' => 'Terjadi kesalahan pada server saat memperbarui jadwal massal: ' . $e->getMessage()], 500);
         }
-
-        return response()->json(['message' => 'Data Schedule berhasil di perbarui!'], 200);
     }
 }

@@ -341,6 +341,7 @@
                     <input type="hidden" name="field" id="field">
                     <input type="hidden" name="tipe" id="tipe">
                     <input type="hidden" name="attendance_id" id="attendanceId">
+                    <input type="hidden" name="detail_schedule_id" id="detailScheduleId">
                     <input type="hidden" name="current_page" id="current-page" value="1">
                     <!-- Tambahkan input hidden untuk halaman -->
                     <div class="mb-4">
@@ -603,11 +604,16 @@
             }
         })();
 
-        function openModal(tipe, Jam, field, currentValue, id, date, name, message, currentPage = null) {
+        function openModal(tipe, Jam, field, currentValue, id, date, name, message, currentPage = null, detailScheduleId = null) {
             document.getElementById('tipe').value = tipe;
             document.getElementById('field').value = field;
             document.getElementById('field1').textContent = Jam;
-            document.getElementById('attendanceId').value = id;
+            document.getElementById('attendanceId').value = id || 0;
+
+            const detailScheduleInput = document.getElementById('detailScheduleId');
+            if (detailScheduleInput) {
+                detailScheduleInput.value = detailScheduleId || '';
+            }
 
             // Format waktu untuk input time (HH:mm:ss)
             let timeValue = currentValue || '';
@@ -627,8 +633,9 @@
             // Set current page ke form
             document.getElementById('current-page').value = currentPage || pageNow;
 
+            const targetId = (id && id !== 'undefined' && id !== 'null' && id !== 0 && id !== '0') ? id : (detailScheduleId || 0);
             const form = document.getElementById('editForm');
-            form.action = `/admin/attendance/updateTime/${id}?page=${currentPage || pageNow}`;
+            form.action = `/admin/attendance/updateTime/${targetId}?page=${currentPage || pageNow}`;
 
             document.getElementById('editModal').classList.remove('hidden');
         }
@@ -955,16 +962,16 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                                 </button>
                                             </td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                ${generateAttendanceCell('default', 'Jam Mulai', 'start_time', attendance.start_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.start_time_message)}
+                                                ${generateAttendanceCell('default', 'Jam Mulai', 'start_time', attendance?.start_time, attendance?.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', attendance?.start_time_message)}
                                             </td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                ${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance.end_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.end_time_message)}
+                                                ${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance?.end_time, attendance?.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', attendance?.end_time_message)}
                                             </td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                ${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance.break_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.break_time_message)}
+                                                ${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance?.break_time, attendance?.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', attendance?.break_time_message)}
                                             </td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                ${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance.back_time, attendance.id, schedule.date, '{{ $intern_data->full_name }}', attendance.back_time_message)}
+                                                ${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance?.back_time, attendance?.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', attendance?.back_time_message)}
                                             </td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${attendance.total_min_format || '00:00'}</td>
                                             <td class="py-2.5 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${(attendance.target_time || 0) > 0 ? 'text-emerald-600' : ((attendance.target_time || 0) < 0 ? 'text-rose-600' : 'text-gray-700')}">
@@ -1003,16 +1010,16 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                 var adjustableRow = `
                                             <tr class="border-b border-gray-100 text-center ${bgColor}">
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                    ${generateAttendanceCell('adst', 'Jam Mulai', 'start_time', adjustable.start_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.start_time_message)}
+                                                    ${generateAttendanceCell('adst', 'Jam Mulai', 'start_time', adjustable.start_time, adjustable.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.start_time_message)}
                                                 </td>
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                    ${generateAttendanceCell('adst', 'Jam Pulang', 'end_time', adjustable.end_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.end_time_message)}
+                                                    ${generateAttendanceCell('adst', 'Jam Pulang', 'end_time', adjustable.end_time, adjustable.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.end_time_message)}
                                                 </td>
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                    ${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable.break_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.break_time_message)}
+                                                    ${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable.break_time, adjustable.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.break_time_message)}
                                                 </td>
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px]">
-                                                    ${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable.back_time, adjustable.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.back_time_message)}
+                                                    ${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable.back_time, adjustable.id, schedule.id, schedule.date, '{{ $intern_data->full_name }}', adjustable.back_time_message)}
                                                 </td>
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-semibold text-gray-800">${adjustable.total_min_format || '00:00'}</td>
                                                 <td class="py-2 px-2 border-t border-gray-100 text-center align-middle font-mono text-[11px] font-bold ${adjustable.target_time > 0 ? 'text-emerald-600' : (adjustable.target_time < 0 ? 'text-rose-600' : 'text-gray-700')}">
@@ -1051,16 +1058,26 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
             /**
              * Generates an attendance cell with optional message tooltip.
              */
-            function generateAttendanceCell(tipe, label, field, time, scheduleId, date, name, message) {
+            function generateAttendanceCell(tipe, label, field, time, attdOrAdstId, detailScheduleId, date, name, message) {
                 const formattedTime = formatTimeWithSeconds(time);
                 var currentPage = pageNow;
+                const targetId = (attdOrAdstId && attdOrAdstId !== 'undefined' && attdOrAdstId !== 'null' && attdOrAdstId !== 0 && attdOrAdstId !== '0')
+                    ? attdOrAdstId
+                    : (detailScheduleId || 0);
 
                 if (!time || formattedTime === '---') {
-                    return `<span class="text-gray-400 font-mono text-[11px]">-</span>`;
+                    return `
+                        <span onclick="openModal('${tipe}', '${label}', '${field}', '', '${targetId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
+                            class="cursor-pointer text-gray-400 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-all font-mono text-[11px] font-semibold border border-dashed border-gray-300 hover:border-blue-400 inline-flex items-center gap-1 group"
+                            title="Klik untuk mengisi ${label}">
+                            <span>-</span>
+                            <i class="fa-solid fa-pen text-[9px] text-gray-300 group-hover:text-blue-600"></i>
+                        </span>
+                    `;
                 }
 
                 return `
-                    <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${scheduleId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage})"
+                    <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${targetId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
                         class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline font-mono text-[11px] font-medium" title="Klik untuk edit waktu">
                         ${formattedTime}
                     </span>

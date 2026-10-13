@@ -172,7 +172,9 @@ class AutoSchedulingEngine
             'school',
             'division.scheduleRule',
             'lockedOffice',
-            'blacklistedOffice'
+            'blacklistedOffice',
+            'schedules',
+            'shift',
         ])->whereHas('user', function ($q) {
             $q->where('is_active', 1);
         });
@@ -343,6 +345,8 @@ class AutoSchedulingEngine
             foreach ($divInterns as $intern) {
                 $isRemoteSchool = (bool) ($intern->school?->is_remote_school ?? false);
                 $isWfhPlacement = ($intern->work_placement_type === 'wfh_only');
+                $isFixedSchedule = ($intern->schedules->first()?->type === 'daily')
+                    || ($intern->shift && !$intern->shift->is_rolling);
 
                 if ($isRemoteSchool || $isWfhPlacement) {
                     $internBaseProfiles[$intern->id] = [
@@ -353,6 +357,7 @@ class AutoSchedulingEngine
                         'cohort_group' => $intern->effective_hybrid_group ?? 'A',
                         'work_placement_type' => 'wfh_only',
                         'candidate_offices' => [],
+                        'is_fixed_schedule' => $isFixedSchedule,
                     ];
                     continue;
                 }
@@ -586,6 +591,7 @@ class AutoSchedulingEngine
                     // Utamakan FULL WFO untuk seluruh pemagang yang muat
                     foreach ($shiftRecs as $rec) {
                         $i = $rec['intern'];
+                        $isFixed = ($i->schedules->first()?->type === 'daily') || ($i->shift && !$i->shift->is_rolling);
                         $internBaseProfiles[$i->id] = [
                             'is_remote' => false,
                             'primary_office_id' => $oId,
@@ -598,6 +604,7 @@ class AutoSchedulingEngine
                             'work_placement_type' => $i->work_placement_type ?? 'auto_office',
                             'candidate_offices' => $rec['cand_offices'],
                             'is_spillover' => !empty($rec['is_spillover']),
+                            'is_fixed_schedule' => $isFixed,
                         ];
                     }
                     continue;
@@ -702,6 +709,7 @@ class AutoSchedulingEngine
                 foreach ($shiftRecs as $rec) {
                     $i = $rec['intern'];
                     $isPaired = isset($partnersMap[$i->id]);
+                    $isFixed = ($i->schedules->first()?->type === 'daily') || ($i->shift && !$i->shift->is_rolling);
 
                     if ($isPaired) {
                         $internBaseProfiles[$i->id] = [
@@ -716,6 +724,7 @@ class AutoSchedulingEngine
                             'work_placement_type' => $i->work_placement_type ?? 'auto_office',
                             'candidate_offices' => $rec['cand_offices'],
                             'is_spillover' => !empty($rec['is_spillover']),
+                            'is_fixed_schedule' => $isFixed,
                         ];
                     } else {
                         // Utamakan FULL WFO (kursi aman tanpa rotasi)
@@ -731,6 +740,7 @@ class AutoSchedulingEngine
                             'work_placement_type' => $i->work_placement_type ?? 'auto_office',
                             'candidate_offices' => $rec['cand_offices'],
                             'is_spillover' => !empty($rec['is_spillover']),
+                            'is_fixed_schedule' => $isFixed,
                         ];
                     }
                 }
@@ -817,8 +827,8 @@ class AutoSchedulingEngine
                         return strcmp($startA, $startB);
                     });
                     $pNumShifts = count($primValidShifts);
-                    if ($pNumShifts <= 1) {
-                        $weeklyRotatedShiftId = $primValidShifts[0];
+                    if ($pNumShifts <= 1 || !empty($profile['is_fixed_schedule'])) {
+                        $weeklyRotatedShiftId = in_array($baseShiftId, $primValidShifts) ? $baseShiftId : $primValidShifts[0];
                     } else {
                         $bIdx = array_search($baseShiftId, $primValidShifts);
                         if ($bIdx === false) $bIdx = 0;
@@ -978,8 +988,13 @@ class AutoSchedulingEngine
                         // Aturan Rotasi Shift Mingguan (Setiap hari SENIN):
                         // 1. Jika kantor hanya menyediakan 1 shift: tidak perlu dirotasi (tetap di shift tersebut).
                         // 2. Jika kantor menyediakan 2 atau 3 shift: rotasi shift mengikuti shift yang disediakan kantor tersebut setiap hari Senin!
-                        if ($numOfficeShifts <= 1) {
-                            $shiftsToTry = $validShifts;
+                        // 3. JIKA PEMAGANG BERSTATUS JADWAL TETAP (is_fixed_schedule): shift dikunci pada base_shift_id pemagang, TIDAK dirotasi mingguan!
+                        if ($numOfficeShifts <= 1 || !empty($profile['is_fixed_schedule'])) {
+                            if (in_array($profile['base_shift_id'], $validShifts)) {
+                                $shiftsToTry = array_merge([$profile['base_shift_id']], array_diff($validShifts, [$profile['base_shift_id']]));
+                            } else {
+                                $shiftsToTry = $validShifts;
+                            }
                         } else {
                             $baseIdx = array_search($profile['base_shift_id'], $validShifts);
                             if ($baseIdx === false) {
@@ -1026,9 +1041,15 @@ class AutoSchedulingEngine
                                             $partnerInfo = !empty($profile['partner_name']) ? " (Bergantian dg {$profile['partner_name']})" : " (Grup {$profile['cohort_group']})";
                                             $statusNote = "WFO Bergilir 50:50{$partnerInfo}";
                                         } else {
-                                            $statusNote = $isSpillover
-                                                ? "Dialihkan ke {$candOffice->name} (Pemerataan Meja)"
-                                                : "WFO Prioritas (Kursi Utama)";
+                                            if (!empty($profile['is_fixed_schedule'])) {
+                                                $statusNote = $isSpillover
+                                                    ? "Dialihkan ke {$candOffice->name} (Jadwal Tetap)"
+                                                    : "WFO Prioritas (Jadwal Tetap Terkunci)";
+                                            } else {
+                                                $statusNote = $isSpillover
+                                                    ? "Dialihkan ke {$candOffice->name} (Pemerataan Meja)"
+                                                    : "WFO Prioritas (Kursi Utama)";
+                                            }
                                         }
                                         $stats['wfo_count']++;
                                     }
@@ -1140,10 +1161,15 @@ class AutoSchedulingEngine
                         ?? $internModel->office_id
                         ?? 1;
 
-                    // Tentukan tipe jadwal: jika kantor hanya punya 1 shift aktif, simpan 'daily' (Tetap), jika > 1 shift simpan 'weekly' (Rolling)
+                    // Tentukan tipe jadwal: jika pemagang berstatus jadwal tetap (is_fixed_schedule), pertahankan 'daily' (Tetap)!
+                    // Selain itu: jika kantor hanya punya 1 shift aktif, simpan 'daily' (Tetap), jika > 1 shift simpan 'weekly' (Rolling)
                     $targetOffice = $offices->get($firstAllocOffice);
                     $enabledShiftsCount = $targetOffice ? $targetOffice->shiftCapacities->where('is_enabled', true)->where('max_capacity', '>', 0)->count() : 3;
-                    $determinedType = ($enabledShiftsCount > 1) ? 'weekly' : 'daily';
+                    if (!empty($internBaseProfiles[$internId]['is_fixed_schedule'])) {
+                        $determinedType = 'daily';
+                    } else {
+                        $determinedType = ($enabledShiftsCount > 1) ? 'weekly' : 'daily';
+                    }
 
                     $schedule = Schedule::firstOrCreate(
                         ['intern_id' => $internId],

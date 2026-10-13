@@ -25,12 +25,12 @@ class DebtCalculationService
             return 0;
         }
 
-        // 1. Jika sudah lunas atau izin bebas ganti jam yang disetujui -> 0
-        if (
+        // 1. Jika sudah lunas atau izin bebas ganti jam yang disetujui (dan bukan Wajib Ganti Jam) -> 0
+        if ((int) $schedule->isChangeSchedule !== 2 && (
             TimeHelper::isApprovedExcusedLeave($schedule) ||
             (int) $schedule->isChangeSchedule === 1 ||
             (int) $schedule->is_change_schedule_approved === 1
-        ) {
+        )) {
             return 0;
         }
 
@@ -64,6 +64,19 @@ class DebtCalculationService
         }
 
         $statusId = (int) ($schedule->attd_status_id ?? 1);
+
+        // Self-healing: jika tercatat Alpha (5) tetapi pemagang sebenarnya hadir dan sudah dipulangkan (memiliki start_time & end_time valid > 0 menit):
+        // Sinkronkan status ke Hadir (2) dan hitung jam kerja aktualnya (bukan hutang 1 shift penuh)
+        if ($statusId === 5 && $attendance && !empty($attendance->start_time) && !empty($attendance->end_time) && (int)($attendance->total_min ?? 0) > 0) {
+            $statusId = 2;
+            $updateData = ['attd_status_id' => 2];
+            if (empty($schedule->attendance_id)) {
+                $updateData['attendance_id'] = $attendance->id;
+                $schedule->setRelation('attendance', $attendance);
+            }
+            $schedule->update($updateData);
+            $schedule->attd_status_id = 2;
+        }
 
         // 3. Alpha (attd_status_id = 5) -> Hutang full 1 shift
         if ($statusId === 5) {

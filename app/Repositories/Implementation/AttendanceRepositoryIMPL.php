@@ -42,7 +42,52 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
     public function updateTime(int $id, array $data)
     {
-        $attendance = $this->model->find($id);
+        $attendance = $id > 0 ? $this->model->find($id) : null;
+
+        if (!$attendance) {
+            // Cek apakah ada detail_schedule_id di payload data atau dari request
+            $detailScheduleId = $data['detail_schedule_id'] ?? request()->input('detail_schedule_id');
+            $detailSchedule = null;
+
+            if ($detailScheduleId) {
+                $detailSchedule = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($detailScheduleId);
+            }
+
+            // Jika $id tidak ketemu di Attendance tapi ternyata itu adalah ID DetailSchedule
+            if (!$detailSchedule && $id > 0) {
+                $detailSchedule = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($id);
+            }
+
+            if ($detailSchedule) {
+                $internId = $detailSchedule->schedule?->intern_id;
+                $date = $detailSchedule->date;
+
+                if ($internId && $date) {
+                    $attendance = $this->model->where('intern_id', $internId)
+                        ->whereDate('date', $date)
+                        ->first();
+
+                    if (!$attendance) {
+                        $attendance = $this->model->create([
+                            'intern_id' => $internId,
+                            'date' => $date,
+                            'start_time' => null,
+                            'end_time' => null,
+                            'break_time' => null,
+                            'back_time' => null,
+                            'total_min' => 0,
+                            'total_break_min' => 0,
+                            'keterangan' => 'Diisi manual oleh Admin',
+                        ]);
+                    }
+
+                    if (empty($detailSchedule->attendance_id)) {
+                        $detailSchedule->attendance_id = $attendance->id;
+                        $detailSchedule->save();
+                    }
+                }
+            }
+        }
 
         if (!$attendance) {
             return null;
@@ -59,7 +104,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
         // Update message field jika ada
         $messageField = $field . '_message';
-        if (isset($data['message']) && property_exists($attendance, $messageField)) {
+        if (isset($data['message']) && in_array($messageField, ['start_time_message', 'end_time_message', 'break_time_message', 'back_time_message'])) {
             $attendance->$messageField = $data['message'];
         }
 
@@ -67,6 +112,29 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
         $this->calculateAndSaveTimes($attendance);
 
         $attendance->save();
+
+        // Hubungkan ke DetailSchedule jika belum terhubung
+        $detailSchedules = \App\Models\DetailSchedule::where('attendance_id', $attendance->id)->get();
+        if ($detailSchedules->isEmpty() && $attendance->intern_id && $attendance->date) {
+            $detailSchedules = \App\Models\DetailSchedule::whereHas('schedule', function ($q) use ($attendance) {
+                $q->where('intern_id', $attendance->intern_id);
+            })->whereDate('date', $attendance->date)->get();
+        }
+
+        foreach ($detailSchedules as $ds) {
+            $dsUpdate = [];
+            if (empty($ds->attendance_id)) {
+                $dsUpdate['attendance_id'] = $attendance->id;
+            }
+            // Jika jam masuk atau jam pulang sudah terisi, pastikan status kehadiran menjadi Hadir (2), kecuali izin (3)
+            if (!empty($attendance->start_time) && (int) $ds->attd_status_id !== 3 && (int) $ds->attd_status_id !== 2) {
+                $dsUpdate['attd_status_id'] = 2; // Hadir
+            }
+            if (!empty($dsUpdate)) {
+                $ds->update($dsUpdate);
+            }
+        }
+
         return $attendance;
     }
 
@@ -138,7 +206,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
             $attendance->back_time
         );
 
-        $attendance->total_min = max($totalMinutes, 0);
+        $attendance->total_min = max($totalMinutes - $totalBreakMinutes, 0);
         $attendance->total_break_min = max($totalBreakMinutes, 0);
     }
 
