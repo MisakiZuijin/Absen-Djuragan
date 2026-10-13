@@ -116,7 +116,8 @@
             document.querySelectorAll('[id^="duration-"]').forEach(element => {
                 const startTimeString = element.getAttribute('data-start-time');
                 if (!startTimeString) return;
-                const startTime = new Date(startTimeString);
+                const safeDateStr = startTimeString.includes('T') ? startTimeString : startTimeString.replace(' ', 'T');
+                const startTime = new Date(safeDateStr);
                 const now = new Date();
                 const durationInSeconds = Math.floor((now - startTime) / 1000);
 

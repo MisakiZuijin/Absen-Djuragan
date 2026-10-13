@@ -263,6 +263,37 @@
        min-height: 2.5rem;
    }
 
+   /* Safari / WebKit calendar picker indicator fix */
+   input[type="date"]::-webkit-calendar-picker-indicator,
+   input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+   input[type="time"]::-webkit-calendar-picker-indicator {
+       display: block;
+       opacity: 0.75;
+       cursor: pointer;
+       padding-right: 4px;
+       transition: opacity 0.15s ease-in-out;
+   }
+
+   input[type="date"]::-webkit-calendar-picker-indicator:hover,
+   input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover,
+   input[type="time"]::-webkit-calendar-picker-indicator:hover {
+       opacity: 1;
+   }
+
+   /* macOS Safari: normalisasi tombol agar tidak mewarisi gradient/bevel default Aqua */
+   button, [type='button'], [type='reset'], [type='submit'] {
+       -webkit-appearance: none;
+   }
+
+   /* Leaflet Safari macOS / iOS: cegah tile flickering atau blank saat zoom / pan */
+   .leaflet-tile,
+   .leaflet-tile-container {
+       -webkit-backface-visibility: hidden;
+       backface-visibility: hidden;
+       -webkit-transform: translate3d(0, 0, 0);
+       transform: translate3d(0, 0, 0);
+   }
+
    /* Scrollbar tipis konsisten: Chrome/Safari (Linux/macOS) + Firefox */
    * {
        scrollbar-width: thin;

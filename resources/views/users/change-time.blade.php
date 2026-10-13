@@ -14,9 +14,10 @@
             if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(str)) {
                 return str.substring(0, 5);
             }
-            // 2. Jika format ISO string / datetime string (misal '2026-09-30T09:15:00.000000Z')
+            // 2. Jika format ISO string / datetime string (misal '2026-09-30T09:15:00.000000Z' atau '2026-09-30 09:15:00')
             try {
-                const date = new Date(str);
+                const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+                const date = new Date(safeStr);
                 if (!isNaN(date.getTime())) {
                     const h = String(date.getHours()).padStart(2, '0');
                     const m = String(date.getMinutes()).padStart(2, '0');
@@ -32,6 +33,18 @@
                 const parts = str.split('T');
                 return parts[1] ? parts[1].substring(0, 5) : parts[0].substring(0, 5);
             }
+            return str;
+        },
+        formatDateStr(val) {
+            if (!val) return '';
+            const str = String(val).trim();
+            const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : (str.length === 10 ? str + 'T00:00:00' : str);
+            try {
+                const d = new Date(safeStr);
+                if (!isNaN(d.getTime())) {
+                    return d.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+                }
+            } catch (e) {}
             return str;
         }
     }">
@@ -136,7 +149,7 @@
                                               x-text="selectedSchedule?.kategori"></span>
                                     </template>
                                 </div>
-                                <p class="text-xs text-gray-500 mt-0.5 truncate" x-text="selectedSchedule?.date ? `Untuk tanggal: ${new Date(selectedSchedule.date).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}` : ''"></p>
+                                <p class="text-xs text-gray-500 mt-0.5 truncate" x-text="selectedSchedule?.date ? `Untuk tanggal: ${formatDateStr(selectedSchedule.date)}` : ''"></p>
                             </div>
                             <button type="button" @click="showModal = false" class="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none">&times;</button>
                         </div>

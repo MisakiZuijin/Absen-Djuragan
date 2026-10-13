@@ -312,10 +312,12 @@
             icon.className = 'fas fa-sort-up';
         }
 
-        // Urutkan baris berdasarkan tanggal
+        // Urutkan baris berdasarkan tanggal (kompatibel Safari macOS / iOS)
         rows.sort((a, b) => {
-            const dateA = new Date(a.getAttribute('data-date'));
-            const dateB = new Date(b.getAttribute('data-date'));
+            const rawA = a.getAttribute('data-date') || '';
+            const rawB = b.getAttribute('data-date') || '';
+            const dateA = new Date(rawA.includes('T') ? rawA : rawA.replace(' ', 'T'));
+            const dateB = new Date(rawB.includes('T') ? rawB : rawB.replace(' ', 'T'));
 
             return isAscending ? dateA - dateB : dateB - dateA;
         });

@@ -566,8 +566,9 @@
                     return timeString + ':00';
                 }
 
-                // Jika format datetime, parse dan ambil waktu saja
-                const time = new Date(timeString);
+                // Jika format datetime, parse dan ambil waktu saja (kompatibel Safari macOS / iOS)
+                const safeTimeStr = timeString.includes('T') ? timeString : timeString.replace(' ', 'T');
+                const time = new Date(safeTimeStr);
                 if (!isNaN(time.getTime())) {
                     return time.toLocaleTimeString('en-GB', {
                         hour: '2-digit',

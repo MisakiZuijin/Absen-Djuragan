@@ -343,6 +343,13 @@ class AttdStatusButton extends Component
 
         // Use provided IDs if available, otherwise fallback to component properties
         $attendanceIdToUse = $attendanceId ?: (is_array($this->attendanceHistory) ? ($this->attendanceHistory['id'] ?? 0) : ($this->attendanceHistory->id ?? 0));
+        if (!$attendanceIdToUse && !empty($this->user->intern?->id)) {
+            $attendanceIdToUse = \App\Models\Attendance::where('intern_id', $this->user->intern->id)
+                ->whereDate('date', today())
+                ->whereNotNull('start_time')
+                ->latest('id')
+                ->value('id') ?? 0;
+        }
         
         $adjHistId = is_array($this->adjustableTimeHistory) ? ($this->adjustableTimeHistory['id'] ?? null) : ($this->adjustableTimeHistory->id ?? null);
         if (!$adjHistId && !empty($this->user->intern?->id)) {
@@ -518,6 +525,10 @@ class AttdStatusButton extends Component
         $hasReachedPrayerLimit = false;
         $hasCheckedIn = false;
         $hasActiveAdjustable = false;
+        $activeAdjustableModel = null;
+        $endTime = null;
+        $isWorkingShiftToday = false;
+        $todayAttendance = null;
 
         $intern = $currentUser?->intern;
         if ($intern) {
@@ -540,14 +551,14 @@ class AttdStatusButton extends Component
                 }
             }
 
-            $todayAttendance = $this->attendanceHistory ?? null;
-            if (!$todayAttendance) {
-                $todayAttendance = \App\Models\Attendance::where('intern_id', $internId)
-                    ->whereDate('date', today())
-                    ->first(['id', 'start_time', 'end_time', 'break_time', 'back_time']);
-            }
+            // Selalu ambil status presensi terbaru dari DB agar reaktif (sinkron dengan wire:poll / tab lain / aksi admin)
+            $todayAttendance = \App\Models\Attendance::where('intern_id', $internId)
+                ->whereDate('date', today())
+                ->latest('id')
+                ->first(['id', 'start_time', 'end_time', 'break_time', 'back_time']);
 
             if ($todayAttendance) {
+                $this->attendanceHistory = $todayAttendance;
                 $startTime = is_array($todayAttendance) ? ($todayAttendance['start_time'] ?? null) : $todayAttendance->start_time;
                 $endTime = is_array($todayAttendance) ? ($todayAttendance['end_time'] ?? null) : $todayAttendance->end_time;
                 $hasCheckedIn = !is_null($startTime);
@@ -629,6 +640,12 @@ class AttdStatusButton extends Component
                     $this->adjustableTimeHistory = $activeAdjustableModel;
                 }
             }
+        }
+
+        // Sinkronisasi stage: jika presensi reguler sudah selesai (end_time terisi) dan tidak ada sesi ganti jam yang sedang berjalan,
+        // pastikan stage di-set ke AllDone agar tombol Pulang langsung hilang dan tombol Selesai muncul
+        if (!empty($endTime) && !$hasActiveAdjustable) {
+            $this->stage = AttendanceStatus::AllDone;
         }
 
         $targetDebtMinutes = 0;
@@ -753,6 +770,8 @@ class AttdStatusButton extends Component
             'hasReachedPrayerLimit' => $hasReachedPrayerLimit,
             'hasCheckedIn' => $hasCheckedIn,
             'isWorkingShiftToday' => $isWorkingShiftToday ?? false,
+            'endTime' => $endTime,
+            'todayAttendance' => $todayAttendance,
             'hasActiveAdjustable' => $hasActiveAdjustable,
             'activeAdjustableModel' => $activeAdjustableModel,
             'activeAdjustableId' => $activeAdjustableId,

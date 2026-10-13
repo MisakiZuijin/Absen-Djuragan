@@ -74,7 +74,8 @@
                 time: '00:00:00',
                 interval: null,
                 init() {
-                    let start = new Date(startTime);
+                    const safeStart = typeof startTime === 'string' && !startTime.includes('T') ? startTime.replace(' ', 'T') : startTime;
+                    let start = new Date(safeStart);
                     if (this.interval) clearInterval(this.interval);
                     this.interval = setInterval(() => {
                         let diff = new Date() - start;

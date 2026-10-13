@@ -944,7 +944,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::StartBreak->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-mug-hot mr-2"></i>Istirahat
@@ -976,7 +976,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::EndBreak->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-undo mr-2"></i>Kembali dari Istirahat
@@ -999,7 +999,7 @@
                 @endif
 
                 {{-- PULANG BIASA --}}
-                @if(in_array($stage, [AttendanceStatus::ShowBreakPermitChangeTime, AttendanceStatus::ShowBreakPermit, AttendanceStatus::ShowPermitChangeTime, AttendanceStatus::ShowBreakChangeTime, AttendanceStatus::StartBreak, AttendanceStatus::StartPermit, AttendanceStatus::AttendanceOut, AttendanceStatus::ShowBreakPermitChangeTime->value, AttendanceStatus::ShowBreakPermit->value, AttendanceStatus::ShowPermitChangeTime->value, AttendanceStatus::ShowBreakChangeTime->value, AttendanceStatus::StartBreak->value, AttendanceStatus::StartPermit->value, AttendanceStatus::AttendanceOut->value, 2, 17, 15, 16, 7, 9, 4]))
+                @if(in_array($stage, [AttendanceStatus::ShowBreakPermitChangeTime, AttendanceStatus::ShowBreakPermit, AttendanceStatus::ShowPermitChangeTime, AttendanceStatus::ShowBreakChangeTime, AttendanceStatus::StartBreak, AttendanceStatus::StartPermit, AttendanceStatus::AttendanceOut, AttendanceStatus::ShowBreakPermitChangeTime->value, AttendanceStatus::ShowBreakPermit->value, AttendanceStatus::ShowPermitChangeTime->value, AttendanceStatus::ShowBreakChangeTime->value, AttendanceStatus::StartBreak->value, AttendanceStatus::StartPermit->value, AttendanceStatus::AttendanceOut->value, 2, 17, 15, 16, 7, 9, 4]) && empty($endTime) && empty($attendanceHistory?->end_time) && $isWorkingShiftToday)
                 <a href="#" class="w-full text-center bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors {{ $activePermit ? 'opacity-50 cursor-not-allowed' : '' }}"
                     data-check-shift="1"
                     data-has-shift="{{ $hasShift ? 1 : 0 }}"
@@ -1008,7 +1008,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::AttendanceOut->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-home mr-2"></i>Pulang
@@ -1016,7 +1016,7 @@
                 @endif
 
                 {{-- PULANG GANTI JAM (DESKTOP) --}}
-                @if(in_array($stage, [AttendanceStatus::BreakOrBack, AttendanceStatus::BreakOrBack->value, 13, AttendanceStatus::AdjustableOut, AttendanceStatus::AdjustableOut->value, 6]))
+                @if(in_array($stage, [AttendanceStatus::BreakOrBack, AttendanceStatus::BreakOrBack->value, 13, AttendanceStatus::AdjustableOut, AttendanceStatus::AdjustableOut->value, 6]) && $hasActiveAdjustable && empty($activeAdjustableModel?->end_time))
                 <a href="#" class="w-full text-center bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors {{ $activePermit ? 'opacity-50 cursor-not-allowed' : '' }}"
                     data-active-permit="{{ $activePermit ? 1 : 0 }}"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableOut->value) ? 1 : 0 }}"
@@ -1030,7 +1030,7 @@
                 </a>
                 @endif
 
-                @if(in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AllDone->value, 14]))
+                @if(in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AllDone->value, 14]) || (!empty($endTime) && !$hasActiveAdjustable) || (!empty($attendanceHistory?->end_time) && !$hasActiveAdjustable))
                 <div class="w-full text-center bg-gray-400 text-white font-bold rounded-xl text-base py-3 px-4 block cursor-not-allowed">
                     <i class="fas fa-check-circle mr-2"></i>Selesai
                 </div>
@@ -1211,7 +1211,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::StartBreak->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-mug-hot mr-2"></i>Istirahat
@@ -1243,7 +1243,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::EndBreak->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-undo mr-2"></i>Kembali dari Istirahat
@@ -1266,7 +1266,7 @@
                 @endif
 
                 {{-- PULANG BIASA --}}
-                @if(in_array($stage, [AttendanceStatus::ShowBreakPermitChangeTime, AttendanceStatus::ShowBreakPermit, AttendanceStatus::ShowPermitChangeTime, AttendanceStatus::ShowBreakChangeTime, AttendanceStatus::StartBreak, AttendanceStatus::StartPermit, AttendanceStatus::AttendanceOut, AttendanceStatus::ShowBreakPermitChangeTime->value, AttendanceStatus::ShowBreakPermit->value, AttendanceStatus::ShowPermitChangeTime->value, AttendanceStatus::ShowBreakChangeTime->value, AttendanceStatus::StartBreak->value, AttendanceStatus::StartPermit->value, AttendanceStatus::AttendanceOut->value, 2, 17, 15, 16, 7, 9, 4]))
+                @if(in_array($stage, [AttendanceStatus::ShowBreakPermitChangeTime, AttendanceStatus::ShowBreakPermit, AttendanceStatus::ShowPermitChangeTime, AttendanceStatus::ShowBreakChangeTime, AttendanceStatus::StartBreak, AttendanceStatus::StartPermit, AttendanceStatus::AttendanceOut, AttendanceStatus::ShowBreakPermitChangeTime->value, AttendanceStatus::ShowBreakPermit->value, AttendanceStatus::ShowPermitChangeTime->value, AttendanceStatus::ShowBreakChangeTime->value, AttendanceStatus::StartBreak->value, AttendanceStatus::StartPermit->value, AttendanceStatus::AttendanceOut->value, 2, 17, 15, 16, 7, 9, 4]) && empty($endTime) && empty($attendanceHistory?->end_time) && $isWorkingShiftToday)
                 <a href="#" class="w-full text-center bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors {{ $activePermit ? 'opacity-50 cursor-not-allowed' : '' }}"
                     data-check-shift="1"
                     data-has-shift="{{ $hasShift ? 1 : 0 }}"
@@ -1275,7 +1275,7 @@
                     data-user-id="{{ $user->id }}"
                     data-stage="{{ AttendanceStatus::AttendanceOut->value }}"
                     data-adjustable="0"
-                    data-absence-id="0"
+                    data-absence-id="{{ is_array($attendanceHistory) ? ($attendanceHistory['id'] ?? 0) : ($attendanceHistory->id ?? ($todayAttendance->id ?? 0)) }}"
                     data-adjustable-id="0"
                     onclick="handleAttendanceAction(event, this)">
                     <i class="fas fa-home mr-2"></i>Pulang
@@ -1283,7 +1283,7 @@
                 @endif
 
                 {{-- PULANG GANTI JAM (MOBILE) --}}
-                @if(in_array($stage, [AttendanceStatus::BreakOrBack, AttendanceStatus::BreakOrBack->value, 13, AttendanceStatus::AdjustableOut, AttendanceStatus::AdjustableOut->value, 6]))
+                @if(in_array($stage, [AttendanceStatus::BreakOrBack, AttendanceStatus::BreakOrBack->value, 13, AttendanceStatus::AdjustableOut, AttendanceStatus::AdjustableOut->value, 6]) && $hasActiveAdjustable && empty($activeAdjustableModel?->end_time))
                 <a href="#" class="w-full text-center bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors {{ $activePermit ? 'opacity-50 cursor-not-allowed' : '' }}"
                     data-active-permit="{{ $activePermit ? 1 : 0 }}"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableOut->value) ? 1 : 0 }}"
@@ -1297,7 +1297,7 @@
                 </a>
                 @endif
 
-                @if(in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AllDone->value, 14]))
+                @if(in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AllDone->value, 14]) || (!empty($endTime) && !$hasActiveAdjustable) || (!empty($attendanceHistory?->end_time) && !$hasActiveAdjustable))
                 <div class="w-full text-center bg-gray-400 text-white font-bold rounded-xl text-base py-3 px-4 block cursor-not-allowed">
                     <i class="fas fa-check-circle mr-2"></i>Selesai
                 </div>
@@ -1636,27 +1636,32 @@
                 closeShiftNotSetModal();
             });
 
-            // Bunyikan nada notifikasi halus saat ada tanggapan/chat baru dari mentor
+            // Bunyikan nada notifikasi halus saat ada tanggapan/chat baru dari mentor (aman Safari WebKit)
+            let _internChatAudioCtx = null;
             window.addEventListener('play-chat-notification', function() {
                 try {
                     const AudioCtx = window.AudioContext || window.webkitAudioContext;
                     if (!AudioCtx) return;
-                    const ctx = new AudioCtx();
-                    if (ctx.state === 'suspended') {
-                        ctx.resume().catch(() => {});
+                    if (!_internChatAudioCtx) {
+                        _internChatAudioCtx = new AudioCtx();
                     }
-                    const now = ctx.currentTime;
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    osc.type = 'sine';
-                    osc.frequency.setValueAtTime(587.33, now); // D5
-                    osc.frequency.setValueAtTime(880, now + 0.08); // A5
-                    gain.gain.setValueAtTime(0.22, now);
-                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start(now);
-                    osc.stop(now + 0.25);
+                    if (_internChatAudioCtx.state === 'suspended') {
+                        _internChatAudioCtx.resume().catch(() => {});
+                    }
+                    if (_internChatAudioCtx.state === 'running') {
+                        const now = _internChatAudioCtx.currentTime;
+                        const osc = _internChatAudioCtx.createOscillator();
+                        const gain = _internChatAudioCtx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(587.33, now); // D5
+                        osc.frequency.setValueAtTime(880, now + 0.08); // A5
+                        gain.gain.setValueAtTime(0.22, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+                        osc.connect(gain);
+                        gain.connect(_internChatAudioCtx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.25);
+                    }
                 } catch (e) {}
             });
         </script>

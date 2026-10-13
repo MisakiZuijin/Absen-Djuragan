@@ -648,8 +648,9 @@
                 $('#editBroadcastType').val(broadcast.broadcast_type);
 
                 if (broadcast.scheduled_at) {
-                    const dt = new Date(broadcast.scheduled_at);
-                    const formattedDt = dt.toISOString().slice(0, 16);
+                    const safeDtStr = broadcast.scheduled_at.includes('T') ? broadcast.scheduled_at : broadcast.scheduled_at.replace(' ', 'T');
+                    const dt = new Date(safeDtStr);
+                    const formattedDt = !isNaN(dt.getTime()) ? dt.toISOString().slice(0, 16) : '';
                     $('#editScheduledAt').val(formattedDt);
                 } else {
                     $('#editScheduledAt').val('');

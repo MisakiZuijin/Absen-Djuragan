@@ -2592,8 +2592,9 @@ foreach ($offices as $office) {
             dateFilterEl.innerHTML = '<option value="">Semua Tanggal</option>';
             const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
             uniqueDates.forEach(d => {
-                const dateObj = new Date(d);
-                const dayName = isNaN(dateObj) ? '' : dayNames[dateObj.getDay()] + ', ';
+                const safeD = d.includes('T') ? d : d.replace(' ', 'T');
+                const dateObj = new Date(safeD);
+                const dayName = isNaN(dateObj.getTime()) ? '' : dayNames[dateObj.getDay()] + ', ';
                 const opt = document.createElement('option');
                 opt.value = d;
                 opt.textContent = `${dayName}${d}`;
@@ -2702,9 +2703,10 @@ foreach ($offices as $office) {
             const tr = document.createElement('tr');
             tr.className = 'hover:bg-slate-50/80 transition-colors';
 
-            // Date & Day formatting
-            const dObj = new Date(item.date);
-            const dName = isNaN(dObj) ? '' : dayNames[dObj.getDay()];
+            // Date & Day formatting (kompatibel Safari macOS)
+            const safeItemDate = item.date ? (item.date.includes('T') ? item.date : item.date.replace(' ', 'T')) : '';
+            const dObj = new Date(safeItemDate);
+            const dName = isNaN(dObj.getTime()) ? '' : dayNames[dObj.getDay()];
             const formattedDate = `${dName ? `<span class="font-bold text-slate-800">${dName}</span>, ` : ''}${item.date}`;
 
             // Work type badge

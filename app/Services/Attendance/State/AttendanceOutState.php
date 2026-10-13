@@ -125,6 +125,14 @@ class AttendanceOutState implements AttendanceState
             // Update attendance record
             $updatedAttendance = $this->attendanceRepository->update($data->getAttendanceId(), $attData);
 
+            if ($detailSchedule) {
+                $detailScheduleUpdate = ['attd_status_id' => 2];
+                if (!$detailSchedule->attendance_id) {
+                    $detailScheduleUpdate['attendance_id'] = $data->getAttendanceId();
+                }
+                $detailSchedule->update($detailScheduleUpdate);
+            }
+
             // Tutup otomatis izin (mis. izin keluar) yang masih terbuka,
             // karena pemagang tidak lagi punya tombol "Kembali dari Izin"
             // untuk tipe leave.

@@ -298,6 +298,18 @@ class AttendanceService
                 ->get();
 
             $attendanceTarget = $detailSchedule->attendance;
+            if (is_null($attendanceTarget)) {
+                $fallbackAttd = \App\Models\Attendance::where('intern_id', $internId)
+                    ->whereDate('date', $now)
+                    ->latest('id')
+                    ->first();
+                if ($fallbackAttd) {
+                    $attendanceTarget = $fallbackAttd;
+                    if (!$detailSchedule->attendance_id) {
+                        $detailSchedule->update(['attendance_id' => $fallbackAttd->id]);
+                    }
+                }
+            }
             $adjustableTarget = null;
             $totalAdjustable = 0;
             $isTakeChangeTimeInBreak = false;
@@ -516,12 +528,16 @@ class AttendanceService
                 $isRegularBreakMissed = true;
             }
 
-            $canTakeBreak = is_null($attendanceTarget?->break_time)
+            $canTakeBreak = !$isAttendanceNull
+                && is_null($attendanceTarget->end_time)
+                && is_null($attendanceTarget->break_time)
                 && ($detailSchedule->shift?->break_time_in_minute ?? 0) > 0
                 && !$isRegularBreakMissed;
-            $canTakePermit = is_null($attendanceTarget?->permit_start);
+            $canTakePermit = !$isAttendanceNull
+                && is_null($attendanceTarget->end_time)
+                && is_null($attendanceTarget->permit_start);
 
-            if (!$canTakePermit && $canTakeBreak && $isTakeChangeTimeInBreak) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && !$canTakePermit && $canTakeBreak && $isTakeChangeTimeInBreak) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -534,7 +550,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && $canTakePermit && $isTakeChangeTimeInBreak) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && $canTakePermit && $isTakeChangeTimeInBreak) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -547,7 +563,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && $canTakeBreak && $canTakePermit) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && $canTakeBreak && $canTakePermit) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -560,7 +576,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && !$canTakePermit && is_null($attendanceTarget->permit_back)) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && !$canTakePermit && is_null($attendanceTarget->permit_back)) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -573,7 +589,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && !is_null($attendanceTarget->break_time) && is_null($attendanceTarget->back_time)) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && !is_null($attendanceTarget->break_time) && is_null($attendanceTarget->back_time)) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -586,7 +602,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && $canTakePermit) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && $canTakePermit) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,
@@ -599,7 +615,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!$isAttendanceNull && $canTakeBreak && $totalAdjustable == 0) {
+            if (!$isAttendanceNull && is_null($attendanceTarget->end_time) && $canTakeBreak && $totalAdjustable == 0) {
                 return new ActionResult(true, "", [
                     "absenceHistory" =>  $attendanceTarget,
                     "all_adjustable" => $adjustableTimeData,

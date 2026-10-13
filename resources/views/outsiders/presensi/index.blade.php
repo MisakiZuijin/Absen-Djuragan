@@ -600,7 +600,11 @@
             const name = searchName.value;
             const filters = [];
 
-            if (date) filters.push(`tanggal ${new Date(date).toLocaleDateString('id-ID')}`);
+            if (date) {
+                const safeDate = date.includes(' ') ? date.replace(' ', 'T') : (date.length === 10 ? date + 'T00:00:00' : date);
+                const d = new Date(safeDate);
+                filters.push(`tanggal ${!isNaN(d.getTime()) ? d.toLocaleDateString('id-ID') : date}`);
+            }
             if (status) filters.push(`status ${filterStatus.options[filterStatus.selectedIndex].text}`);
             if (shift) filters.push(`shift ${filterShift.options[filterShift.selectedIndex].text}`);
             if (office) filters.push(`kantor ${filterOffice.options[filterOffice.selectedIndex].text}`);
@@ -648,7 +652,8 @@
                 return str.substring(0, 5);
             }
             try {
-                const date = new Date(str);
+                const safeStr = str.includes(' ') && !str.includes('T') ? str.replace(' ', 'T') : str;
+                const date = new Date(safeStr);
                 if (!isNaN(date.getTime())) {
                     const h = String(date.getHours()).padStart(2, '0');
                     const m = String(date.getMinutes()).padStart(2, '0');

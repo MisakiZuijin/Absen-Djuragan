@@ -15,7 +15,7 @@ var choosen_stage = 0;
 var GVAttendanceId = 0;
 var GVAdjustableId = 0;
 
-function getLocationWithRetry(retries) {
+function getLocationWithRetry(retries = 3) {
     return new Promise(function (resolve, reject) {
         if (!navigator.geolocation) {
             reject(
@@ -24,6 +24,10 @@ function getLocationWithRetry(retries) {
             return;
         }
 
+        // Pada Mac / Safari, MacBook tidak memiliki chip GPS dedicated dan mengandalkan Wi-Fi location (Apple CoreLocation).
+        // Jika enableHighAccuracy gagal/timeout, retry dengan enableHighAccuracy: false agar Wi-Fi cache dapat digunakan.
+        const useHighAccuracy = retries > 1;
+
         navigator.geolocation.getCurrentPosition(
             function (position) {
                 const latitude = position.coords.latitude;
@@ -31,7 +35,7 @@ function getLocationWithRetry(retries) {
                 resolve({ latitude: latitude, longitude: longitude });
             },
             function (error) {
-                if (error.code === error.TIMEOUT && retries > 0) {
+                if ((error.code === error.TIMEOUT || error.code === error.POSITION_UNAVAILABLE) && retries > 0) {
                     getLocationWithRetry(retries - 1)
                         .then(resolve)
                         .catch(reject);
@@ -40,9 +44,9 @@ function getLocationWithRetry(retries) {
                 }
             },
             {
-                enableHighAccuracy: true,
+                enableHighAccuracy: useHighAccuracy,
                 timeout: 10000,
-                maximumAge: 0,
+                maximumAge: useHighAccuracy ? 0 : 30000,
             },
         );
     });
@@ -138,16 +142,25 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Trigger permission prompt di awal
-    if (navigator.permissions) {
-        navigator.permissions
-            .query({ name: "geolocation" })
-            .then(function (permissionStatus) {
-                navigator.geolocation.getCurrentPosition(
-                    function (position) {},
-                    function (error) {},
-                );
-            });
+    // Trigger permission prompt di awal (aman untuk Safari macOS / iOS)
+    if (navigator.permissions && navigator.permissions.query) {
+        try {
+            navigator.permissions
+                .query({ name: "geolocation" })
+                .then(function (permissionStatus) {
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                            function (position) {},
+                            function (error) {},
+                        );
+                    }
+                })
+                .catch(function () {
+                    // Safari may reject permission query for geolocation, fallback silently
+                });
+        } catch (e) {
+            // Safari throws TypeError if 'geolocation' is unsupported in permissions.query
+        }
     }
 
     const submitButton = document.getElementById("save-attd");
