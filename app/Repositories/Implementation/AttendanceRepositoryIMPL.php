@@ -42,24 +42,28 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
     public function updateTime(int $id, array $data)
     {
-        $attendance = $id > 0 ? $this->model->find($id) : null;
+        $detailScheduleId = $data['detail_schedule_id'] ?? request()->input('detail_schedule_id');
+        $detailSchedule = null;
 
-        if (!$attendance) {
-            // Cek apakah ada detail_schedule_id di payload data atau dari request
-            $detailScheduleId = $data['detail_schedule_id'] ?? request()->input('detail_schedule_id');
-            $detailSchedule = null;
+        if ($detailScheduleId) {
+            $detailSchedule = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($detailScheduleId);
+        }
 
-            if ($detailScheduleId) {
-                $detailSchedule = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($detailScheduleId);
+        $attendance = null;
+        if ($detailSchedule) {
+            $expectedInternId = $detailSchedule->schedule?->intern_id;
+
+            // Prioritaskan relasi attendance_id dari detail_schedule hanya jika cocok dengan intern_id yang bersangkutan
+            if (!empty($detailSchedule->attendance_id)) {
+                $checkAttd = $this->model->find($detailSchedule->attendance_id);
+                if ($checkAttd && (!$expectedInternId || (int)$checkAttd->intern_id === (int)$expectedInternId)) {
+                    $attendance = $checkAttd;
+                }
             }
 
-            // Jika $id tidak ketemu di Attendance tapi ternyata itu adalah ID DetailSchedule
-            if (!$detailSchedule && $id > 0) {
-                $detailSchedule = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($id);
-            }
-
-            if ($detailSchedule) {
-                $internId = $detailSchedule->schedule?->intern_id;
+            // Jika attendance belum ada atau tidak ditemukan, cari berdasarkan intern_id & date jadwal bersangkutan
+            if (!$attendance) {
+                $internId = $expectedInternId;
                 $date = $detailSchedule->date;
 
                 if ($internId && $date) {
@@ -81,9 +85,43 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
                         ]);
                     }
 
-                    if (empty($detailSchedule->attendance_id)) {
+                    if ($detailSchedule->attendance_id !== $attendance->id) {
                         $detailSchedule->attendance_id = $attendance->id;
                         $detailSchedule->save();
+                    }
+                }
+            }
+        }
+
+        // Fallback jika tidak ada detail_schedule_id: cari via $id
+        if (!$attendance && $id > 0) {
+            $attendance = $this->model->find($id);
+
+            // Jika $id bukan attendance tapi adalah ID DetailSchedule
+            if (!$attendance) {
+                $dsFallback = \App\Models\DetailSchedule::with(['schedule', 'shift'])->find($id);
+                if ($dsFallback) {
+                    $internId = $dsFallback->schedule?->intern_id;
+                    $date = $dsFallback->date;
+                    if ($internId && $date) {
+                        $attendance = $this->model->where('intern_id', $internId)->whereDate('date', $date)->first();
+                        if (!$attendance) {
+                            $attendance = $this->model->create([
+                                'intern_id' => $internId,
+                                'date' => $date,
+                                'start_time' => null,
+                                'end_time' => null,
+                                'break_time' => null,
+                                'back_time' => null,
+                                'total_min' => 0,
+                                'total_break_min' => 0,
+                                'keterangan' => 'Diisi manual oleh Admin',
+                            ]);
+                        }
+                        if ($dsFallback->attendance_id !== $attendance->id) {
+                            $dsFallback->attendance_id = $attendance->id;
+                            $dsFallback->save();
+                        }
                     }
                 }
             }
@@ -121,13 +159,26 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
             })->whereDate('date', $attendance->date)->get();
         }
 
+        if ($detailSchedule) {
+            $dsDirectUpdate = [];
+            if ($detailSchedule->attendance_id !== $attendance->id) {
+                $dsDirectUpdate['attendance_id'] = $attendance->id;
+            }
+            if ((!empty($attendance->start_time) || !empty($attendance->end_time)) && (int) $detailSchedule->attd_status_id !== 3 && (int) $detailSchedule->attd_status_id !== 2) {
+                $dsDirectUpdate['attd_status_id'] = 2;
+            }
+            if (!empty($dsDirectUpdate)) {
+                $detailSchedule->update($dsDirectUpdate);
+            }
+        }
+
         foreach ($detailSchedules as $ds) {
             $dsUpdate = [];
             if (empty($ds->attendance_id)) {
                 $dsUpdate['attendance_id'] = $attendance->id;
             }
             // Jika jam masuk atau jam pulang sudah terisi, pastikan status kehadiran menjadi Hadir (2), kecuali izin (3)
-            if (!empty($attendance->start_time) && (int) $ds->attd_status_id !== 3 && (int) $ds->attd_status_id !== 2) {
+            if ((!empty($attendance->start_time) || !empty($attendance->end_time)) && (int) $ds->attd_status_id !== 3 && (int) $ds->attd_status_id !== 2) {
                 $dsUpdate['attd_status_id'] = 2; // Hadir
             }
             if (!empty($dsUpdate)) {
@@ -140,15 +191,22 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
     public function updateAdjustableTime(int $id, array $data)
     {
+        $adjustable = DB::table('adjustable_attds')->where('id', $id)->first();
+        if (!$adjustable) {
+            return null;
+        }
+
         $field = $data['field'];
         $time = $data['time'];
 
-        // Update adjustable time
-        $updated = DB::table('adjustable_attds')->where('id', $id)->update([$field => $time]);
-
-        if (!$updated) {
-            return null;
+        $updatePayload = [$field => $time];
+        $messageField = $field . '_message';
+        if (isset($data['message']) && in_array($messageField, ['start_time_message', 'end_time_message', 'break_time_message', 'back_time_message'])) {
+            $updatePayload[$messageField] = $data['message'];
         }
+
+        // Update adjustable time
+        DB::table('adjustable_attds')->where('id', $id)->update($updatePayload);
 
         // Get updated data
         $adjustableData = DB::table('adjustable_attds')->where('id', $id)->first();
@@ -178,20 +236,34 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
         return DB::table('adjustable_attds')->where('id', $id)->first();
     }
 
-    public function calculateTotalMinutes(?string $startTime, ?string $endTime)
+    public function calculateTotalMinutes(mixed $startTime = null, mixed $endTime = null)
     {
-        $startTime = $startTime ? strtotime($startTime) : null;
-        $endTime = $endTime ? strtotime($endTime) : null;
+        if ($startTime instanceof \DateTimeInterface) {
+            $startTime = $startTime->format('H:i:s');
+        }
+        if ($endTime instanceof \DateTimeInterface) {
+            $endTime = $endTime->format('H:i:s');
+        }
 
-        return $startTime && $endTime ? round(($endTime - $startTime) / 60) : 0;
+        $startTs = $startTime ? strtotime((string) $startTime) : null;
+        $endTs = $endTime ? strtotime((string) $endTime) : null;
+
+        return $startTs && $endTs ? max(0, round(($endTs - $startTs) / 60)) : 0;
     }
 
-    public function calculateBreakMinutes(?string $breakTime, ?string $backTime)
+    public function calculateBreakMinutes(mixed $breakTime = null, mixed $backTime = null)
     {
-        $breakTime = $breakTime ? strtotime($breakTime) : null;
-        $backTime = $backTime ? strtotime($backTime) : null;
+        if ($breakTime instanceof \DateTimeInterface) {
+            $breakTime = $breakTime->format('H:i:s');
+        }
+        if ($backTime instanceof \DateTimeInterface) {
+            $backTime = $backTime->format('H:i:s');
+        }
 
-        return $breakTime && $backTime ? round(($backTime - $breakTime) / 60) : 0;
+        $breakTs = $breakTime ? strtotime((string) $breakTime) : null;
+        $backTs = $backTime ? strtotime((string) $backTime) : null;
+
+        return $breakTs && $backTs ? max(0, round(($backTs - $breakTs) / 60)) : 0;
     }
 
     private function calculateAndSaveTimes(Attendance $attendance)

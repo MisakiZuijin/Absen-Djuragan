@@ -43,7 +43,7 @@ Route::post('/schedule/multi/update/{internId}', [ScheduleController::class, "sc
 
 // Additional Attendance API Routes
 Route::controller(AttendanceController::class)->group(function () {
-    Route::post('/attendance/updateTime/{id}', 'updateTime');
+    Route::post('/attendance/updateTime/{id?}', 'updateTime');
     Route::post('/attendance/updateStatus/{id}', 'updateStatus');
     Route::post('/attendance/delete/{id}', 'delete');
     Route::post('/attendance/reset/{id}', 'reset');

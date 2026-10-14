@@ -249,11 +249,12 @@
                     <span id="date-display1" class="font-bold">---</span> atas nama:
                     <span id="name-display" class="font-bold">---</span>
                 </p>
-                <form id="editForm" action="" method="POST">
+                <form id="editForm" class="ajax-form" action="" method="POST">
                     @csrf
                     <input type="hidden" name="field" id="field">
                     <input type="hidden" name="tipe" id="tipe">
                     <input type="hidden" name="attendance_id" id="attendanceId">
+                    <input type="hidden" name="detail_schedule_id" id="detailScheduleId">
                     <div class="mb-4">
                         <label for="time" class="block text-gray-700 text-sm font-semibold mb-2">Waktu:</label>
                         <input type="time" name="time" id="time" step="1"
@@ -444,6 +445,9 @@
                     },
                     success: function (response) {
                         showNotification('success', response.message || 'Aksi berhasil!');
+                        if (form.attr('id') === 'editForm') {
+                            closeModal();
+                        }
                         if (typeof loadData === 'function') {
                             loadData({ page: currentPage });
                         }
@@ -599,20 +603,21 @@
             }
 
             // Fungsi untuk generate cell attendance dengan validasi
-            function generateAttendanceCell(tipe, label, field, data, name) {
-                // Validasi data untuk menghindari error
-                if (!data) {
-                    return `<span>---</span>`;
-                }
-
-                const time = formatTimeWithSeconds(data[field] || '');
-                const id = data.id || '';
-                const dateNow = data.date || '';
-
+            function generateAttendanceCell(tipe, label, field, data, name, detailScheduleId = '') {
+                const time = formatTimeWithSeconds(data ? data[field] : '');
+                const id = data && data.id ? data.id : 0;
+                const dateNow = data && data.date ? data.date : (selectedDate || '');
                 const escapedName = name ? escapeHtml(name) : '';
+                const dsId = detailScheduleId || (data ? data.detail_schedule_id : '') || '';
+
+                const displayTime = (time && time !== '---') ? time : '---';
+                const isPlaceholder = (displayTime === '---');
 
                 return `
-                        <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${id}', '${dateNow}', '${escapedName}')" class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline">${time}</span>
+                        <span onclick="openModal('${tipe}','${label}', '${field}', '${isPlaceholder ? '' : displayTime}', '${id}', '${dateNow}', '${escapedName}', '${dsId}')"
+                              class="cursor-pointer font-mono text-xs ${isPlaceholder ? 'text-gray-400 hover:text-blue-600 border border-dashed border-gray-300 hover:border-blue-400 px-1.5 py-0.5 rounded' : 'text-blue-600 hover:text-blue-800 hover:underline font-medium'}">
+                            ${displayTime}
+                        </span>
                     `;
             }
 
@@ -776,8 +781,16 @@
                 return `<td rowspan="${rowspan}" class="px-4 py-2 border-t text-center align-middle whitespace-nowrap">${statusBadge}${notificationIcon}</td>`;
             }
 
+            let currentSearchRequest = null;
+            let searchDebounceTimer = null;
+
             // FUNGSI UTAMA LOAD DATA DENGAN ERROR HANDLING
             function loadData(params = {}) {
+                if (currentSearchRequest) {
+                    currentSearchRequest.abort();
+                    currentSearchRequest = null;
+                }
+
                 const defaultParams = {
                     name: searchQuery,
                     date: selectedDate,
@@ -798,12 +811,13 @@
                 noDataMessage.addClass('hidden');
                 loadingSpinner.removeClass('hidden');
 
-                $.ajax({
+                currentSearchRequest = $.ajax({
                     url: '/api/attendance',
                     method: 'GET',
                     dataType: 'json',
                     data: requestParams,
                     success: function (data) {
+                        currentSearchRequest = null;
                         loadingSpinner.addClass('hidden');
 
                         // Validasi response structure
@@ -860,10 +874,10 @@
                                             <tr class="border-b border-gray-300 text-center">
                                                 <td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>
                                                 ${generateNameCell(item, rowspan)}
-                                                <td class="p-2 border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Masuk', 'start_time', attendance, item.name)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance, item.name)}</td>
+                                                <td class="p-2 border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Masuk', 'start_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance, item.name, item.detail_schedule_id)}</td>
                                                 <td class="border-t text-center align-middle">${attendance.total_time || '00:00'}</td>
                                                 <td class="border-t text-center align-middle ${(attendance.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((attendance.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">
                                                     ${attendance.target_time?.value || '00:00'}
@@ -886,10 +900,10 @@
                                         allRowsHtml += `
                                                 <tr class="border-b border-gray-300 text-center ${bgColor}">
                                                     ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>${generateNameCell(item, rowspan)}` : ""}
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Masuk', 'start_time', adjustable, item.name)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable, item.name)}</td>
+                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Masuk', 'start_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable, item.name, item.detail_schedule_id)}</td>
                                                     <td class="border-t text-center align-middle">${adjustable.total_time || '00:00'}</td>
                                                     <td class="border-t text-center align-middle ${(adjustable.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((adjustable.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">${adjustable.target_time?.value || '00:00'}</td>
                                                     ${isFirstRow ? attendanceType : ''}
@@ -909,6 +923,10 @@
                         updatePagination(data.meta || {});
                     },
                     error: function (xhr, status, error) {
+                        if (status === 'abort') {
+                            return;
+                        }
+                        currentSearchRequest = null;
                         console.error("Error occurred: ", error);
                         loadingSpinner.addClass('hidden');
                         noDataMessage.removeClass('hidden').text('Terjadi kesalahan saat memuat data.');
@@ -919,7 +937,10 @@
             // FUNGSI PAGINATION, FILTER, DAN EVENT LISTENER
             $('#search-name').on('input', function () {
                 searchQuery = $(this).val();
-                loadData({ page: 1 });
+                clearTimeout(searchDebounceTimer);
+                searchDebounceTimer = setTimeout(function () {
+                    loadData({ page: 1 });
+                }, 300);
             });
 
             $('#filter-status, #filter-office, #filter-shift, #date-target').on('change', function () {
@@ -1107,14 +1128,18 @@
         });
 
         // FUNGSI MODAL UNTUK EDIT PRESENSI
-        function openModal(tipe, jam, field, currentValue, id, date, name) {
+        function openModal(tipe, jam, field, currentValue, id, date, name, detailScheduleId = '') {
             document.getElementById('field').value = field;
             document.getElementById('tipe').value = tipe;
-            document.getElementById('attendanceId').value = id;
+            document.getElementById('attendanceId').value = id || '';
+            const dsInput = document.getElementById('detailScheduleId');
+            if (dsInput) {
+                dsInput.value = detailScheduleId || '';
+            }
             document.getElementById('field1').textContent = jam;
 
             // Format waktu untuk input time (HH:mm:ss)
-            let timeValue = currentValue || '';
+            let timeValue = (!currentValue || currentValue === '---') ? '' : currentValue;
             if (timeValue && timeValue.includes(':')) {
                 // Pastikan format waktu lengkap dengan detik
                 const timeParts = timeValue.split(':');
@@ -1127,7 +1152,8 @@
             document.getElementById('date-display1').textContent = date || '---';
             document.getElementById('name-display').textContent = name || '---';
             const form = document.getElementById('editForm');
-            form.action = `/admin/attendance/updateTime/${id}`;
+            const targetId = (id && id !== '0' && id !== 0 && id !== 'undefined' && id !== 'null') ? id : (detailScheduleId || 0);
+            form.action = `/admin/attendance/updateTime/${targetId}`;
             document.getElementById('editModal').classList.remove('hidden');
         }
 

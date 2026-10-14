@@ -202,16 +202,24 @@
                 </h3>
 
                 <div class="mb-4">
-                    <label for="tanggal-masuk" class="block text-gray-700">Tanggal Masuk Magang</label>
+                    <label for="tanggal-masuk" class="block text-gray-700">Tanggal Masuk Magang<span class="text-red-500">*</span></label>
                     <input type="date" id="tanggal-masuk" name="in_date"
-                        value="{{ $team->intern?->start_date ?? '' }}"
-                        class="w-full mt-1 p-2 border border-gray-300 rounded">
+                        value="{{ old('in_date', $team->intern?->start_date ? \Carbon\Carbon::parse($team->intern->start_date)->format('Y-m-d') : '') }}"
+                        required
+                        class="w-full mt-1 p-2 border @error('in_date') border-rose-500 @else border-gray-300 @enderror rounded">
+                    @error('in_date')
+                        <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                    @enderror
                 </div>
                 <div class="mb-4">
-                    <label for="tanggal-keluar" class="block text-gray-700">Tanggal Keluar Magang</label>
+                    <label for="tanggal-keluar" class="block text-gray-700">Tanggal Keluar Magang<span class="text-red-500">*</span></label>
                     <input type="date" id="tanggal-keluar" name="out_date"
-                        value="{{ $team->intern?->end_date ?? '' }}"
-                        class="w-full mt-1 p-2 border border-gray-300 rounded">
+                        value="{{ old('out_date', $team->intern?->end_date ? \Carbon\Carbon::parse($team->intern->end_date)->format('Y-m-d') : '') }}"
+                        required
+                        class="w-full mt-1 p-2 border @error('out_date') border-rose-500 @else border-gray-300 @enderror rounded">
+                    @error('out_date')
+                        <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                    @enderror
                 </div>
                 <div class="mb-4">
                     <label for="parent_whatsapp_number" class="block text-gray-700">Nomor WA Orang Tua</label>
@@ -1542,6 +1550,54 @@
             notesInput?.focus();
             return false;
         }
+
+        const tglMasuk = document.getElementById('tanggal-masuk');
+        const tglKeluar = document.getElementById('tanggal-keluar');
+
+        if (tglMasuk && !tglMasuk.value) {
+            e.preventDefault();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validasi Form',
+                    text: 'Tanggal masuk magang wajib diisi.'
+                });
+            } else {
+                alert('Tanggal masuk magang wajib diisi.');
+            }
+            tglMasuk.focus();
+            return false;
+        }
+
+        if (tglKeluar && !tglKeluar.value) {
+            e.preventDefault();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validasi Form',
+                    text: 'Tanggal keluar magang wajib diisi.'
+                });
+            } else {
+                alert('Tanggal keluar magang wajib diisi.');
+            }
+            tglKeluar.focus();
+            return false;
+        }
+
+        if (tglMasuk && tglKeluar && tglMasuk.value && tglKeluar.value && tglKeluar.value < tglMasuk.value) {
+            e.preventDefault();
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Validasi Tanggal',
+                    text: 'Tanggal keluar magang harus sama dengan atau setelah tanggal masuk magang.'
+                });
+            } else {
+                alert('Tanggal keluar magang harus sama dengan atau setelah tanggal masuk magang.');
+            }
+            tglKeluar.focus();
+            return false;
+        }
     });
 
     function togglePasswordVisibility(fieldId, btn) {
@@ -1638,6 +1694,21 @@
                 const divName = selectedOpt ? (selectedOpt.getAttribute('data-name') || selectedOpt.text) : '';
                 updateDivisionForm(divName);
             });
+        }
+
+        // Sinkronisasi batasan tanggal masuk dan keluar
+        const tanggalMasuk = document.getElementById('tanggal-masuk');
+        const tanggalKeluar = document.getElementById('tanggal-keluar');
+
+        function syncDateConstraints() {
+            if (tanggalMasuk && tanggalKeluar && tanggalMasuk.value) {
+                tanggalKeluar.min = tanggalMasuk.value;
+            }
+        }
+
+        if (tanggalMasuk) {
+            tanggalMasuk.addEventListener('change', syncDateConstraints);
+            syncDateConstraints();
         }
 
         // Cegah browser autofill mengisi akun/password jika di server aslinya kosong

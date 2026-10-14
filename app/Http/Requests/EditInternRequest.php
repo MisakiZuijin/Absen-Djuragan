@@ -62,8 +62,8 @@ class EditInternRequest extends FormRequest {
             "birth_place" => "required|string",
             "phone" => "required",
             "nim" => "nullable|string",
-            "in_date" => "nullable|date",
-            "out_date" => "nullable|date",
+            "in_date" => "required|date",
+            "out_date" => "required|date|after_or_equal:in_date",
             "nip" => "nullable|string",
             "division_id" => "nullable|integer",
             "shift_id" => "nullable|integer|exists:shifts,id",
@@ -106,6 +106,11 @@ class EditInternRequest extends FormRequest {
 
     public function messages(): array {
         return [
+            'in_date.required' => 'Tanggal masuk magang wajib diisi.',
+            'in_date.date' => 'Format tanggal masuk magang tidak valid.',
+            'out_date.required' => 'Tanggal keluar magang wajib diisi.',
+            'out_date.date' => 'Format tanggal keluar magang tidak valid.',
+            'out_date.after_or_equal' => 'Tanggal keluar magang harus sama dengan atau setelah tanggal masuk magang.',
             'parent_whatsapp_number.starts_with' => 'Nomor WhatsApp orang tua harus diawali dengan 0 atau 62.',
             'parent_whatsapp_number.numeric' => 'Nomor WhatsApp orang tua hanya boleh berisi angka.',
             'address.max' => 'Alamat / keterangan kos maksimal 255 karakter.',

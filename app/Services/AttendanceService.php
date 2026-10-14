@@ -870,25 +870,14 @@ class AttendanceService
 
             // --- Pastikan $currentPage diteruskan ke semua panggilan repository ---
 
-            if ($shiftId || $officeId || $statusId) {
-                $requestData = [
-                    'date' => $dateTarget,
-                    'shift_id' => $shiftId,
-                    'office_id' => $officeId,
-                    'status_id' => $statusId
-                ];
-                // Pastikan method findByCriteria di repository Anda menerima $currentPage
-                $result = $this->detailScheduleRepository->findByCriteria($requestData, $perPage, $currentPage);
-            } elseif (!$result && $internName && $dateTarget) {
-                $result = $this->detailScheduleRepository->findByNameAndDate($internName, $dateTarget, $perPage, $currentPage);
-            } elseif (!$result && $internName) {
-                $result = $this->detailScheduleRepository->findByName($internName, $perPage, $currentPage);
-            } elseif (!$result && $dateTarget) {
-                $result = $this->detailScheduleRepository->findByDate($dateTarget, $perPage, $currentPage);
-            } elseif (!$result) {
-                $datenow = DateNow::getCurrentDateYMD();
-                $result = $this->detailScheduleRepository->findByDate($datenow, $perPage, $currentPage);
-            }
+            $requestData = [
+                'date' => $dateTarget,
+                'name' => $internName,
+                'shift_id' => $shiftId,
+                'office_id' => $officeId,
+                'status_id' => $statusId
+            ];
+            $result = $this->detailScheduleRepository->findByCriteria($requestData, $perPage, $currentPage);
 
             if (!$result || $result->isEmpty()) {
                 // Mengembalikan struktur data yang konsisten bahkan saat kosong
@@ -954,10 +943,10 @@ class AttendanceService
                 $extraDebt = \App\Helper\TimeHelper::mandatoryReplaceDebtMinutes($attendance);
                 $workData = $shift ? \App\Helper\TimeHelper::calculateDailyWorkHours($attendance, $shift, $item, $extraDebt) : null;
 
-                $startTime = ($isPermitStatus && $shift) ? $shift->start_time : ($attendance->start_time ?? null);
-                $endTime = ($isPermitStatus && $shift) ? $shift->end_time : ($attendance->end_time ?? null);
-                $breakTime = ($isPermitStatus && $shift) ? ($attendance->break_time ?? $shift->start_break_time) : ($attendance->break_time ?? null);
-                $backTime = ($isPermitStatus && $shift) ? ($attendance->back_time ?? $shift->end_break_time) : ($attendance->back_time ?? null);
+                $startTime = !empty($attendance?->start_time) ? $attendance->start_time : (($isPermitStatus && $shift) ? $shift->start_time : null);
+                $endTime = !empty($attendance?->end_time) ? $attendance->end_time : (($isPermitStatus && $shift) ? $shift->end_time : null);
+                $breakTime = !empty($attendance?->break_time) ? $attendance->break_time : (($isPermitStatus && $shift) ? $shift->start_break_time : null);
+                $backTime = !empty($attendance?->back_time) ? $attendance->back_time : (($isPermitStatus && $shift) ? $shift->end_break_time : null);
 
                 $attendanceData = [
                     "id" => $attendance->id ?? ($item->attendance_id ?? null),
@@ -1375,10 +1364,10 @@ class AttendanceService
                 if (($isExcused || $isPermitStatus) && $shift) {
                     $workData = \App\Helper\TimeHelper::calculateDailyWorkHours((object)$dataAttendance, $shift, $detailSchedule, $extraDebt);
                     $dataAttendance['id'] = $dataAttendance['id'] ?? ($detailSchedule->attendance_id ?? 0);
-                    $dataAttendance['start_time'] = $shift->start_time;
-                    $dataAttendance['end_time'] = $shift->end_time;
-                    $dataAttendance['break_time'] = !empty($dataAttendance['break_time']) ? $dataAttendance['break_time'] : $shift->start_break_time;
-                    $dataAttendance['back_time'] = !empty($dataAttendance['back_time']) ? $dataAttendance['back_time'] : $shift->end_break_time;
+                    $dataAttendance['start_time'] = !empty($attendance?->start_time) ? $attendance->start_time : $shift->start_time;
+                    $dataAttendance['end_time'] = !empty($attendance?->end_time) ? $attendance->end_time : $shift->end_time;
+                    $dataAttendance['break_time'] = !empty($attendance?->break_time) ? $attendance->break_time : (!empty($dataAttendance['break_time']) ? $dataAttendance['break_time'] : $shift->start_break_time);
+                    $dataAttendance['back_time'] = !empty($attendance?->back_time) ? $attendance->back_time : (!empty($dataAttendance['back_time']) ? $dataAttendance['back_time'] : $shift->end_break_time);
                     $dataAttendance['total_min'] = $workData['actual_work_minutes'];
                     $dataAttendance['total_min_format'] = $workData['actual_work_formatted'];
                     $dataAttendance['target_time'] = $workData['diff_minutes'];

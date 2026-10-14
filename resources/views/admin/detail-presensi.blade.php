@@ -609,15 +609,15 @@
             document.getElementById('tipe').value = tipe;
             document.getElementById('field').value = field;
             document.getElementById('field1').textContent = Jam;
-            document.getElementById('attendanceId').value = id || 0;
+            document.getElementById('attendanceId').value = (id && id !== 'undefined' && id !== 'null') ? id : '';
 
             const detailScheduleInput = document.getElementById('detailScheduleId');
             if (detailScheduleInput) {
-                detailScheduleInput.value = detailScheduleId || '';
+                detailScheduleInput.value = (detailScheduleId && detailScheduleId !== 'undefined' && detailScheduleId !== 'null') ? detailScheduleId : '';
             }
 
             // Format waktu untuk input time (HH:mm:ss)
-            let timeValue = currentValue || '';
+            let timeValue = (!currentValue || currentValue === '---') ? '' : currentValue;
             if (timeValue && timeValue.includes(':')) {
                 // Pastikan format waktu lengkap dengan detik
                 const timeParts = timeValue.split(':');
@@ -1062,13 +1062,13 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
             function generateAttendanceCell(tipe, label, field, time, attdOrAdstId, detailScheduleId, date, name, message) {
                 const formattedTime = formatTimeWithSeconds(time);
                 var currentPage = pageNow;
-                const targetId = (attdOrAdstId && attdOrAdstId !== 'undefined' && attdOrAdstId !== 'null' && attdOrAdstId !== 0 && attdOrAdstId !== '0')
+                const realId = (attdOrAdstId && attdOrAdstId !== 'undefined' && attdOrAdstId !== 'null' && attdOrAdstId !== 0 && attdOrAdstId !== '0')
                     ? attdOrAdstId
-                    : (detailScheduleId || 0);
+                    : '';
 
                 if (!time || formattedTime === '---') {
                     return `
-                        <span onclick="openModal('${tipe}', '${label}', '${field}', '', '${targetId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
+                        <span onclick="openModal('${tipe}', '${label}', '${field}', '', '${realId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
                             class="cursor-pointer text-gray-400 hover:text-blue-600 hover:bg-blue-50 px-2 py-0.5 rounded transition-all font-mono text-[11px] font-semibold border border-dashed border-gray-300 hover:border-blue-400 inline-flex items-center gap-1 group"
                             title="Klik untuk mengisi ${label}">
                             <span>-</span>
@@ -1078,7 +1078,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                 }
 
                 return `
-                    <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${targetId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
+                    <span onclick="openModal('${tipe}','${label}', '${field}', '${time}', '${realId}', '${date}', '${name}', '${(message || '').replace(/'/g, "\\'")}', ${currentPage}, '${detailScheduleId || ''}')"
                         class="cursor-pointer text-blue-600 hover:text-blue-800 hover:underline font-mono text-[11px] font-medium" title="Klik untuk edit waktu">
                         ${formattedTime}
                     </span>
@@ -1456,10 +1456,10 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
             }
 
             // ===========================
-            // Intercept all POST forms inside main and submit via AJAX
+            // Intercept all POST forms inside main and modals, submit via AJAX
             // supaya tetap berada di halaman pagination sekarang (pageNow)
             // ===========================
-            $('main').on('submit', 'form', function (e) {
+            $(document).on('submit', 'main form, #editForm, #permit-form, #log-activity-form', function (e) {
                 const form = this;
                 const method = (form.method || 'GET').toUpperCase();
 
@@ -1493,6 +1493,9 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             // reload data pada page sekarang (loadData akan update URL)
                             loadData(internId, pageNow, pageSize, status_id);
                             updatePagination();
+                            if (typeof reloadInternTarget === 'function') {
+                                reloadInternTarget();
+                            }
 
                             // tampilkan pesan sukses singkat jika response ada pesan
                             if (response && (response.message || response.status)) {
@@ -1507,8 +1510,9 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             loadData(internId, pageNow, pageSize, status_id);
                             updatePagination();
 
-                            // tampilkan error sederhana
-                            const $err = $(`<div class="fixed right-4 top-20 bg-red-100 border border-red-400 text-red-800 px-4 py-2 rounded z-50">Terjadi kesalahan</div>`);
+                            // tampilkan pesan error detail dari response JSON
+                            const errorMsg = xhr.responseJSON?.message || 'Terjadi kesalahan saat memproses data.';
+                            const $err = $(`<div class="fixed right-4 top-20 bg-red-100 border border-red-400 text-red-800 px-4 py-2 rounded z-50">${errorMsg}</div>`);
                             $('body').append($err);
                             setTimeout(() => $err.fadeOut(300, () => $err.remove()), 3000);
                         }

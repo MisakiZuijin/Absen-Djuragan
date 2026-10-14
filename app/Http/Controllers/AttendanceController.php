@@ -348,8 +348,9 @@ class AttendanceController extends Controller
         return response()->json($data);
     }
 
-    public function updateTime(UpdateTimeAttendanceRequest $updateTimeAttendanceRequest, int $id)
+    public function updateTime(UpdateTimeAttendanceRequest $updateTimeAttendanceRequest, int|string|null $id = null)
     {
+        $id = (int) ($id ?? $updateTimeAttendanceRequest->input('attendance_id') ?? 0);
         $result = $this->attendanceService->updateTime($updateTimeAttendanceRequest, $id);
 
         if ($result->isSuccess()) {

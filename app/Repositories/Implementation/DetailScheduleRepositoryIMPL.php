@@ -134,58 +134,55 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
 
     public function findByName(string $name, int $perPage, int $currentPage)
     {
-        return $this->model
-            ->join('schedules', 'detail_schedules.schedule_id', '=', 'schedules.id')
-            ->join('interns', 'schedules.intern_id', '=', 'interns.id')
-            ->join('users', 'interns.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->where('profiles.full_name', 'LIKE', "%$name%")
-            ->select('detail_schedules.*')
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->findByCriteria(['name' => $name], $perPage, $currentPage);
     }
 
     public function findByDate(string $date, int $perPage, int $currentPage)
     {
-        if (!\Carbon\Carbon::hasFormat($date, 'Y-m-d')) {
-            throw new \InvalidArgumentException("Invalid date format. Expected format: Y-m-d.");
-        }
-        return $this->model->where('date', $date)
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->findByCriteria(['date' => $date], $perPage, $currentPage);
     }
 
     public function findByNameAndDate(string $name, string $date, int $perPage, int $currentPage)
     {
-        if (!\Carbon\Carbon::hasFormat($date, 'Y-m-d')) {
-            throw new \InvalidArgumentException("Invalid date format. Expected format: Y-m-d.");
-        }
-
-        return $this->model
-            ->join('schedules', 'detail_schedules.schedule_id', '=', 'schedules.id')
-            ->join('interns', 'schedules.intern_id', '=', 'interns.id')
-            ->join('users', 'interns.user_id', '=', 'users.id')
-            ->join('profiles', 'users.id', '=', 'profiles.user_id')
-            ->where('profiles.full_name', 'LIKE', "%$name%")
-            ->where('detail_schedules.date', $date)
-            ->select('detail_schedules.*')
-            ->paginate($perPage, ['*'], 'page', $currentPage);
+        return $this->findByCriteria(['name' => $name, 'date' => $date], $perPage, $currentPage);
     }
 
     public function findByCriteria(array $criteria, int $perPage, int $currentPage)
     {
-        $query = $this->model;
+        $query = $this->model->newQuery();
 
-        if (isset($criteria['status_id'])) {
-            $query = $query->where('attd_status_id', $criteria['status_id']);
+        if (!empty($criteria['date'])) {
+            $query->where('date', $criteria['date']);
         }
 
-        if (isset($criteria['office_id'])) {
-            $query = $query->where('office_id', $criteria['office_id']);
+        if (!empty($criteria['status_id'])) {
+            $query->where('attd_status_id', $criteria['status_id']);
         }
 
-        if (isset($criteria['shift_id'])) {
-            $query = $query->where('shift_id', $criteria['shift_id']);
+        if (!empty($criteria['office_id'])) {
+            $query->where('office_id', $criteria['office_id']);
         }
 
-        return $query->where('date', $criteria['date'])->paginate($perPage, ['*'], 'page', $currentPage);
+        if (!empty($criteria['shift_id'])) {
+            $query->where('shift_id', $criteria['shift_id']);
+        }
+
+        if (!empty($criteria['name'])) {
+            $name = trim($criteria['name']);
+            $query->whereHas('schedule.intern', function ($internQuery) use ($name) {
+                $internQuery->where(function ($iq) use ($name) {
+                    $iq->where('nim', 'like', "%{$name}%")
+                        ->orWhereHas('user', function ($uq) use ($name) {
+                            $uq->where('username', 'like', "%{$name}%")
+                                ->orWhereHas('profile', function ($pq) use ($name) {
+                                    $pq->where('full_name', 'like', "%{$name}%")
+                                        ->orWhere('NIP', 'like', "%{$name}%");
+                                });
+                        });
+                });
+            });
+        }
+
+        return $query->paginate($perPage, ['*'], 'page', $currentPage);
     }
 }

@@ -180,7 +180,7 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
     Route::controller(AttendanceController::class)->group(function () {
         Route::get('/presence', [AdminController::class, 'presenceView'])->name('admin.presence');
         Route::get('/presence/detail/{intern_id}', [AdminController::class, 'prensenceDetailView'])->name('admin.presence.detail');
-        Route::post('/attendance/updateTime/{id}', 'updateTime')->name('attendance.updateTime');
+        Route::post('/attendance/updateTime/{id?}', 'updateTime')->name('attendance.updateTime');
         Route::post('/attendance/updateStatus/{id}', 'updateStatus')->name('attendance.updateStatus');
         Route::post('/attendance/delete/{id}', 'delete')->name('attendance.delete');
 
