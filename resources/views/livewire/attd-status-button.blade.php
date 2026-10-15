@@ -873,19 +873,24 @@
                 @switch($stage)
                 @case(AttendanceStatus::AttendanceAndAdjustableTime)
                 <!-- MASUK & GANTI JAM AWAL (DESKTOP) -->
-                @if(!$isHolidayToday && !$hasCheckedIn && $hasShift)
-                <a href="#" class="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors"
-                    data-check-shift="1"
-                    data-has-shift="{{ $hasShift ? 1 : 0 }}"
-                    data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AttendanceIn->value) ? 1 : 0 }}"
-                    data-user-id="{{ $user->id }}"
-                    data-stage="{{ AttendanceStatus::AttendanceIn->value }}"
-                    data-adjustable="0"
-                    data-absence-id="{{ $absenceHistory->id ?? 0 }}"
-                    data-adjustable-id="{{ $adjustableTimeHistory ? $adjustableTimeHistory->id : 0 }}"
-                    onclick="handleAttendanceAction(event, this)">
-                    <i class="fas fa-sign-in-alt mr-2"></i>Masuk
-                </a>
+                @if(!$isHolidayToday && !$hasCheckedIn)
+                    @if(!$hasShift)
+                    <div class="w-full p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center text-xs font-semibold text-amber-800 mb-1">
+                        <i class="fas fa-info-circle mr-1 text-amber-600"></i>Shift belum diatur oleh admin
+                    </div>
+                    @endif
+                    <a href="#" class="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors"
+                        data-check-shift="1"
+                        data-has-shift="{{ $hasShift ? 1 : 0 }}"
+                        data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AttendanceIn->value) ? 1 : 0 }}"
+                        data-user-id="{{ $user->id }}"
+                        data-stage="{{ AttendanceStatus::AttendanceIn->value }}"
+                        data-adjustable="0"
+                        data-absence-id="{{ $absenceHistory->id ?? 0 }}"
+                        data-adjustable-id="{{ $adjustableTimeHistory ? $adjustableTimeHistory->id : 0 }}"
+                        onclick="handleAttendanceAction(event, this)">
+                        <i class="fas fa-sign-in-alt mr-2"></i>Masuk
+                    </a>
                 @elseif($isHolidayToday && !$hasCheckedIn)
                 <div class="w-full p-3 rounded-xl bg-amber-50 border border-amber-200 text-center text-xs font-bold text-amber-900 shadow-2xs">
                     <i class="fa-solid fa-umbrella-beach mr-1.5 text-amber-600 text-sm"></i>
@@ -1154,7 +1159,11 @@
                 @switch($stage)
                 @case(AttendanceStatus::AttendanceAndAdjustableTime)
                 @if(!$isHolidayToday && !$hasCheckedIn)
-                    @if($hasShift)
+                    @if(!$hasShift)
+                    <div class="w-full p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-center text-xs font-semibold text-amber-800 mb-2">
+                        <i class="fas fa-info-circle mr-1 text-amber-600"></i>Shift belum diatur oleh admin
+                    </div>
+                    @endif
                     <a href="#" class="w-full text-center bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors"
                         data-check-shift="1"
                         data-has-shift="{{ $hasShift ? 1 : 0 }}"
@@ -1167,7 +1176,6 @@
                         onclick="handleAttendanceAction(event, this)">
                         <i class="fas fa-sign-in-alt mr-2"></i>Masuk
                     </a>
-                    @endif
                 @if($this->isChangeTimeAllowed() && !$hasActiveAdjustable)
                 <a href="#" class="w-full text-center bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl text-sm py-2.5 px-4 mt-2 flex items-center justify-center gap-2 transition-colors shadow-2xs"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableIn->value) ? 1 : 0 }}"

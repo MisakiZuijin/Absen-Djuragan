@@ -298,15 +298,28 @@ class AttendanceService
                 ->get();
 
             $attendanceTarget = $detailSchedule->attendance;
-            if (is_null($attendanceTarget)) {
+            if (is_null($attendanceTarget) || empty($attendanceTarget->start_time)) {
                 $fallbackAttd = \App\Models\Attendance::where('intern_id', $internId)
                     ->whereDate('date', $now)
+                    ->whereNotNull('start_time')
+                    ->where('start_time', '!=', '')
                     ->latest('id')
                     ->first();
                 if ($fallbackAttd) {
                     $attendanceTarget = $fallbackAttd;
-                    if (!$detailSchedule->attendance_id) {
+                    if ($detailSchedule->attendance_id !== $fallbackAttd->id) {
                         $detailSchedule->update(['attendance_id' => $fallbackAttd->id]);
+                    }
+                } elseif (is_null($attendanceTarget)) {
+                    $anyAttd = \App\Models\Attendance::where('intern_id', $internId)
+                        ->whereDate('date', $now)
+                        ->latest('id')
+                        ->first();
+                    if ($anyAttd) {
+                        $attendanceTarget = $anyAttd;
+                        if (!$detailSchedule->attendance_id) {
+                            $detailSchedule->update(['attendance_id' => $anyAttd->id]);
+                        }
                     }
                 }
             }
@@ -386,7 +399,7 @@ class AttendanceService
                 ]);
             }
 
-            $isAttendanceNull = is_null($attendanceTarget) || is_null($attendanceTarget->start_time);
+            $isAttendanceNull = is_null($attendanceTarget) || empty($attendanceTarget->start_time);
 
             // 1. Jika presensi reguler hari ini sudah selesai (end_time terisi) dan tidak ada sesi ganti jam yang sedang berjalan
             if (!$isAttendanceNull && !is_null($attendanceTarget->end_time) && is_null($adjustableTarget)) {
@@ -430,7 +443,7 @@ class AttendanceService
                 ]);
             }
 
-            if (!is_null($attendanceTarget) && is_null($attendanceTarget->start_time) && is_null($adjustableTarget)) {
+            if (!is_null($attendanceTarget) && empty($attendanceTarget->start_time) && is_null($adjustableTarget)) {
                 $isSunday = date('w') == 0;
                 $isHoliday = \App\Models\Holiday::whereDate('date', $now)->exists();
                 $targetStage = ($isSunday || $isHoliday) ? AttendanceStatus::AdjustableIn : AttendanceStatus::AttendanceAndAdjustableTime;

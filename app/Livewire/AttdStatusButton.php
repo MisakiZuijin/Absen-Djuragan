@@ -642,11 +642,6 @@ class AttdStatusButton extends Component
             }
         }
 
-        // Sinkronisasi stage: jika presensi reguler sudah selesai (end_time terisi) dan tidak ada sesi ganti jam yang sedang berjalan,
-        // pastikan stage di-set ke AllDone agar tombol Pulang langsung hilang dan tombol Selesai muncul
-        if (!empty($endTime) && !$hasActiveAdjustable) {
-            $this->stage = AttendanceStatus::AllDone;
-        }
 
         $targetDebtMinutes = 0;
         $gantiJamWorkedMinutes = 0;
@@ -750,6 +745,32 @@ class AttdStatusButton extends Component
                             $isRegularBreakMissed = true;
                         }
                     }
+                }
+            }
+        }
+
+        // Sinkronisasi stage otomatis:
+        // 1. Jika presensi reguler sudah selesai (end_time terisi) dan tidak ada sesi ganti jam aktif, set ke AllDone
+        if (!empty($endTime) && !$hasActiveAdjustable) {
+            $this->stage = AttendanceStatus::AllDone;
+        }
+        // 2. Jika sudah absen masuk (start_time terisi, end_time kosong) dan tidak ada sesi ganti jam aktif,
+        // pastikan stage sinkron ke stage shift kerja (bukan tersangkut di AttendanceAndAdjustableTime atau AttendanceIn)
+        elseif ($hasCheckedIn && empty($endTime) && !$hasActiveAdjustable) {
+            $regularBackTime = is_array($todayAttendance) ? ($todayAttendance['back_time'] ?? null) : ($todayAttendance->back_time ?? null);
+            $stageVal = is_object($this->stage) && enum_exists(get_class($this->stage)) ? (int)$this->stage->value : (int)$this->stage;
+
+            if (in_array($stageVal, [
+                AttendanceStatus::AttendanceAndAdjustableTime->value,
+                AttendanceStatus::AttendanceIn->value,
+                AttendanceStatus::AdjustableIn->value,
+            ], true)) {
+                if (!empty($regularBreakTime) && empty($regularBackTime)) {
+                    $this->stage = AttendanceStatus::EndBreak;
+                } elseif (!empty($regularBackTime) || !empty($isRegularBreakMissed)) {
+                    $this->stage = AttendanceStatus::AttendanceOut;
+                } else {
+                    $this->stage = AttendanceStatus::ShowBreakPermitChangeTime;
                 }
             }
         }

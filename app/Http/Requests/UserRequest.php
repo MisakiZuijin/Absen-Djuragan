@@ -85,6 +85,18 @@ class UserRequest extends FormRequest
         $validator->after(function (Validator $validator) {
             $input = trim((string) $this->input('gmaps_url', ''));
             if (!empty($input)) {
+                // 1. Jika frontend sudah berhasil melakukan geocoding dan mengirimkan koordinat yang valid, gunakan koordinat tersebut
+                $existingLat = $this->input('home_latitude');
+                $existingLng = $this->input('home_longitude');
+                if ($existingLat !== null && $existingLng !== null && is_numeric($existingLat) && is_numeric($existingLng)) {
+                    $lat = (float) $existingLat;
+                    $lng = (float) $existingLng;
+                    if (GmapsHelper::isValidCoordinate($lat, $lng)) {
+                        return;
+                    }
+                }
+
+                // 2. Jika koordinat belum tersedia dari frontend, coba selesaikan melalui backend GmapsHelper
                 $coords = GmapsHelper::resolveCoordinates($input);
                 if (!$coords || !GmapsHelper::isValidCoordinate($coords['lat'] ?? null, $coords['lng'] ?? null)) {
                     $validator->errors()->add(

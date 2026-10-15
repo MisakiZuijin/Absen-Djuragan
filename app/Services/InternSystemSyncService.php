@@ -65,16 +65,11 @@ class InternSystemSyncService
             }
             $candidateUrls[] = $primaryUrl . '/api/v1/external/register-from-absen';
 
-            if (str_contains($primaryUrl, '.test')) {
-                $candidateUrls[] = 'http://127.0.0.1:8000/api/v1/external/register-from-absen';
-                $candidateUrls[] = 'http://127.0.0.1:8001/api/v1/external/register-from-absen';
-            } elseif (str_contains($primaryUrl, '127.0.0.1') || str_contains($primaryUrl, 'localhost')) {
-                $candidateUrls[] = 'http://Internship_Management_System_SevenInc-develop.test/api/v1/external/register-from-absen';
-            }
+            $candidateUrls = array_values(array_unique($candidateUrls));
 
             foreach ($candidateUrls as $url) {
                 try {
-                    $response = Http::timeout(6)->withoutVerifying()->withHeaders([
+                    $response = Http::timeout(2)->connectTimeout(2)->withoutVerifying()->withHeaders([
                         'X-API-KEY' => $apiKey,
                         'Accept'    => 'application/json',
                     ])->post($url, $payload);
