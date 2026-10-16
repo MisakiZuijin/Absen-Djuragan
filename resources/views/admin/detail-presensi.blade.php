@@ -1134,12 +1134,13 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                 }
 
                 let resetAttdItem = '';
-                if (attdId) {
+                const resetTargetId = schedule?.id || attdId;
+                if (resetTargetId) {
                     resetAttdItem = `
-                        <form onsubmit="return confirm('Apa kamu yakin ingin mereset presensi tanggal ${schedule?.date || ''}?');" action="/admin/attendance/reset/${attdId}" method="POST" class="m-0">
+                        <form onsubmit="return confirm('Apa kamu yakin ingin mereset presensi tanggal ${schedule?.date || ''} kembali ke status Dijadwalkan?');" action="/admin/attendance/reset/${resetTargetId}" method="POST" class="m-0">
                             <input type="hidden" name="_token" value="${$('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}'}">
                             <input type="hidden" name="status" value="3">
-                            <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors text-left cursor-pointer">
+                            <button type="submit" class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-amber-700 hover:bg-amber-50 hover:text-amber-800 transition-colors text-left cursor-pointer" title="Reset jam dan kembalikan status ke Dijadwalkan">
                                 <i class="fa-solid fa-rotate-left text-amber-600 w-4 text-center"></i>
                                 <span>Reset Presensi</span>
                             </button>
@@ -1147,7 +1148,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                     `;
                 } else {
                     resetAttdItem = `
-                        <div class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed opacity-60 select-none" title="Belum ada data presensi">
+                        <div class="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-gray-400 cursor-not-allowed opacity-60 select-none" title="Belum ada data jadwal atau presensi">
                             <i class="fa-solid fa-rotate-left text-gray-300 w-4 text-center"></i>
                             <span>Reset Presensi</span>
                         </div>

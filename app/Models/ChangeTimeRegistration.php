@@ -36,6 +36,16 @@ class ChangeTimeRegistration extends Model
         'target_schedule_ids' => 'array',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_pending_ganti_jam');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_pending_ganti_jam');
+        });
+    }
+
     /**
      * Relasi ke Pemagang (Intern).
      */

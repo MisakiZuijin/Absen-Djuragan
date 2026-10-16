@@ -61,7 +61,7 @@ class AdminPermitAbsenceController extends Controller
 
         // Filter by Date
         if (!empty($dateFilter)) {
-            $query->whereDate('date', $dateFilter);
+            $query->where('date', $dateFilter);
         }
 
         // Filter by Category
@@ -98,7 +98,7 @@ class AdminPermitAbsenceController extends Controller
 
         // Calculate summary counts for cards
         $today = Carbon::today()->toDateString();
-        $todayCount = DetailSchedule::whereDate('date', $today)
+        $todayCount = DetailSchedule::where('date', $today)
             ->where(function ($q) {
                 $q->whereIn('attd_status_id', [3, 5])
                   ->orWhere('permit_reason_id', '>', 0);

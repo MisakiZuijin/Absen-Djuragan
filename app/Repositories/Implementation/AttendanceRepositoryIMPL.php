@@ -68,7 +68,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
                 if ($internId && $date) {
                     $attendance = $this->model->where('intern_id', $internId)
-                        ->whereDate('date', $date)
+                        ->where('date', $date)
                         ->first();
 
                     if (!$attendance) {
@@ -104,7 +104,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
                     $internId = $dsFallback->schedule?->intern_id;
                     $date = $dsFallback->date;
                     if ($internId && $date) {
-                        $attendance = $this->model->where('intern_id', $internId)->whereDate('date', $date)->first();
+                        $attendance = $this->model->where('intern_id', $internId)->where('date', $date)->first();
                         if (!$attendance) {
                             $attendance = $this->model->create([
                                 'intern_id' => $internId,
@@ -458,7 +458,7 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
             ->where("is_auto_end", true);
 
         if (!empty($date)) {
-            $query->whereDate("date", $date);
+            $query->where("date", $date);
         }
 
         if (!empty($name)) {
@@ -511,14 +511,14 @@ class AttendanceRepositoryIMPL implements AttendanceRepository
 
         if (!empty($date_start) && !empty($date_end)) {
             if ($date_start === $date_end) {
-                $query->whereDate('date', $date_start);
+                $query->where('date', $date_start);
             } else {
                 $query->whereBetween('date', [$date_start, $date_end]);
             }
         } elseif (!empty($date_start)) {
-            $query->whereDate('date', '>=', $date_start);
+            $query->where('date', '>=', $date_start);
         } elseif (!empty($date_end)) {
-            $query->whereDate('date', '<=', $date_end);
+            $query->where('date', '<=', $date_end);
         }
 
         if (!empty($name)) {

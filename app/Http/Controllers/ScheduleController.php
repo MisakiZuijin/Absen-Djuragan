@@ -47,7 +47,9 @@ class ScheduleController extends Controller
             'school',
             'shift',
             'lockedOffice',
-            'schedules.office',
+            'schedules' => function ($sq) {
+                $sq->withCount('detailSchedules')->with('office');
+            },
             'whatsappNumber',
         ]);
 
@@ -73,14 +75,27 @@ class ScheduleController extends Controller
             $type = $request->system_type;
             if ($type === 'weekly') {
                 $query->whereHas('schedules', function ($sq) {
-                    $sq->where('type', 'weekly');
+                    $sq->where('type', 'weekly')
+                        ->whereNotNull('start_period')
+                        ->whereNotNull('end_period')
+                        ->whereHas('detailSchedules');
                 });
             } elseif ($type === 'daily') {
                 $query->whereHas('schedules', function ($sq) {
-                    $sq->where('type', 'daily');
+                    $sq->where('type', 'daily')
+                        ->whereNotNull('start_period')
+                        ->whereNotNull('end_period')
+                        ->whereHas('detailSchedules');
                 });
             } elseif ($type === 'none') {
-                $query->doesntHave('schedules');
+                $query->where(function ($q) {
+                    $q->doesntHave('schedules')
+                        ->orWhereDoesntHave('schedules', function ($sq) {
+                            $sq->whereNotNull('start_period')
+                                ->whereNotNull('end_period')
+                                ->whereHas('detailSchedules');
+                        });
+                });
             }
         }
 
@@ -127,7 +142,14 @@ class ScheduleController extends Controller
                     $sq->whereDate('end_period', '>=', $todayStr);
                 });
             } elseif ($filter === 'unset') {
-                $query->doesntHave('schedules');
+                $query->where(function ($q) {
+                    $q->doesntHave('schedules')
+                        ->orWhereDoesntHave('schedules', function ($sq) {
+                            $sq->whereNotNull('start_period')
+                                ->whereNotNull('end_period')
+                                ->whereHas('detailSchedules');
+                        });
+                });
             }
         }
 
@@ -171,12 +193,27 @@ class ScheduleController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->whereHas('user.profile', function ($pq) use ($search) {
                     $pq->where('full_name', 'like', "%{$search}%");
+                })->orWhereHas('user', function ($uq) use ($search) {
+                    $uq->where('username', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
                 })->orWhere('nim', 'like', "%{$search}%")
                     ->orWhereHas('school', function ($sq) use ($search) {
                         $sq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('division', function ($dq) use ($search) {
+                        $dq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('schedules.office', function ($oq) use ($search) {
+                        $oq->where('name', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('lockedOffice', function ($loq) use ($search) {
+                        $loq->where('name', 'like', "%{$search}%");
                     });
             });
         }
+
+        // Urutkan pemagang terbaru lebih dulu agar pemagang baru/belum terjadwal mudah ditemukan
+        $query->orderBy('id', 'desc');
 
         // Dibatasi maksimal 50 pemagang per halaman
         $interns = $query->paginate(50)->appends($request->query());
@@ -235,9 +272,26 @@ class ScheduleController extends Controller
 
         // Hitung statistik global untuk kartu ringkasan
         $totalInterns = Intern::count();
-        $totalRolling = Intern::whereHas('schedules', fn($q) => $q->where('type', 'weekly'))->count();
-        $totalFixed = Intern::whereHas('schedules', fn($q) => $q->where('type', '!=', 'weekly'))->count();
-        $totalUnset = Intern::doesntHave('schedules')->count();
+        $totalRolling = Intern::whereHas('schedules', function ($sq) {
+            $sq->where('type', 'weekly')
+                ->whereNotNull('start_period')
+                ->whereNotNull('end_period')
+                ->whereHas('detailSchedules');
+        })->count();
+        $totalFixed = Intern::whereHas('schedules', function ($sq) {
+            $sq->where('type', '!=', 'weekly')
+                ->whereNotNull('start_period')
+                ->whereNotNull('end_period')
+                ->whereHas('detailSchedules');
+        })->count();
+        $totalUnset = Intern::where(function ($q) {
+            $q->doesntHave('schedules')
+                ->orWhereDoesntHave('schedules', function ($sq) {
+                    $sq->whereNotNull('start_period')
+                        ->whereNotNull('end_period')
+                        ->whereHas('detailSchedules');
+                });
+        })->count();
 
         $data = [
             'user' => $userData,

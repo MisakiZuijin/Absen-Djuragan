@@ -4,7 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany; // <-- Tambahkan ini
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Shift extends Model
 {
@@ -36,6 +37,7 @@ class Shift extends Model
         "split_wfo_start",
         "split_wfo_end",
         "is_rolling",
+        "rolling_partner_shift_id",
     ];
 
     protected $casts = [
@@ -44,6 +46,7 @@ class Shift extends Model
         'is_friday_break_active' => 'boolean',
         'is_split_shift' => 'boolean',
         'is_rolling' => 'boolean',
+        'rolling_partner_shift_id' => 'integer',
         'break_time_in_minute' => 'integer',
         'friday_break_time_in_minute' => 'integer',
         'total_time_in_minute' => 'integer',
@@ -65,6 +68,14 @@ class Shift extends Model
     public function detailSchedules(): HasMany
     {
         return $this->hasMany(DetailSchedule::class);
+    }
+
+    /**
+     * Relasi ke shift pasangan rolling (Lock Pair A <-> B).
+     */
+    public function rollingPartner(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'rolling_partner_shift_id');
     }
 
     /**

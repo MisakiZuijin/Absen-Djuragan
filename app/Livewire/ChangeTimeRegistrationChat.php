@@ -67,7 +67,7 @@ class ChangeTimeRegistrationChat extends Component
         // 1. Cek Sesi Ganti Jam yang baru saja DIBERHENTIKAN / DITOLAK oleh Admin
         $rejectedSession = \App\Models\ChangeTimeSession::where('intern_id', $internId)
             ->where('status', 'rejected')
-            ->whereDate('session_date', '>=', today()->subDays(1))
+            ->where('session_date', '>=', today()->subDays(1)->toDateString())
             ->latest('id')
             ->first();
 
@@ -84,7 +84,7 @@ class ChangeTimeRegistrationChat extends Component
         // 2. Cek Pendaftaran Rencana Ganti Jam yang DITOLAK oleh Admin
         $rejectedReg = ChangeTimeRegistration::where('intern_id', $internId)
             ->where('status', 'rejected')
-            ->whereDate('created_at', '>=', today()->subDays(1))
+            ->where('created_at', '>=', today()->subDays(1)->startOfDay())
             ->latest('id')
             ->first();
 

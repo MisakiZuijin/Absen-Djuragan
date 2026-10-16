@@ -68,9 +68,11 @@
             <!-- Menu Item: Persetujuan Ganti Jam -->
             <li>
                 @php
-                $pendingRegCount = \App\Models\ChangeTimeRegistration::where('status', 'pending')->count();
-                $pendingSessionCount = \App\Models\ChangeTimeSession::where('status', 'pending_approval')->count();
-                $totalPendingGantiJamCount = $pendingRegCount + $pendingSessionCount;
+                $totalPendingGantiJamCount = \Illuminate\Support\Facades\Cache::remember('sidebar_pending_ganti_jam', 30, function () {
+                    $pendingReg = \App\Models\ChangeTimeRegistration::where('status', 'pending')->count();
+                    $pendingSession = \App\Models\ChangeTimeSession::where('status', 'pending_approval')->count();
+                    return $pendingReg + $pendingSession;
+                });
                 @endphp
                 <a href="{{ route('admin.ganti-jam.index') }}"
                     class="flex items-center justify-between px-4 py-2.5 rounded-xl transition-all duration-200 {{ Request::is('admin/persetujuan-ganti-jam*') ? 'bg-gradient-to-r from-blue-600 to-indigo-600 font-bold text-white shadow-md' : 'hover:bg-gray-800 hover:translate-x-1 text-gray-300 hover:text-white' }}">

@@ -46,6 +46,16 @@ class ChangeTimeSession extends Model
         'approved_at' => 'datetime',
     ];
 
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_pending_ganti_jam');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('sidebar_pending_ganti_jam');
+        });
+    }
+
     public function intern(): BelongsTo
     {
         return $this->belongsTo(Intern::class);

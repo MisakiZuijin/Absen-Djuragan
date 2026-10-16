@@ -1283,9 +1283,11 @@ class AttendanceService
             $pageSize = (int) $request->query('per_page', 10);
             $page = (int) $request->query('page', $requestPage ?? 1);
 
-            $holidayDates = \App\Models\Holiday::pluck('date')
-                ->map(fn($d) => Carbon::parse($d)->toDateString())
-                ->toArray();
+            $holidayDates = \Illuminate\Support\Facades\Cache::remember('active_holiday_dates', 3600, function () {
+                return \App\Models\Holiday::pluck('date')
+                    ->map(fn($d) => Carbon::parse($d)->toDateString())
+                    ->toArray();
+            });
 
             $query = DetailSchedule::with([
                 'attendance.permitLogs',
@@ -1293,7 +1295,8 @@ class AttendanceService
                 'adjustableAttendance',
                 'logActivity',
                 'attdStatus',
-                'permitReason.category'
+                'permitReason.category',
+                'schedule.intern.user.profile',
             ])
                 ->whereHas('schedule', function ($q) use ($internId) {
                     $q->where('intern_id', $internId);
@@ -1302,7 +1305,7 @@ class AttendanceService
             // Sembunyikan jadwal hari libur dan Minggu yang kosong (tanpa presensi masuk, tanpa ganti jam, tanpa izin)
             if (!empty($holidayDates)) {
                 $query->where(function ($q) use ($holidayDates) {
-                    $q->whereNotIn(\Illuminate\Support\Facades\DB::raw('DATE(date)'), $holidayDates)
+                    $q->whereNotIn('date', $holidayDates)
                         ->orWhereHas('attendance', fn($aq) => $aq->whereNotNull('start_time'))
                         ->orWhereHas('adjustableAttendance')
                         ->orWhere('attd_status_id', 3);
@@ -1336,7 +1339,9 @@ class AttendanceService
                 ->take($pageSize)
                 ->get();
 
-            $paginatedData = $paginatedDetailSchedules->map(function ($detailSchedule) {
+            $statusHadir = \Illuminate\Support\Facades\Cache::remember('attd_status_hadir_2', 86400, fn() => \App\Models\AttdStatus::find(2));
+
+            $paginatedData = $paginatedDetailSchedules->map(function ($detailSchedule) use ($statusHadir) {
                 $ds_data = $detailSchedule->toArray();
 
                 $date = new DateTime($ds_data["date"]);
@@ -1352,7 +1357,7 @@ class AttendanceService
                 $attendance = $detailSchedule->attendance;
                 if (!$attendance && $detailSchedule->schedule) {
                     $attendance = \App\Models\Attendance::where('intern_id', $detailSchedule->schedule->intern_id)
-                        ->whereDate('date', $detailSchedule->date)
+                        ->where('date', $detailSchedule->date)
                         ->first();
                     if ($attendance && empty($detailSchedule->attendance_id)) {
                         $detailSchedule->update(['attendance_id' => $attendance->id]);
@@ -1371,7 +1376,7 @@ class AttendanceService
                 if ((int)$detailSchedule->attd_status_id === 5 && $attendance && !empty($attendance->start_time) && !empty($attendance->end_time) && (int)($attendance->total_min ?? 0) > 0) {
                     $detailSchedule->update(['attd_status_id' => 2]);
                     $detailSchedule->attd_status_id = 2;
-                    $detailSchedule->setRelation('attdStatus', \App\Models\AttdStatus::find(2));
+                    $detailSchedule->setRelation('attdStatus', $statusHadir);
                 }
 
                 if (($isExcused || $isPermitStatus) && $shift) {
@@ -2564,6 +2569,14 @@ class AttendanceService
 
     public function markMissedSchedulesAsAlpha(): int
     {
+        // Throttle check: at most once every 60 seconds across all concurrent requests
+        return \Illuminate\Support\Facades\Cache::lock('mark_missed_alpha_throttle_lock', 60)->get(function () {
+            return $this->executeMarkMissedSchedulesAsAlpha();
+        }) ?? 0;
+    }
+
+    public function executeMarkMissedSchedulesAsAlpha(): int
+    {
         try {
             $today = Carbon::today()->toDateString();
             $now = Carbon::now();
@@ -2574,10 +2587,10 @@ class AttendanceService
             $statusDijadwalkan = 1;
             $statusAlpha = 5;
 
-            // 1. Cari semua jadwal hari ini dan hari-hari sebelumnya yang statusnya masih "Dijadwalkan"
-            //    dan belum memiliki record presensi masuk (start_time).
-            $missedSchedules = DetailSchedule::whereDate('date', '<=', $today)
-                ->where('attd_status_id', $statusDijadwalkan)
+            // 1. Cari jadwal yang statusnya masih "Dijadwalkan" dan belum memiliki record presensi masuk (start_time).
+            //    Gunakan 'date' (bukan whereDate) agar composite index `idx_ds_attd_status_date` (attd_status_id, date) aktif penuh.
+            $missedSchedules = DetailSchedule::where('attd_status_id', $statusDijadwalkan)
+                ->where('date', '<=', $today)
                 ->where(function ($query) {
                     $query->whereDoesntHave('attendance')
                         ->orWhereHas('attendance', function ($q) {

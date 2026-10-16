@@ -17,9 +17,10 @@ class DebtCalculationService
      * Hitung hutang dasar (dalam menit) untuk satu DetailSchedule.
      *
      * @param DetailSchedule $schedule
+     * @param array|null $context Optional preloaded batch context
      * @return int
      */
-    public function calculateScheduleBaseDebt(DetailSchedule $schedule): int
+    public function calculateScheduleBaseDebt(DetailSchedule $schedule, ?array $context = null): int
     {
         if (!$schedule->shift) {
             return 0;
@@ -38,14 +39,24 @@ class DebtCalculationService
         $scheduleDate = Carbon::parse($schedule->date);
         $dateStr = $scheduleDate->toDateString();
         $isSunday = $scheduleDate->isSunday();
-        $isHoliday = \App\Models\Holiday::whereDate('date', $dateStr)->exists();
+
+        $holidayDates = $context['holiday_dates'] ?? \Illuminate\Support\Facades\Cache::remember('active_holiday_dates', 3600, function () {
+            return \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => Carbon::parse($d)->toDateString())
+                ->toArray();
+        });
+        $isHoliday = in_array($dateStr, $holidayDates, true);
 
         $attendance = $schedule->attendance;
         if (!$attendance && $schedule->schedule) {
-            $attendance = Attendance::where('intern_id', $schedule->schedule->intern_id)
-                ->whereDate('date', $schedule->date)
-                ->with('permitLogs')
-                ->first();
+            if (isset($context['unlinked_attendances'])) {
+                $attendance = $context['unlinked_attendances']->get($dateStr);
+            } else {
+                $attendance = Attendance::where('intern_id', $schedule->schedule->intern_id)
+                    ->where('date', $schedule->date)
+                    ->with('permitLogs')
+                    ->first();
+            }
         }
 
         $hasCheckIn = $attendance && !empty($attendance->start_time);
@@ -107,10 +118,14 @@ class DebtCalculationService
         // 4. Presensi Reguler (attd_status_id = 1 atau 2)
         $attendance = $schedule->attendance;
         if (!$attendance && $schedule->schedule) {
-            $attendance = Attendance::where('intern_id', $schedule->schedule->intern_id)
-                ->whereDate('date', $schedule->date)
-                ->with('permitLogs')
-                ->first();
+            if (isset($context['unlinked_attendances'])) {
+                $attendance = $context['unlinked_attendances']->get($dateStr);
+            } else {
+                $attendance = Attendance::where('intern_id', $schedule->schedule->intern_id)
+                    ->where('date', $schedule->date)
+                    ->with('permitLogs')
+                    ->first();
+            }
         }
 
         $workingMinutes = 0;
@@ -149,34 +164,47 @@ class DebtCalculationService
      *
      * @param DetailSchedule $schedule
      * @param int|null $excludeSessionId
+     * @param array|null $context Optional preloaded batch context
      * @return int
      */
-    public function getRemainingDebtMinutes(DetailSchedule $schedule, ?int $excludeSessionId = null): int
+    public function getRemainingDebtMinutes(DetailSchedule $schedule, ?int $excludeSessionId = null, ?array $context = null): int
     {
-        $baseDebt = $this->calculateScheduleBaseDebt($schedule);
+        $baseDebt = $this->calculateScheduleBaseDebt($schedule, $context);
         if ($baseDebt <= 0) {
             return 0;
         }
 
-        // 1. Sesi yang sudah disetujui: hitung menit yang benar-benar dibayarkan (paid_minutes)
-        $approvedPaidMinutes = ChangeTimeSessionTarget::where('detail_schedule_id', $schedule->id)
-            ->whereHas('session', function ($q) use ($excludeSessionId) {
-                $q->where('status', 'approved');
-                if ($excludeSessionId) {
-                    $q->where('id', '!=', $excludeSessionId);
-                }
-            })
-            ->sum('paid_minutes');
+        if (isset($context['targets_by_ds_id'])) {
+            $targets = $context['targets_by_ds_id']->get($schedule->id, collect());
 
-        // 2. Sesi yang masih berjalan / menunggu persetujuan: hitung menit yang sedang dialokasikan (debt_minutes)
-        $pendingCoveredMinutes = ChangeTimeSessionTarget::where('detail_schedule_id', $schedule->id)
-            ->whereHas('session', function ($q) use ($excludeSessionId) {
-                $q->whereIn('status', ['active', 'pending_approval']);
-                if ($excludeSessionId) {
-                    $q->where('id', '!=', $excludeSessionId);
-                }
-            })
-            ->sum('debt_minutes');
+            $approvedPaidMinutes = $targets->filter(function ($t) use ($excludeSessionId) {
+                return $t->session && $t->session->status === 'approved' && (!$excludeSessionId || (int)$t->session_id !== (int)$excludeSessionId);
+            })->sum('paid_minutes');
+
+            $pendingCoveredMinutes = $targets->filter(function ($t) use ($excludeSessionId) {
+                return $t->session && in_array($t->session->status, ['active', 'pending_approval'], true) && (!$excludeSessionId || (int)$t->session_id !== (int)$excludeSessionId);
+            })->sum('debt_minutes');
+        } else {
+            // 1. Sesi yang sudah disetujui: hitung menit yang benar-benar dibayarkan (paid_minutes)
+            $approvedPaidMinutes = ChangeTimeSessionTarget::where('detail_schedule_id', $schedule->id)
+                ->whereHas('session', function ($q) use ($excludeSessionId) {
+                    $q->where('status', 'approved');
+                    if ($excludeSessionId) {
+                        $q->where('id', '!=', $excludeSessionId);
+                    }
+                })
+                ->sum('paid_minutes');
+
+            // 2. Sesi yang masih berjalan / menunggu persetujuan: hitung menit yang sedang dialokasikan (debt_minutes)
+            $pendingCoveredMinutes = ChangeTimeSessionTarget::where('detail_schedule_id', $schedule->id)
+                ->whereHas('session', function ($q) use ($excludeSessionId) {
+                    $q->whereIn('status', ['active', 'pending_approval']);
+                    if ($excludeSessionId) {
+                        $q->where('id', '!=', $excludeSessionId);
+                    }
+                })
+                ->sum('debt_minutes');
+        }
 
         $coveredMinutes = (int) $approvedPaidMinutes + (int) $pendingCoveredMinutes;
 
@@ -197,15 +225,48 @@ class DebtCalculationService
         $schedules = DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
             $q->where('intern_id', $internId);
         })
-            ->whereDate('date', '<=', $dateLimit)
+            ->where('date', '<=', $dateLimit)
             ->with(['shift', 'attendance.permitLogs', 'permitReason.category', 'schedule'])
             ->orderBy('date', 'asc') // Urutan kronologis (FIFO)
             ->get();
 
+        if ($schedules->isEmpty()) {
+            return collect();
+        }
+
+        // Batch preloading to prevent N+1 queries across all schedules:
+        $scheduleIds = $schedules->pluck('id')->all();
+
+        // 1. Holiday dates (cached 1 hour)
+        $holidayDates = \Illuminate\Support\Facades\Cache::remember('active_holiday_dates', 3600, function () {
+            return \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => Carbon::parse($d)->toDateString())
+                ->toArray();
+        });
+
+        // 2. Targets by detail schedule ID (1 single query instead of 2 * N)
+        $targetsByDsId = ChangeTimeSessionTarget::whereIn('detail_schedule_id', $scheduleIds)
+            ->with('session')
+            ->get()
+            ->groupBy('detail_schedule_id');
+
+        // 3. Attendances for dates where detail_schedules don't have attendance linked
+        $unlinkedAttendances = Attendance::where('intern_id', $internId)
+            ->where('date', '<=', $dateLimit)
+            ->with('permitLogs')
+            ->get()
+            ->keyBy(fn($a) => Carbon::parse($a->date)->toDateString());
+
+        $context = [
+            'holiday_dates' => $holidayDates,
+            'targets_by_ds_id' => $targetsByDsId,
+            'unlinked_attendances' => $unlinkedAttendances,
+        ];
+
         $debts = collect();
 
         foreach ($schedules as $schedule) {
-            $remainingMinutes = $this->getRemainingDebtMinutes($schedule);
+            $remainingMinutes = $this->getRemainingDebtMinutes($schedule, null, $context);
             if ($remainingMinutes <= 1) {
                 continue;
             }

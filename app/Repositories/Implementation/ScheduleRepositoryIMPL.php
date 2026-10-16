@@ -32,8 +32,8 @@ class ScheduleRepositoryIMPL implements ScheduleRepository
     public function findByInternIdAndDate(int $intern_id, string $date)
     {
         return $this->model->where('intern_id', $intern_id)
-            ->whereDate('start_period', '<=', $date)
-            ->whereDate('end_period', '>=', $date)
+            ->where('start_period', '<=', $date)
+            ->where('end_period', '>=', $date)
             ->first();
     }
 

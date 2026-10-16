@@ -356,6 +356,8 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::get('/shift/update/{internId}', 'scheduleUpdateView')->name('admin.shift.schedule.update');
     });
 
+    Route::delete('/shift/rolling-groups/{id}', [SettingShiftController::class, 'deleteRollingGroup']);
+
     // Pusat Aturan & Simulator Otomatisasi Jadwal Magang (Fase 2)
     Route::controller(AutomationRuleController::class)->prefix('automation-rules')->name('admin.automation-rules.')->group(function () {
         Route::get('/', 'index')->name('index');
@@ -367,6 +369,9 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
         Route::patch('/conflict/{id}/toggle', 'toggleConflict')->name('toggle-conflict');
         Route::post('/global-settings', 'saveGlobalSettings')->name('save-global-settings');
         Route::post('/shift-rolling', 'saveShiftRolling')->name('save-shift-rolling');
+        Route::post('/shift-rolling/divisions', 'saveDivisionRollingGroups')->name('save-division-rolling-groups');
+        Route::post('/shift-rolling/groups', 'storeRollingGroup')->name('store-rolling-group');
+        Route::delete('/shift-rolling/groups/{id}', 'deleteRollingGroup')->name('delete-rolling-group');
         Route::post('/bulk-interns', 'saveBulkInternPolicies')->name('save-bulk-interns');
         Route::post('/balance-groups', 'balanceHybridGroups')->name('balance-groups');
         Route::post('/recommendation', 'getRecommendation')->name('recommendation');
@@ -430,6 +435,10 @@ Route::prefix('admin')->middleware('role:1')->group(function () {
             Route::post('/add-shift', 'storeShift')->name('shifts.store');
             Route::put('/shift/{id}', 'updateShift')->name('shifts.update');
             Route::delete('/delete-shift/{id}', 'deleteShift')->name('shifts.delete');
+            Route::post('/shift/lock-rolling', 'saveLockRolling')->name('shifts.lock-rolling');
+            Route::post('/shift/rolling-groups/divisions', 'saveDivisionRollingGroups')->name('shifts.rolling-groups.divisions');
+            Route::post('/shift/rolling-groups', 'storeRollingGroup')->name('shifts.rolling-groups.store');
+            Route::delete('/shift/rolling-groups/{id}', 'deleteRollingGroup')->name('shifts.rolling-groups.delete');
         });
 
         Route::controller(SettingDivisionController::class)->group(function () {

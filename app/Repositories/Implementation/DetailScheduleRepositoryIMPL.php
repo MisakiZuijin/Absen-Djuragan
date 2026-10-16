@@ -28,7 +28,7 @@ class DetailScheduleRepositoryIMPL implements DetailScheduleRepository
     public function findByScheduleIdAndDate(int $id, string $date)
     {
         return $this->model->where('schedule_id', $id)
-            ->whereDate('date', $date)
+            ->where('date', $date)
             ->first();
     }
 

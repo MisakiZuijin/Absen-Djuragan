@@ -68,7 +68,7 @@ class AdminController extends Controller
         }
 
         $permitCounts = PermitLog::whereNull('end_time')
-            ->whereHas('attendance', fn($q) => $q->whereDate('date', today()))
+            ->whereHas('attendance', fn($q) => $q->where('date', today()->toDateString()))
             ->selectRaw("
                 COUNT(CASE WHEN type = 'prayer' THEN 1 END) as prayer_count,
                 COUNT(CASE WHEN type = 'leave' THEN 1 END) as leave_count,

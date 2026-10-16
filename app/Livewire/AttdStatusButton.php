@@ -56,6 +56,7 @@ class AttdStatusButton extends Component
     public int $mountTimestamp = 0;
     public string $followUpQuestionText = '';
     public bool $isAskingFollowUp = false;
+    protected ?bool $cachedIsChangeTimeAllowed = null;
 
     public function boot(AttendanceService $attendanceService)
     {
@@ -89,7 +90,7 @@ class AttdStatusButton extends Component
         if ($hasFilledLogToday === null && $this->user && $this->user->intern) {
             $this->hasFilledLogToday = \App\Models\LogActivity::whereHas('detailSchedule.schedule', function ($query) {
                 $query->where('intern_id', $this->user->intern->id);
-            })->whereDate('date', today())->exists();
+            })->where('date', today()->toDateString())->exists();
         }
     }
 
@@ -132,9 +133,13 @@ class AttdStatusButton extends Component
 
     public function isChangeTimeAllowed(): bool
     {
+        if ($this->cachedIsChangeTimeAllowed !== null) {
+            return $this->cachedIsChangeTimeAllowed;
+        }
+
         $internId = $this->user?->intern?->id ?? auth()->user()?->intern?->id;
         if (!$internId) {
-            return false;
+            return $this->cachedIsChangeTimeAllowed = false;
         }
 
         $today = \Carbon\Carbon::today('Asia/Jakarta')->toDateString();
@@ -143,36 +148,41 @@ class AttdStatusButton extends Component
         $changeTimeService = app(\App\Services\ChangeTimeService::class);
         $activeChangeTimeSession = $changeTimeService->getActiveSession($internId);
         if ($activeChangeTimeSession) {
-            return true;
+            return $this->cachedIsChangeTimeAllowed = true;
         }
 
         $activeLegacy = \App\Models\AdjustableAttd::where('intern_id', $internId)
             ->whereNotNull('start_time')
             ->whereNull('end_time')
-            ->whereDate('date', $today)
+            ->where('date', $today)
             ->exists();
         if ($activeLegacy) {
-            return true;
+            return $this->cachedIsChangeTimeAllowed = true;
         }
 
         // 2. Pemagang harus memiliki catatan hutang jam kerja yang perlu diganti
         $debtService = app(\App\Services\DebtCalculationService::class);
         $debts = $debtService->getInternDebts($internId, true);
         if ($debts->isEmpty()) {
-            return false;
+            return $this->cachedIsChangeTimeAllowed = false;
         }
 
         // 3. Cek pengaturan kebijakan jadwal hari ganti jam dari Admin
         $setting = \App\Models\ChangeTimeSetting::getSettings();
         $isSunday = \Carbon\Carbon::now('Asia/Jakarta')->isSunday();
-        $isHoliday = \App\Models\Holiday::whereDate('date', $today)->exists();
+        $holidayDates = \Illuminate\Support\Facades\Cache::remember('active_holiday_dates', 3600, function () {
+            return \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
+                ->toArray();
+        });
+        $isHoliday = in_array($today, $holidayDates, true);
         $isOffDay = $isSunday || $isHoliday;
 
         // Jika dibatasi hanya hari libur (Minggu / Tanggal Merah)
         if ($setting->restrict_to_holidays) {
             // 3a. Hari ini adalah hari libur atau Minggu -> Langsung diizinkan
             if ($isOffDay) {
-                return true;
+                return $this->cachedIsChangeTimeAllowed = true;
             }
 
             // 3b. Hari kerja biasa: HANYA jika ada pendaftaran yang SUDAH DISETUJUI (approved) oleh Admin KHUSUS hari ini
@@ -180,15 +190,15 @@ class AttdStatusButton extends Component
                 ->where('status', 'approved')
                 ->where(function ($q) use ($today) {
                     $q->whereNull('requested_date')
-                      ->orWhereDate('requested_date', $today);
+                      ->orWhere('requested_date', $today);
                 })
                 ->exists();
 
-            return (bool) $hasApprovedRegistrationToday;
+            return $this->cachedIsChangeTimeAllowed = (bool) $hasApprovedRegistrationToday;
         }
 
         // Jika mode "Setiap Hari" (tidak dibatasi hanya hari libur): diizinkan
-        return true;
+        return $this->cachedIsChangeTimeAllowed = true;
     }
 
     public function getIsGpsRequiredProperty(): bool
@@ -539,7 +549,7 @@ class AttdStatusButton extends Component
                 $todayDetail = \App\Models\DetailSchedule::whereHas('schedule', function ($q) use ($internId) {
                     $q->where('intern_id', $internId);
                 })
-                    ->whereDate('date', today())
+                    ->where('date', today()->toDateString())
                     ->with('shift')
                     ->first();
 
@@ -553,7 +563,7 @@ class AttdStatusButton extends Component
 
             // Selalu ambil status presensi terbaru dari DB agar reaktif (sinkron dengan wire:poll / tab lain / aksi admin)
             $todayAttendance = \App\Models\Attendance::where('intern_id', $internId)
-                ->whereDate('date', today())
+                ->where('date', today()->toDateString())
                 ->latest('id')
                 ->first(['id', 'start_time', 'end_time', 'break_time', 'back_time']);
 
@@ -776,8 +786,13 @@ class AttdStatusButton extends Component
         }
 
         $isSundayToday = \Carbon\Carbon::now('Asia/Jakarta')->isSunday();
-        $isHolidayDate = \App\Models\Holiday::whereDate('date', \Carbon\Carbon::now('Asia/Jakarta')->toDateString())->exists();
-        $isHolidayToday = $isSundayToday || $isHolidayDate;
+        $todayDateStr = \Carbon\Carbon::now('Asia/Jakarta')->toDateString();
+        $holidayDates = \Illuminate\Support\Facades\Cache::remember('active_holiday_dates', 3600, function () {
+            return \App\Models\Holiday::pluck('date')
+                ->map(fn($d) => \Carbon\Carbon::parse($d)->toDateString())
+                ->toArray();
+        });
+        $isHolidayToday = $isSundayToday || in_array($todayDateStr, $holidayDates, true);
 
         return view('livewire.attd-status-button', [
             'isHandRaised' => $this->isHandRaised,
@@ -804,6 +819,7 @@ class AttdStatusButton extends Component
             'remainingGantiJamMinutes' => $remainingGantiJamMinutes,
             'isHolidayToday' => $isHolidayToday,
             'isSundayToday' => $isSundayToday,
+            'isChangeTimeAllowed' => $this->isChangeTimeAllowed(),
             'pollInterval' => \App\Models\PopupSetting::getInterval('attd_status_button', 5),
         ]);
     }

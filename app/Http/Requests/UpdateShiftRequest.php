@@ -46,6 +46,8 @@ class UpdateShiftRequest extends FormRequest
             'edit_split_wfo_end' => 'nullable',
             'is_rolling' => 'nullable|in:0,1',
             'edit_is_rolling' => 'nullable|in:0,1',
+            'rolling_partner_shift_id' => 'nullable|integer',
+            'edit_rolling_partner_shift_id' => 'nullable|integer',
         ];
     }
 }

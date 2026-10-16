@@ -87,7 +87,7 @@ class BroadcastPopup extends Component
             $todaysSchedule = DetailSchedule::whereHas('schedule.intern', function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
-                ->whereDate('date', today())
+                ->where('date', today()->toDateString())
                 ->first();
 
             $shiftId = $todaysSchedule?->shift_id ?? $user->intern?->shift_id;

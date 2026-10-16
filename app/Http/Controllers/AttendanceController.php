@@ -988,29 +988,128 @@ class AttendanceController extends Controller
 
     public function reset(int $id)
     {
-        Attendance::where('id', $id)->update([
-            'start_time' => null,
-            'break_time' => null,
-            'back_time' => null,
-            'permit_start' => null,
-            'permit_back' => null,
-            'end_time' => null,
-            'total_min' => 0,
-            'total_break_min' => 0,
-            'total_permit_min' => 0,
-            'start_time_message' => null,
-            'break_time_message' => null,
-            'back_time_message' => null,
-            'permit_start_message' => null,
-            'permit_back_message' => null,
-            'end_time_message' => null,
-            'latitude_start' => null,
-            'longitude_start' => null,
-            'latitude_end' => null,
-            'longitude_end' => null,
-        ]);
+        try {
+            DB::beginTransaction();
 
-        return redirect()->back()->with('status', 'Data berhasil direset!');
+            $detailSchedule = null;
+            $attendance = null;
+
+            // Cek apakah parameter $id merujuk ke DetailSchedule atau Attendance
+            $candidateDetail = DetailSchedule::with(['attendance', 'schedule.intern.user'])->find($id);
+            $candidateAttd = Attendance::find($id);
+
+            // Prioritaskan relasi yang cocok secara langsung
+            if ($candidateAttd && DetailSchedule::where('attendance_id', $candidateAttd->id)->exists()) {
+                $attendance = $candidateAttd;
+                $detailSchedule = DetailSchedule::where('attendance_id', $candidateAttd->id)->first();
+            } elseif ($candidateDetail) {
+                $detailSchedule = $candidateDetail;
+                $attendance = $candidateDetail->attendance;
+            } elseif ($candidateAttd) {
+                $attendance = $candidateAttd;
+                $detailSchedule = DetailSchedule::whereHas('schedule', function ($q) use ($attendance) {
+                    $q->where('intern_id', $attendance->intern_id);
+                })->whereDate('date', $attendance->date)->first();
+            }
+
+            if (!$detailSchedule && !$attendance) {
+                DB::rollBack();
+                if (request()->ajax() || request()->wantsJson()) {
+                    return response()->json(['status' => false, 'message' => 'Data jadwal/presensi tidak ditemukan!'], 404);
+                }
+                return redirect()->back()->with('error', 'Data jadwal/presensi tidak ditemukan!');
+            }
+
+            $internId = $detailSchedule?->schedule?->intern_id ?? $attendance?->intern_id;
+            $internName = $detailSchedule?->schedule?->intern?->user?->name ?? 'Pemagang';
+            $date = $detailSchedule?->date ?? $attendance?->date;
+
+            // Reset DetailSchedule ke status default: Dijadwalkan (attd_status_id = 1)
+            if ($detailSchedule) {
+                $detailSchedule->attd_status_id = 1; // 1 = Dijadwalkan
+                $detailSchedule->permit_reason_id = null;
+                $detailSchedule->is_notification_sent = 0;
+                $detailSchedule->isChangeSchedule = 0;
+                $detailSchedule->is_change_schedule_approved = 0;
+                $detailSchedule->save();
+            }
+
+            // Reset semua field Attendance jika record attendance ada
+            if ($attendance) {
+                $attendance->update([
+                    'start_time' => null,
+                    'break_time' => null,
+                    'back_time' => null,
+                    'permit_start' => null,
+                    'permit_back' => null,
+                    'end_time' => null,
+                    'adjusted_end_time' => null,
+                    'total_min' => 0,
+                    'total_break_min' => 0,
+                    'total_permit_min' => 0,
+                    'prayer_duration' => 0,
+                    'start_time_message' => null,
+                    'break_time_message' => null,
+                    'back_time_message' => null,
+                    'permit_start_message' => null,
+                    'permit_back_message' => null,
+                    'end_time_message' => null,
+                    'latitude_start' => null,
+                    'longitude_start' => null,
+                    'latitude_end' => null,
+                    'longitude_end' => null,
+                    'keterangan' => null,
+                    'authorized_by' => null,
+                    'proof_link' => null,
+                    'permit_type' => null,
+                    'permit_description' => null,
+                    'permit_authorized_by' => null,
+                    'is_auto_end' => 0,
+                    'auto_end_note' => null,
+                    'auto_end_notified' => 0,
+                    'is_debt_fulfilled' => 0,
+                    'debt_fulfilled_session_id' => null,
+                    'debt_fulfilled_at' => null,
+                ]);
+            }
+
+            // Hapus pencatatan keterlambatan untuk tanggal tersebut jika ada
+            if ($internId && $date) {
+                \App\Models\LateAbsence::where('intern_id', $internId)
+                    ->whereDate('date', $date)
+                    ->delete();
+            }
+
+            \App\Helper\ActivityLogger::log(
+                'UPDATE',
+                'Presensi',
+                "Admin mereset data presensi dan status {$internName} tanggal {$date} kembali menjadi Dijadwalkan",
+                ['detail_schedule_id' => $detailSchedule?->id, 'attendance_id' => $attendance?->id]
+            );
+
+            DB::commit();
+
+            $msg = "Presensi tanggal {$date} berhasil direset! Jam kerja dikosongkan dan status kembali menjadi Dijadwalkan.";
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'status' => true,
+                    'success' => true,
+                    'message' => $msg,
+                ]);
+            }
+
+            return redirect()->back()->with('status', $msg);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error('Error resetting attendance: ' . $th->getMessage(), ['trace' => $th->getTraceAsString()]);
+
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['status' => false, 'message' => 'Gagal mereset presensi: ' . $th->getMessage()], 500);
+            }
+
+            return redirect()->back()->with('error', 'Gagal mereset presensi: ' . $th->getMessage());
+        }
     }
 
     public function delete(int $id)

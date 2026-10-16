@@ -3,69 +3,87 @@
 @section('title', 'Pengaturan Shift')
 
 @section('contents')
-    @include('layouts.sidebar-pengaturan')
+@include('layouts.sidebar-pengaturan')
 
-    <!-- Main Content -->
-    <main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
-        <div class="w-full max-w-full min-w-0 space-y-6">
+<!-- Main Content -->
+<main class="ml-0 lg:ml-[32rem] mt-2 lg:mt-20 p-3 sm:p-6 min-w-0 max-w-full overflow-x-hidden">
+    <div class="w-full max-w-full min-w-0 space-y-6">
 
-            <!-- Header & Action Button -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div>
-                    <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2.5">
-                        <i class="fa-solid fa-clock text-blue-600"></i>
-                        Manage Shift
-                    </h1>
-                    <p class="text-sm text-gray-600 mt-1">Pengaturan jam kerja operasional, istirahat, validasi GPS, rotasi mingguan, dan skema split-shift</p>
-                </div>
-                <button id="openAddShiftModal"
-                    class="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm hover:shadow self-start sm:self-auto shrink-0 cursor-pointer">
-                    <i class="fas fa-plus"></i>
-                    <span>Tambah Shift</span>
+        <!-- Header & Action Button -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-800 flex items-center gap-2.5">
+                    <i class="fa-solid fa-clock text-blue-600"></i>
+                    Manage Shift
+                </h1>
+                <p class="text-sm text-gray-600 mt-1">Pengaturan jam kerja operasional, istirahat, validasi GPS, rotasi mingguan, dan skema split-shift</p>
+            </div>
+            <button id="openAddShiftModal"
+                class="px-5 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm hover:shadow self-start sm:self-auto shrink-0 cursor-pointer">
+                <i class="fas fa-plus"></i>
+                <span>Tambah Shift</span>
+            </button>
+        </div>
+
+        @if (session('success'))
+        <div id="success-message"
+            class="mb-5 bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-xl relative flex items-center justify-between shadow-xs transition-opacity duration-300"
+            role="alert">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
+                <span class="font-medium text-sm">{{ session('success') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        @endif
+
+        @if (session('error'))
+        <div class="mb-5 bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-xl relative flex items-center justify-between shadow-xs transition-opacity duration-300"
+            role="alert">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-600 text-lg"></i>
+                <span class="font-medium text-sm">{{ session('error') }}</span>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-800 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        @endif
+
+        @if ($errors->any())
+        <div class="mb-5 bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-xl shadow-xs" role="alert">
+            <div class="font-bold text-sm mb-1 flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-600"></i>
+                Terjadi Kesalahan Validasi:
+            </div>
+            <ul class="list-disc list-inside text-xs space-y-1">
+                @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+        @endif
+
+        <!-- Tab Navigation -->
+        <div class="inline-flex p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 mb-6 shadow-2xs">
+            <div class="flex items-center gap-1.5">
+                <button type="button" onclick="switchShiftTab('tab-master-shift')" id="btn-tab-master-shift"
+                    class="shift-tab-btn flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 bg-blue-600 text-white shadow-xs cursor-pointer">
+                    <i class="fa-solid fa-layer-group text-xs"></i>
+                    <span>1. Data Master Shift</span>
+                </button>
+                <button type="button" onclick="switchShiftTab('tab-lock-rolling')" id="btn-tab-lock-rolling"
+                    class="shift-tab-btn flex items-center justify-center gap-2 px-4 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 text-slate-600 hover:text-slate-900 hover:bg-white cursor-pointer">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                    <span>2. Lock Pasangan Rolling</span>
                 </button>
             </div>
+        </div>
 
-            @if (session('success'))
-                <div id="success-message"
-                    class="mb-5 bg-emerald-50 border border-emerald-400 text-emerald-800 px-4 py-3 rounded-xl relative flex items-center justify-between shadow-xs transition-opacity duration-300"
-                    role="alert">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-lg"></i>
-                        <span class="font-medium text-sm">{{ session('success') }}</span>
-                    </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-500 hover:text-emerald-800 cursor-pointer">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="mb-5 bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-xl relative flex items-center justify-between shadow-xs transition-opacity duration-300"
-                    role="alert">
-                    <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-circle-exclamation text-red-600 text-lg"></i>
-                        <span class="font-medium text-sm">{{ session('error') }}</span>
-                    </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-800 cursor-pointer">
-                        <i class="fa-solid fa-xmark text-lg"></i>
-                    </button>
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="mb-5 bg-red-50 border border-red-400 text-red-800 px-4 py-3 rounded-xl shadow-xs" role="alert">
-                    <div class="font-bold text-sm mb-1 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-exclamation text-red-600"></i>
-                        Terjadi Kesalahan Validasi:
-                    </div>
-                    <ul class="list-disc list-inside text-xs space-y-1">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
-
+        <!-- Tab 1: Data Master Shift -->
+        <div id="tab-master-shift" class="shift-tab-content space-y-6">
             <!-- Filter & Search Toolbar -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4 mb-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
                 <div class="relative w-full sm:max-w-md">
@@ -124,506 +142,718 @@
                     </button>
                 </div>
             </div>
-
         </div>
-    </main>
 
-    <!-- Modal Tambah Shift -->
-    <div id="showAddShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-blue-600"></i>
-                    Tambahkan Shift
-                </h2>
-                <button type="button" id="closeAddShiftModal" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+        <!-- Tab 2: Kunci Pasangan Rolling -->
+        <div id="tab-lock-rolling" class="shift-tab-content hidden space-y-6">
+            <!-- Info Ringkas -->
+            <div class="flex items-center gap-3 px-4 py-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs text-slate-700 shadow-2xs">
+                <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                    <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <span class="font-bold text-slate-900">Kunci Pasangan Rolling Shift:</span>
+                    <span class="text-slate-600">Pasangkan 2 shift kerja yang akan berotasi bergantian per minggu (misal: <strong>Shift Pagi ↔ Shift Siang</strong>, <strong>Shift Middle ↔ Shift Siang</strong>). Pemagang yang dijadwalkan dengan Sistem Shift <strong>Rolling</strong> pada shift tersebut akan otomatis bergantian setiap minggu. Pemagang yang disetel <strong>Tetap</strong> tidak akan terpengaruh.</span>
+                </div>
             </div>
-            <form id="addShiftForm" action="{{ route('shifts.store') }}" method="POST">
-                @csrf
-                <div class="mb-4">
-                    <label for="addNamaShift" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Nama Shift <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="addNamaShift" name="addNamaShift"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="Contoh: Pagi, Siang, Middle" required>
-                </div>
 
-                <div class="mb-4">
-                    <label for="addDescription" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Keterangan / Deskripsi <span class="text-gray-400 font-normal text-[11px]">(Opsional)</span>
-                    </label>
-                    <textarea id="addDescription" name="description" rows="2"
-                        class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="Contoh: Shift operasional kerja 08:00 - 17:00"></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <!-- Daftar Pasangan Rolling Shift -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-gray-50/50">
                     <div>
-                        <label for="addJamMulai" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Jam Mulai <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="addJamMulai" name="addJamMulai"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
+                        <h2 class="text-sm font-bold text-gray-800 flex items-center gap-2">
+                            <i class="fa-solid fa-layer-group text-blue-600"></i>
+                            Daftar Pasangan Rolling Shift
+                        </h2>
+                        <p class="text-xs text-gray-500 mt-0.5">Kombinasi 2 shift yang berotasi bergantian per minggu untuk pemagang dengan Sistem Shift Rolling.</p>
                     </div>
-                    <div>
-                        <label for="addJamBerakhir" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Jam Berakhir <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="addJamBerakhir" name="addJamBerakhir"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="start_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Mulai Istirahat <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="start_break_time" name="start_break_time" value="12:00"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-
-                    <div>
-                        <label for="end_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Selesai Istirahat <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="end_break_time" name="end_break_time" value="13:00"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
-                <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="is_friday_break_active" name="is_friday_break_active" value="1"
-                            class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
-                            onchange="toggleFridayBreakInputs('add')">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
-                            </p>
-                        </div>
-                    </label>
-
-                    <div id="add_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
-                        <div>
-                            <label for="friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Mulai Istirahat Jumat
-                            </label>
-                            <input type="time" id="friday_start_break_time" name="friday_start_break_time" value="11:40"
-                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
-                        </div>
-                        <div>
-                            <label for="friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Selesai Istirahat Jumat
-                            </label>
-                            <input type="time" id="friday_end_break_time" name="friday_end_break_time" value="12:40"
-                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Split-Shift (WFH di Rumah + Lanjut WFO di Kantor) -->
-                <div class="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200/80 mb-4">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="is_split_shift" name="is_split_shift" value="1"
-                            class="w-4 h-4 mt-0.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
-                            onchange="toggleSplitShiftInputs('add')">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Aktifkan Skema Split-Shift (WFH di Rumah + Lanjut WFO di Kantor)
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Shift membagi hari jadi sesi WFH di awal (misal 13:00–16:00 di rumah/kos) lalu WFO di kantor (16:00–21:00) saat meja kantor mulai longgar.
-                            </p>
-                        </div>
-                    </label>
-
-                    <div id="add_split_shift_container" class="hidden space-y-3 mt-3 pt-3 border-t border-purple-200/60">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="split_wfh_start" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
-                                    Mulai Sesi WFH (Rumah)
-                                </label>
-                                <input type="time" id="split_wfh_start" name="split_wfh_start" value="13:00"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                            <div>
-                                <label for="split_wfh_end" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
-                                    Selesai Sesi WFH
-                                </label>
-                                <input type="time" id="split_wfh_end" name="split_wfh_end" value="16:00"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="split_wfo_start" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
-                                    Mulai Sesi WFO (Kantor)
-                                </label>
-                                <input type="time" id="split_wfo_start" name="split_wfo_start" value="16:00"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                            <div>
-                                <label for="split_wfo_end" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
-                                    Selesai Sesi WFO (Pulang)
-                                </label>
-                                <input type="time" id="split_wfo_end" name="split_wfo_end" value="21:00"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Rolling / Rotasi Mingguan -->
-                <div class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/80 mb-4">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="is_rolling" name="is_rolling" value="1"
-                            class="w-4 h-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Dapat Digunakan untuk Rolling / Rotasi Mingguan
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Centang jika shift ini dapat dimasukkan dalam rotasi otomatis mingguan (misal bergantian Pagi ↔ Siang).
-                            </p>
-                        </div>
-                    </label>
-                </div>
-
-                <div class="mb-5">
-                    <label for="add_is_gps_active" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Validasi Lokasi GPS (Maps) <span class="text-red-500">*</span>
-                    </label>
-                    <select id="add_is_gps_active" name="is_gps_active"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                        <option value="1">Aktif (Wajib di Area Kantor)</option>
-                        <option value="0">Non-Aktif (WFH / Bebas Area)</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                    <button type="button" onclick="$('#showAddShiftModal').addClass('hidden')"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Simpan Shift
+                    <button type="button" onclick="openAddRollingGroupModal()"
+                        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs cursor-pointer self-start sm:self-auto">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Buat Pasangan Baru</span>
                     </button>
                 </div>
-            </form>
-        </div>
-    </div>
 
-    <!-- Modal Edit Shift -->
-    <div id="editShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i class="fa-solid fa-pen-to-square text-amber-600"></i>
-                    Update Shift
-                </h2>
-                <button type="button" id="closeEditModal" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
-                    <i class="fas fa-times text-lg"></i>
-                </button>
+                <div class="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="rolling-groups-grid">
+                    @forelse($rollingGroups as $grp)
+                    @php
+                    $shift1Rolling = (bool) ($grp->shift1?->is_rolling ?? false);
+                    $shift2Rolling = (bool) ($grp->shift2?->is_rolling ?? false);
+                    $isGroupActive = $grp->is_active && $shift1Rolling && $shift2Rolling;
+                    @endphp
+                    <div class="p-4 rounded-2xl border {{ $isGroupActive ? 'border-slate-200 bg-slate-50/60 hover:bg-white hover:border-blue-300' : 'border-amber-200 bg-amber-50/30' }} transition-all shadow-2xs space-y-3 relative group">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                                <span class="w-2 h-2 rounded-full {{ $isGroupActive ? 'bg-blue-500' : 'bg-amber-500' }}"></span>
+                                {{ $grp->name }}
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" data-id="{{ $grp->id }}" data-name="{{ $grp->name }}" onclick="confirmDeleteRollingGroup(this.dataset.id, this.dataset.name)"
+                                    class="p-1.5 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-100/80 border border-rose-200/60 bg-rose-50/60 transition cursor-pointer"
+                                    title="Hapus Grup Pasangan Ini">
+                                    <i class="fa-solid fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200/80 text-xs">
+                            <div class="text-center flex-1">
+                                <div class="font-bold text-slate-800">{{ $grp->shift1?->name ?? 'Shift 1' }}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">{{ $grp->shift1 ? substr($grp->shift1->start_time, 0, 5) . '-' . substr($grp->shift1->end_time, 0, 5) : '-' }}</div>
+                                @if(!$shift1Rolling)
+                                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800">Non-Aktif Rolling</span>
+                                @endif
+                            </div>
+                            <div class="px-2 {{ $isGroupActive ? 'text-blue-600' : 'text-slate-400' }} font-bold">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                            </div>
+                            <div class="text-center flex-1">
+                                <div class="font-bold text-slate-800">{{ $grp->shift2?->name ?? 'Shift 2' }}</div>
+                                <div class="text-[10px] text-slate-400 font-mono">{{ $grp->shift2 ? substr($grp->shift2->start_time, 0, 5) . '-' . substr($grp->shift2->end_time, 0, 5) : '-' }}</div>
+                                @if(!$shift2Rolling)
+                                <span class="inline-block mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-100 text-amber-800">Non-Aktif Rolling</span>
+                                @endif
+                            </div>
+                        </div>
+
+                        @if(!$shift1Rolling || !$shift2Rolling)
+                        <div class="px-2.5 py-1.5 bg-amber-50 rounded-xl border border-amber-200/80 text-[10.5px] text-amber-800 flex items-start gap-1.5">
+                            <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                            <span>Grup tidak aktif karena Shift {{ !$shift1Rolling ? ($grp->shift1?->name ?? '1') : ($grp->shift2?->name ?? '2') }} belum diaktifkan rolling-nya di Pengaturan Shift.</span>
+                        </div>
+                        @endif
+
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1">
+                            <span class="inline-flex items-center gap-1">
+                                <i class="fa-solid fa-arrows-rotate text-slate-400"></i>
+                                <span>Rotasi Mingguan 2 Arah</span>
+                            </span>
+                            @if($isGroupActive)
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800">Aktif</span>
+                            @else
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">Non-Aktif</span>
+                            @endif
+                        </div>
+                    </div>
+                    @empty
+                    <div class="col-span-full p-8 text-center text-slate-400 text-xs">
+                        Belum ada pasangan shift rolling yang dibuat. Klik tombol "+ Buat Pasangan Baru" untuk membuat pasangan shift.
+                    </div>
+                    @endforelse
+                </div>
             </div>
-            <form id="topupForm" action="" method="POST">
-                @csrf
-                @method('PUT')
-                <input type="hidden" id="shiftId" name="shiftId">
-
-                <div class="mb-4">
-                    <label for="nama_Shift" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Nama Shift <span class="text-red-500">*</span>
-                    </label>
-                    <input type="text" id="nama_Shift" name="nama_Shift"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="Contoh: Pagi, Siang, Middle" required>
-                </div>
-
-                <div class="mb-4">
-                    <label for="edit_description" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Keterangan / Deskripsi <span class="text-gray-400 font-normal text-[11px]">(Opsional)</span>
-                    </label>
-                    <textarea id="edit_description" name="description" rows="2"
-                        class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                        placeholder="Contoh: Shift operasional kerja 08:00 - 17:00"></textarea>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="jamMulai" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Jam Mulai <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="jamMulai" name="jamMulai"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-                    <div>
-                        <label for="jamBerakhir" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Jam Berakhir <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="jamBerakhir" name="jamBerakhir"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label for="edit_start_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Mulai Istirahat <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="edit_start_break_time" name="edit_start_break_time"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-
-                    <div>
-                        <label for="edit_end_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                            Selesai Istirahat <span class="text-red-500">*</span>
-                        </label>
-                        <input type="time" id="edit_end_break_time" name="edit_end_break_time"
-                            class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-                            required>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
-                <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="edit_is_friday_break_active" name="edit_is_friday_break_active" value="1"
-                            class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
-                            onchange="toggleFridayBreakInputs('edit')">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
-                            </p>
-                        </div>
-                    </label>
-
-                    <div id="edit_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
-                        <div>
-                            <label for="edit_friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Mulai Istirahat Jumat
-                            </label>
-                            <input type="time" id="edit_friday_start_break_time" name="edit_friday_start_break_time"
-                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
-                        </div>
-                        <div>
-                            <label for="edit_friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                                Selesai Istirahat Jumat
-                            </label>
-                            <input type="time" id="edit_friday_end_break_time" name="edit_friday_end_break_time"
-                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Split-Shift (WFH di Rumah + Lanjut WFO di Kantor) -->
-                <div class="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200/80 mb-4" id="edit_split_shift_wrapper">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="edit_is_split_shift" name="edit_is_split_shift" value="1"
-                            class="w-4 h-4 mt-0.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
-                            onchange="toggleSplitShiftInputs('edit')">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Aktifkan Skema Split-Shift (WFH di Rumah + Lanjut WFO di Kantor)
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Shift membagi hari jadi sesi WFH di awal (misal 13:00–16:00 di rumah/kos) lalu WFO di kantor (16:00–21:00) saat meja kantor mulai longgar.
-                            </p>
-                        </div>
-                    </label>
-
-                    <div id="edit_split_shift_container" class="hidden space-y-3 mt-3 pt-3 border-t border-purple-200/60">
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="edit_split_wfh_start" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
-                                    Mulai Sesi WFH (Rumah)
-                                </label>
-                                <input type="time" id="edit_split_wfh_start" name="edit_split_wfh_start"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                            <div>
-                                <label for="edit_split_wfh_end" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
-                                    Selesai Sesi WFH
-                                </label>
-                                <input type="time" id="edit_split_wfh_end" name="edit_split_wfh_end"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <label for="edit_split_wfo_start" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
-                                    Mulai Sesi WFO (Kantor)
-                                </label>
-                                <input type="time" id="edit_split_wfo_start" name="edit_split_wfo_start"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                            <div>
-                                <label for="edit_split_wfo_end" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
-                                    Selesai Sesi WFO (Pulang)
-                                </label>
-                                <input type="time" id="edit_split_wfo_end" name="edit_split_wfo_end"
-                                    class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Pengaturan Rolling / Rotasi Mingguan -->
-                <div class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/80 mb-4">
-                    <label class="flex items-start gap-2.5 cursor-pointer select-none">
-                        <input type="checkbox" id="edit_is_rolling" name="edit_is_rolling" value="1"
-                            class="w-4 h-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
-                        <div>
-                            <span class="text-xs font-bold text-slate-800">
-                                Dapat Digunakan untuk Rolling / Rotasi Mingguan
-                            </span>
-                            <p class="text-[11px] text-slate-500 mt-0.5">
-                                Centang jika shift ini dapat dimasukkan dalam rotasi otomatis mingguan (misal bergantian Pagi ↔ Siang).
-                            </p>
-                        </div>
-                    </label>
-                </div>
-
-                <div class="mb-5">
-                    <label for="edit_is_gps_active" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
-                        Validasi Lokasi GPS (Maps) <span class="text-red-500">*</span>
-                    </label>
-                    <select id="edit_is_gps_active" name="is_gps_active"
-                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                        <option value="1">Aktif (Wajib di Area Kantor)</option>
-                        <option value="0">Non-Aktif (WFH / Bebas Area)</option>
-                    </select>
-                </div>
-
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                    <button type="button" onclick="$('#editShiftModal').addClass('hidden')"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Simpan Perubahan
-                    </button>
-                </div>
-            </form>
         </div>
-    </div>
 
-    <!-- Modal Hapus Shift -->
-    <div id="deleteShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
-            <div class="flex items-center gap-3 mb-4 text-red-600">
-                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+    </div>
+</main>
+
+<!-- Modal Tambah Shift -->
+<div id="showAddShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-plus-circle text-blue-600"></i>
+                Tambahkan Shift
+            </h2>
+            <button type="button" id="closeAddShiftModal" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="addShiftForm" action="{{ route('shifts.store') }}" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label for="addNamaShift" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Nama Shift <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="addNamaShift" name="addNamaShift"
+                    class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Pagi, Siang, Middle" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="addDescription" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Keterangan / Deskripsi <span class="text-gray-400 font-normal text-[11px]">(Opsional)</span>
+                </label>
+                <textarea id="addDescription" name="description" rows="2"
+                    class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Shift operasional kerja 08:00 - 17:00"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="addJamMulai" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Jam Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="addJamMulai" name="addJamMulai"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
                 </div>
                 <div>
-                    <h2 class="text-lg font-bold text-gray-800">Hapus Shift</h2>
-                    <p class="text-xs text-gray-500">Konfirmasi tindakan penghapusan</p>
+                    <label for="addJamBerakhir" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Jam Berakhir <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="addJamBerakhir" name="addJamBerakhir"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
                 </div>
             </div>
 
-            <p class="text-sm text-gray-700 mb-4">
-                Apakah Anda yakin ingin menghapus shift <strong id="deleteShiftNameDisplay" class="text-gray-900 font-bold"></strong>?
-            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="start_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Mulai Istirahat <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="start_break_time" name="start_break_time" value="12:00"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
 
-            <form id="deleteForm" action="" method="POST">
-                @csrf
-                @method('DELETE')
-                <input type="hidden" id="deleteShiftId" name="shiftId">
+                <div>
+                    <label for="end_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Selesai Istirahat <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="end_break_time" name="end_break_time" value="13:00"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
+            </div>
 
-                <!-- Peringatan jika shift masih digunakan oleh jadwal -->
-                <div id="deleteScheduleWarning" class="hidden mb-4 p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900">
-                    <div class="flex items-start gap-2.5">
-                        <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm shrink-0"></i>
+            <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
+            <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="is_friday_break_active" name="is_friday_break_active" value="1"
+                        class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                        onchange="toggleFridayBreakInputs('add')">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
+                        </p>
+                    </div>
+                </label>
+
+                <div id="add_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
+                    <div>
+                        <label for="friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Mulai Istirahat Jumat
+                        </label>
+                        <input type="time" id="friday_start_break_time" name="friday_start_break_time" value="11:40"
+                            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+                    <div>
+                        <label for="friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Selesai Istirahat Jumat
+                        </label>
+                        <input type="time" id="friday_end_break_time" name="friday_end_break_time" value="12:40"
+                            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pengaturan Split-Shift (WFH di Rumah + Lanjut WFO di Kantor) -->
+            <div class="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200/80 mb-4">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="is_split_shift" name="is_split_shift" value="1"
+                        class="w-4 h-4 mt-0.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
+                        onchange="toggleSplitShiftInputs('add')">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Aktifkan Skema Split-Shift (WFH di Rumah + Lanjut WFO di Kantor)
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Shift membagi hari jadi sesi WFH di awal (misal 13:00–16:00 di rumah/kos) lalu WFO di kantor (16:00–21:00) saat meja kantor mulai longgar.
+                        </p>
+                    </div>
+                </label>
+
+                <div id="add_split_shift_container" class="hidden space-y-3 mt-3 pt-3 border-t border-purple-200/60">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
-                            <p class="font-bold">Shift ini sedang digunakan oleh <span id="deleteScheduleCount" class="text-red-600 font-extrabold text-sm">0</span> jadwal.</p>
-                            <p class="mt-1 text-[11px] text-amber-800 leading-relaxed">
-                                Jika dihapus, seluruh data jadwal dan riwayat penugasan terkait shift ini akan otomatis dibersihkan agar database tetap konsisten.
-                            </p>
-                            <label class="flex items-center gap-2 mt-2.5 pt-2 border-t border-amber-200 cursor-pointer font-bold text-red-700 select-none">
-                                <input type="checkbox" id="forceDeleteCheckbox" name="force_delete" value="1" class="rounded text-red-600 focus:ring-red-500 cursor-pointer">
-                                <span>Ya, saya yakin hapus paksa beserta seluruh jadwal terkait</span>
+                            <label for="split_wfh_start" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
+                                Mulai Sesi WFH (Rumah)
                             </label>
+                            <input type="time" id="split_wfh_start" name="split_wfh_start" value="13:00"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+                        <div>
+                            <label for="split_wfh_end" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
+                                Selesai Sesi WFH
+                            </label>
+                            <input type="time" id="split_wfh_end" name="split_wfh_end" value="16:00"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="split_wfo_start" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                                Mulai Sesi WFO (Kantor)
+                            </label>
+                            <input type="time" id="split_wfo_start" name="split_wfo_start" value="16:00"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+                        <div>
+                            <label for="split_wfo_end" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                                Selesai Sesi WFO (Pulang)
+                            </label>
+                            <input type="time" id="split_wfo_end" name="split_wfo_end" value="21:00"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Info jika shift aman dihapus -->
-                <div id="deleteSafeNotice" class="hidden mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
-                    <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
-                    <span>Shift ini belum digunakan oleh jadwal manapun sehingga aman untuk dihapus.</span>
-                </div>
+            <!-- Pengaturan Rolling / Rotasi Mingguan -->
+            <div class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/80 mb-4">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="is_rolling" name="is_rolling" value="1"
+                        class="w-4 h-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Dapat Digunakan untuk Rolling / Rotasi Mingguan
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Centang jika shift ini dapat dimasukkan dalam rotasi otomatis mingguan (misal bergantian Pagi ↔ Siang).
+                        </p>
+                    </div>
+                </label>
+            </div>
 
-                <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-                    <button type="button" id="closeDeleteModal"
-                        class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer">
-                        Hapus Shift
-                    </button>
-                </div>
-            </form>
-        </div>
+            <div class="mb-5">
+                <label for="add_is_gps_active" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Validasi Lokasi GPS (Maps) <span class="text-red-500">*</span>
+                </label>
+                <select id="add_is_gps_active" name="is_gps_active"
+                    class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <option value="1">Aktif (Wajib di Area Kantor)</option>
+                    <option value="0">Non-Aktif (WFH / Bebas Area)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button type="button" onclick="$('#showAddShiftModal').addClass('hidden')"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Simpan Shift
+                </button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <script id="shift-data" type="application/json">@json($shift)</script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const shifts = JSON.parse(document.getElementById('shift-data')?.textContent || '[]');
-            const perPage = 8;
-            let currentPage = 1;
-            const shiftTbody = document.querySelector('#shift-tbody');
-            const prevPageButton = document.querySelector('#prev-page');
-            const nextPageButton = document.querySelector('#next-page');
-            const pageNumbersContainer = document.querySelector('#page-numbers');
-            const paginationInfo = document.querySelector('#pagination-info');
-            const shiftCountInfo = document.querySelector('#shiftCountInfo');
-            const searchInput = document.querySelector('#searchInput');
-            let filteredShifts = shifts;
-            let totalPages = Math.max(1, Math.ceil(filteredShifts.length / perPage));
+<!-- Modal Edit Shift -->
+<div id="editShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square text-amber-600"></i>
+                Update Shift
+            </h2>
+            <button type="button" id="closeEditModal" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="topupForm" action="" method="POST">
+            @csrf
+            @method('PUT')
+            <input type="hidden" id="shiftId" name="shiftId">
 
-            // Helper format waktu ke HH:mm (Standar HTML5 input type="time")
-            function formatTimeToHHMM(timeStr, defaultVal = '') {
-                if (!timeStr) return defaultVal;
-                const cleanStr = String(timeStr).trim();
-                const parts = cleanStr.split(':');
-                if (parts.length >= 2) {
-                    const h = parts[0].padStart(2, '0');
-                    const m = parts[1].padStart(2, '0');
-                    return `${h}:${m}`;
-                }
-                return defaultVal;
+            <div class="mb-4">
+                <label for="nama_Shift" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Nama Shift <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="nama_Shift" name="nama_Shift"
+                    class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Pagi, Siang, Middle" required>
+            </div>
+
+            <div class="mb-4">
+                <label for="edit_description" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Keterangan / Deskripsi <span class="text-gray-400 font-normal text-[11px]">(Opsional)</span>
+                </label>
+                <textarea id="edit_description" name="description" rows="2"
+                    class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Shift operasional kerja 08:00 - 17:00"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="jamMulai" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Jam Mulai <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="jamMulai" name="jamMulai"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
+                <div>
+                    <label for="jamBerakhir" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Jam Berakhir <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="jamBerakhir" name="jamBerakhir"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="edit_start_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Mulai Istirahat <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="edit_start_break_time" name="edit_start_break_time"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
+
+                <div>
+                    <label for="edit_end_break_time" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Selesai Istirahat <span class="text-red-500">*</span>
+                    </label>
+                    <input type="time" id="edit_end_break_time" name="edit_end_break_time"
+                        class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                        required>
+                </div>
+            </div>
+
+            <!-- Pengaturan Istirahat Khusus Hari Jumat (Pemagang Laki-Laki) -->
+            <div class="p-3.5 bg-amber-50/70 rounded-xl border border-amber-200/80 mb-4">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="edit_is_friday_break_active" name="edit_is_friday_break_active" value="1"
+                        class="w-4 h-4 mt-0.5 text-orange-600 rounded border-gray-300 focus:ring-orange-500 cursor-pointer"
+                        onchange="toggleFridayBreakInputs('edit')">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Aktifkan Jam Istirahat Khusus Hari Jumat (Pemagang Laki-Laki)
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Centang jika shift ini memiliki jam istirahat khusus untuk pemagang laki-laki pada hari Jumat (misal shalat Jumat).
+                        </p>
+                    </div>
+                </label>
+
+                <div id="edit_friday_break_container" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-amber-200/60">
+                    <div>
+                        <label for="edit_friday_start_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Mulai Istirahat Jumat
+                        </label>
+                        <input type="time" id="edit_friday_start_break_time" name="edit_friday_start_break_time"
+                            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+                    <div>
+                        <label for="edit_friday_end_break_time" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                            Selesai Istirahat Jumat
+                        </label>
+                        <input type="time" id="edit_friday_end_break_time" name="edit_friday_end_break_time"
+                            class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pengaturan Split-Shift (WFH di Rumah + Lanjut WFO di Kantor) -->
+            <div class="p-3.5 bg-purple-50/70 rounded-xl border border-purple-200/80 mb-4" id="edit_split_shift_wrapper">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="edit_is_split_shift" name="edit_is_split_shift" value="1"
+                        class="w-4 h-4 mt-0.5 text-purple-600 rounded border-gray-300 focus:ring-purple-500 cursor-pointer"
+                        onchange="toggleSplitShiftInputs('edit')">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Aktifkan Skema Split-Shift (WFH di Rumah + Lanjut WFO di Kantor)
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Shift membagi hari jadi sesi WFH di awal (misal 13:00–16:00 di rumah/kos) lalu WFO di kantor (16:00–21:00) saat meja kantor mulai longgar.
+                        </p>
+                    </div>
+                </label>
+
+                <div id="edit_split_shift_container" class="hidden space-y-3 mt-3 pt-3 border-t border-purple-200/60">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="edit_split_wfh_start" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
+                                Mulai Sesi WFH (Rumah)
+                            </label>
+                            <input type="time" id="edit_split_wfh_start" name="edit_split_wfh_start"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+                        <div>
+                            <label for="edit_split_wfh_end" class="block text-[11px] font-bold text-purple-800 uppercase tracking-wider mb-1">
+                                Selesai Sesi WFH
+                            </label>
+                            <input type="time" id="edit_split_wfh_end" name="edit_split_wfh_end"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="edit_split_wfo_start" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                                Mulai Sesi WFO (Kantor)
+                            </label>
+                            <input type="time" id="edit_split_wfo_start" name="edit_split_wfo_start"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        </div>
+                        <div>
+                            <label for="edit_split_wfo_end" class="block text-[11px] font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                                Selesai Sesi WFO (Pulang)
+                            </label>
+                            <input type="time" id="edit_split_wfo_end" name="edit_split_wfo_end"
+                                class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pengaturan Rolling / Rotasi Mingguan -->
+            <div class="p-3.5 bg-blue-50/70 rounded-xl border border-blue-200/80 mb-4 space-y-3">
+                <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input type="checkbox" id="edit_is_rolling" name="edit_is_rolling" value="1"
+                        class="w-4 h-4 mt-0.5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800">
+                            Dapat Digunakan untuk Rolling / Rotasi Mingguan
+                        </span>
+                        <p class="text-[11px] text-slate-500 mt-0.5">
+                            Centang jika shift ini dapat dimasukkan dalam rotasi otomatis mingguan (misal bergantian Pagi ↔ Siang).
+                        </p>
+                    </div>
+                </label>
+
+                <div id="edit_partner_shift_container" class="pt-2.5 border-t border-blue-200/60">
+                    <label for="edit_rolling_partner_shift_id" class="block text-xs font-bold text-slate-700 mb-1">
+                        <i class="fa-solid fa-link text-blue-600 mr-1"></i>
+                        Kunci Pasangan Rolling (Shift Partner)
+                    </label>
+                    <select id="edit_rolling_partner_shift_id" name="edit_rolling_partner_shift_id"
+                        class="w-full px-3 py-2 text-xs border border-gray-300 rounded-lg bg-white font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer">
+                        <option value="">-- Tanpa Pasangan (Shift Tetap) --</option>
+                        @foreach ($shift as $sItem)
+                        @if ($sItem->id != 1)
+                        <option value="{{ $sItem->id }}">{{ $sItem->name }} ({{ \Carbon\Carbon::parse($sItem->start_time)->format('H:i') }} - {{ \Carbon\Carbon::parse($sItem->end_time)->format('H:i') }})</option>
+                        @endif
+                        @endforeach
+                    </select>
+                    <p class="text-[10px] text-slate-500 mt-1">
+                        Shift ini hanya akan bergantian dengan shift pasangan yang dipilih (rotasi 2 arah terkunci).
+                    </p>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <label for="edit_is_gps_active" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Validasi Lokasi GPS (Maps) <span class="text-red-500">*</span>
+                </label>
+                <select id="edit_is_gps_active" name="is_gps_active"
+                    class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                    <option value="1">Aktif (Wajib di Area Kantor)</option>
+                    <option value="0">Non-Aktif (WFH / Bebas Area)</option>
+                </select>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button type="button" onclick="$('#editShiftModal').addClass('hidden')"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Simpan Perubahan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Hapus Shift -->
+<div id="deleteShiftModal" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md">
+        <div class="flex items-center gap-3 mb-4 text-red-600">
+            <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <i class="fa-solid fa-triangle-exclamation text-lg"></i>
+            </div>
+            <div>
+                <h2 class="text-lg font-bold text-gray-800">Hapus Shift</h2>
+                <p class="text-xs text-gray-500">Konfirmasi tindakan penghapusan</p>
+            </div>
+        </div>
+
+        <p class="text-sm text-gray-700 mb-4">
+            Apakah Anda yakin ingin menghapus shift <strong id="deleteShiftNameDisplay" class="text-gray-900 font-bold"></strong>?
+        </p>
+
+        <form id="deleteForm" action="" method="POST">
+            @csrf
+            @method('DELETE')
+            <input type="hidden" id="deleteShiftId" name="shiftId">
+
+            <!-- Peringatan jika shift masih digunakan oleh jadwal -->
+            <div id="deleteScheduleWarning" class="hidden mb-4 p-3.5 bg-amber-50 border border-amber-300 rounded-xl text-xs text-amber-900">
+                <div class="flex items-start gap-2.5">
+                    <i class="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 text-sm shrink-0"></i>
+                    <div>
+                        <p class="font-bold">Shift ini sedang digunakan oleh <span id="deleteScheduleCount" class="text-red-600 font-extrabold text-sm">0</span> jadwal.</p>
+                        <p class="mt-1 text-[11px] text-amber-800 leading-relaxed">
+                            Jika dihapus, seluruh data jadwal dan riwayat penugasan terkait shift ini akan otomatis dibersihkan agar database tetap konsisten.
+                        </p>
+                        <label class="flex items-center gap-2 mt-2.5 pt-2 border-t border-amber-200 cursor-pointer font-bold text-red-700 select-none">
+                            <input type="checkbox" id="forceDeleteCheckbox" name="force_delete" value="1" class="rounded text-red-600 focus:ring-red-500 cursor-pointer">
+                            <span>Ya, saya yakin hapus paksa beserta seluruh jadwal terkait</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info jika shift aman dihapus -->
+            <div id="deleteSafeNotice" class="hidden mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 flex items-center gap-2">
+                <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
+                <span>Shift ini belum digunakan oleh jadwal manapun sehingga aman untuk dihapus.</span>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button type="button" id="closeDeleteModal"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Hapus Shift
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Buat Pasangan Rolling Baru -->
+<div id="modalAddRollingGroup" class="fixed inset-0 bg-black/50 backdrop-blur-xs hidden flex items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg">
+        <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
+            <h2 class="text-base font-bold text-gray-800 flex items-center gap-2">
+                <i class="fa-solid fa-arrows-rotate text-blue-600"></i>
+                Buat Pasangan Rolling Shift Baru
+            </h2>
+            <button type="button" onclick="closeAddRollingGroupModal()" class="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                <i class="fas fa-times text-lg"></i>
+            </button>
+        </div>
+        <form id="addRollingGroupForm" action="{{ route('shifts.rolling-groups.store') }}" method="POST">
+            @csrf
+            <div class="mb-4">
+                <label for="group_name" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Nama Pasangan / Label <span class="text-red-500">*</span>
+                </label>
+                <input type="text" id="group_name" name="name"
+                    class="w-full px-3.5 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Pagi ↔ Siang, Middle ↔ Siang" required>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-2">
+                <div>
+                    <label for="group_shift_id_1" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Shift Pertama <span class="text-red-500">*</span>
+                    </label>
+                    <select id="group_shift_id_1" name="shift_id_1"
+                        class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white font-medium text-gray-800 focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">-- Pilih Shift 1 --</option>
+                        @foreach ($shift as $sItem)
+                        @if ($sItem->id != 1)
+                        @if ($sItem->is_rolling)
+                        <option value="{{ $sItem->id }}">{{ $sItem->name }} ({{ substr($sItem->start_time, 0, 5) }}-{{ substr($sItem->end_time, 0, 5) }})</option>
+                        @else
+                        <option value="{{ $sItem->id }}" disabled class="text-slate-400 bg-slate-100">{{ $sItem->name }} — (Non-Aktif Rolling)</option>
+                        @endif
+                        @endif
+                        @endforeach
+                    </select>
+                </div>
+
+                <div>
+                    <label for="group_shift_id_2" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                        Shift Kedua (Partner) <span class="text-red-500">*</span>
+                    </label>
+                    <select id="group_shift_id_2" name="shift_id_2"
+                        class="w-full px-3 py-2 text-xs border border-gray-300 rounded-xl bg-white font-medium text-gray-800 focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">-- Pilih Shift 2 --</option>
+                        @foreach ($shift as $sItem)
+                        @if ($sItem->id != 1)
+                        @if ($sItem->is_rolling)
+                        <option value="{{ $sItem->id }}">{{ $sItem->name }} ({{ substr($sItem->start_time, 0, 5) }}-{{ substr($sItem->end_time, 0, 5) }})</option>
+                        @else
+                        <option value="{{ $sItem->id }}" disabled class="text-slate-400 bg-slate-100">{{ $sItem->name }} — (Non-Aktif Rolling)</option>
+                        @endif
+                        @endif
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-slate-500 mb-4 flex items-start gap-1.5">
+                <i class="fa-solid fa-circle-info text-blue-500 mt-0.5 shrink-0"></i>
+                <span>Hanya shift dengan opsi <strong>"Dapat Digunakan untuk Rolling"</strong> yang aktif di Tab 1 yang dapat dipilih. Shift non-aktif tidak dapat dijadikan pasangan.</span>
+            </p>
+
+            <div class="mb-4">
+                <label for="group_description" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                    Keterangan <span class="text-gray-400 font-normal text-[11px]">(Opsional)</span>
+                </label>
+                <textarea id="group_description" name="description" rows="2"
+                    class="w-full px-3.5 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                    placeholder="Contoh: Pasangan rotasi untuk pemagang Customer Service"></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
+                <button type="button" onclick="closeAddRollingGroupModal()"
+                    class="px-4 py-2 text-xs font-semibold text-white bg-gray-600 hover:bg-gray-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Batal
+                </button>
+                <button type="submit" class="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition cursor-pointer">
+                    Simpan Pasangan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script id="shift-data" type="application/json">
+    @json($shift)
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const shifts = JSON.parse(document.getElementById('shift-data')?.textContent || '[]');
+        const perPage = 8;
+        let currentPage = 1;
+        const shiftTbody = document.querySelector('#shift-tbody');
+        const prevPageButton = document.querySelector('#prev-page');
+        const nextPageButton = document.querySelector('#next-page');
+        const pageNumbersContainer = document.querySelector('#page-numbers');
+        const paginationInfo = document.querySelector('#pagination-info');
+        const shiftCountInfo = document.querySelector('#shiftCountInfo');
+        const searchInput = document.querySelector('#searchInput');
+        let filteredShifts = shifts;
+        let totalPages = Math.max(1, Math.ceil(filteredShifts.length / perPage));
+
+        // Helper format waktu ke HH:mm (Standar HTML5 input type="time")
+        function formatTimeToHHMM(timeStr, defaultVal = '') {
+            if (!timeStr) return defaultVal;
+            const cleanStr = String(timeStr).trim();
+            const parts = cleanStr.split(':');
+            if (parts.length >= 2) {
+                const h = parts[0].padStart(2, '0');
+                const m = parts[1].padStart(2, '0');
+                return `${h}:${m}`;
+            }
+            return defaultVal;
+        }
+
+        const renderTable = () => {
+            shiftTbody.innerHTML = '';
+            const start = (currentPage - 1) * perPage;
+            const end = start + perPage;
+            const currentData = filteredShifts.slice(start, end);
+
+            if (shiftCountInfo) {
+                shiftCountInfo.innerHTML = `Total: <strong class="text-gray-800">${filteredShifts.length}</strong> Shift`;
             }
 
-            const renderTable = () => {
-                shiftTbody.innerHTML = '';
-                const start = (currentPage - 1) * perPage;
-                const end = start + perPage;
-                const currentData = filteredShifts.slice(start, end);
-
-                if (shiftCountInfo) {
-                    shiftCountInfo.innerHTML = `Total: <strong class="text-gray-800">${filteredShifts.length}</strong> Shift`;
-                }
-
-                if (currentData.length === 0) {
-                    shiftTbody.innerHTML = `
+            if (currentData.length === 0) {
+                shiftTbody.innerHTML = `
                         <tr>
                             <td colspan="8" class="py-8 text-center text-gray-400 text-xs">
                                 <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
@@ -631,47 +861,50 @@
                             </td>
                         </tr>
                     `;
-                    if (paginationInfo) paginationInfo.textContent = 'Menampilkan 0 data';
-                    updatePaginationButtons();
-                    renderPageNumbers();
-                    return;
-                }
+                if (paginationInfo) paginationInfo.textContent = 'Menampilkan 0 data';
+                updatePaginationButtons();
+                renderPageNumbers();
+                return;
+            }
 
-                if (paginationInfo) {
-                    const startEntry = start + 1;
-                    const endEntry = Math.min(end, filteredShifts.length);
-                    paginationInfo.textContent = `Menampilkan ${startEntry}-${endEntry} dari ${filteredShifts.length} shift`;
-                }
+            if (paginationInfo) {
+                const startEntry = start + 1;
+                const endEntry = Math.min(end, filteredShifts.length);
+                paginationInfo.textContent = `Menampilkan ${startEntry}-${endEntry} dari ${filteredShifts.length} shift`;
+            }
 
-                currentData.forEach((shift, index) => {
-                    const gpsBadge = (shift.is_gps_active == 1 || shift.is_gps_active === undefined || shift.is_gps_active === null)
-                        ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-600 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-dot text-[10px]"></i> Aktif</span>'
-                        : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-500 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-slash text-[10px]"></i> Bebas (WFH)</span>';
+            currentData.forEach((shift, index) => {
+                const gpsBadge = (shift.is_gps_active == 1 || shift.is_gps_active === undefined || shift.is_gps_active === null) ?
+                    '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-emerald-600 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-dot text-[10px]"></i> Aktif</span>' :
+                    '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-500 text-white rounded-full text-[11px] font-bold shadow-xs"><i class="fa-solid fa-location-slash text-[10px]"></i> Bebas (WFH)</span>';
 
-                    const rollingBadge = (shift.is_rolling == 1 || shift.is_rolling === true)
-                        ? '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-600 text-white rounded-full text-[11px] font-bold shadow-xs" title="Shift ini dapat digunakan untuk rotasi bergantian mingguan"><i class="fa-solid fa-arrows-rotate text-[10px]"></i> Aktif</span>'
-                        : '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-medium border border-gray-200">Non-Aktif</span>';
+                const partnerName = shift.rolling_partner ? shift.rolling_partner.name : '';
+                const rollingBadge = (shift.is_rolling == 1 || shift.is_rolling === true) ?
+                    (partnerName ?
+                        `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-600 text-white rounded-full text-[11px] font-bold shadow-xs" title="Rotasi terkunci bergantian dg ${partnerName}"><i class="fa-solid fa-arrows-rotate text-[10px]"></i> ↔ ${partnerName}</span>` :
+                        '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-600 text-white rounded-full text-[11px] font-bold shadow-xs" title="Shift ini dapat digunakan untuk rotasi bergantian mingguan"><i class="fa-solid fa-arrows-rotate text-[10px]"></i> Aktif</span>') :
+                    '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-medium border border-gray-200">Non-Aktif</span>';
 
-                    const scheduleCount = shift.detail_schedules_count || 0;
-                    const scheduleBadge = scheduleCount > 0
-                        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[11px] font-bold shadow-xs" title="Digunakan oleh ${scheduleCount} jadwal"><i class="fa-solid fa-calendar-check text-[10px]"></i> ${scheduleCount} Jadwal</span>`
-                        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-medium border border-gray-200" title="Belum ada jadwal yang menggunakan shift ini">0 Jadwal</span>`;
+                const scheduleCount = shift.detail_schedules_count || 0;
+                const scheduleBadge = scheduleCount > 0 ?
+                    `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-[11px] font-bold shadow-xs" title="Digunakan oleh ${scheduleCount} jadwal"><i class="fa-solid fa-calendar-check text-[10px]"></i> ${scheduleCount} Jadwal</span>` :
+                    `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-medium border border-gray-200" title="Belum ada jadwal yang menggunakan shift ini">0 Jadwal</span>`;
 
-                    const fridayBadge = (shift.is_friday_break_active == 1 || shift.is_friday_break_active === true)
-                        ? `<div class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold" title="Istirahat Khusus Jumat Laki-Laki: ${formatTimeToHHMM(shift.friday_start_break_time, '11:40')} - ${formatTimeToHHMM(shift.friday_end_break_time, '12:40')}"><i class="fa-solid fa-person text-amber-600"></i> Jumat (L): ${formatTimeToHHMM(shift.friday_start_break_time, '11:40')} - ${formatTimeToHHMM(shift.friday_end_break_time, '12:40')}</span></div>`
-                        : '';
+                const fridayBadge = (shift.is_friday_break_active == 1 || shift.is_friday_break_active === true) ?
+                    `<div class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-bold" title="Istirahat Khusus Jumat Laki-Laki: ${formatTimeToHHMM(shift.friday_start_break_time, '11:40')} - ${formatTimeToHHMM(shift.friday_end_break_time, '12:40')}"><i class="fa-solid fa-person text-amber-600"></i> Jumat (L): ${formatTimeToHHMM(shift.friday_start_break_time, '11:40')} - ${formatTimeToHHMM(shift.friday_end_break_time, '12:40')}</span></div>` :
+                    '';
 
-                    const splitBadge = (shift.is_split_shift == 1 || shift.is_split_shift === true)
-                        ? `<div class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold" title="Split-Shift: WFH ${formatTimeToHHMM(shift.split_wfh_start, '13:00')}-${formatTimeToHHMM(shift.split_wfh_end, '16:00')} | WFO ${formatTimeToHHMM(shift.split_wfo_start, '16:00')}-${formatTimeToHHMM(shift.split_wfo_end, '21:00')}"><i class="fa-solid fa-code-fork text-purple-600"></i> Split: WFH ${formatTimeToHHMM(shift.split_wfh_start, '13:00')}-${formatTimeToHHMM(shift.split_wfh_end, '16:00')} &amp; WFO ${formatTimeToHHMM(shift.split_wfo_start, '16:00')}-${formatTimeToHHMM(shift.split_wfo_end, '21:00')}</span></div>`
-                        : '';
+                const splitBadge = (shift.is_split_shift == 1 || shift.is_split_shift === true) ?
+                    `<div class="mt-1"><span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200 text-[10px] font-bold" title="Split-Shift: WFH ${formatTimeToHHMM(shift.split_wfh_start, '13:00')}-${formatTimeToHHMM(shift.split_wfh_end, '16:00')} | WFO ${formatTimeToHHMM(shift.split_wfo_start, '16:00')}-${formatTimeToHHMM(shift.split_wfo_end, '21:00')}"><i class="fa-solid fa-code-fork text-purple-600"></i> Split: WFH ${formatTimeToHHMM(shift.split_wfh_start, '13:00')}-${formatTimeToHHMM(shift.split_wfh_end, '16:00')} &amp; WFO ${formatTimeToHHMM(shift.split_wfo_start, '16:00')}-${formatTimeToHHMM(shift.split_wfo_end, '21:00')}</span></div>` :
+                    '';
 
-                    const descriptionText = shift.description 
-                        ? `<div class="text-[11px] text-gray-500 font-normal mt-0.5 truncate max-w-xs" title="${shift.description}">${shift.description}</div>` 
-                        : '';
+                const descriptionText = shift.description ?
+                    `<div class="text-[11px] text-gray-500 font-normal mt-0.5 truncate max-w-xs" title="${shift.description}">${shift.description}</div>` :
+                    '';
 
-                    const row = document.createElement('tr');
-                    row.className = 'hover:bg-blue-50/30 transition-colors border-b border-gray-100';
-                    row.innerHTML = `
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-blue-50/30 transition-colors border-b border-gray-100';
+                row.innerHTML = `
                         <td class="py-3.5 px-4 sm:px-6 text-center text-gray-500 font-mono text-xs">${start + index + 1}</td>
                         <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800">
                             <div>${shift.name}</div>
@@ -705,242 +938,430 @@
                             </div>
                         </td>
                     `;
-                    shiftTbody.appendChild(row);
-                });
+                shiftTbody.appendChild(row);
+            });
 
-                addEventListenersToButtons();
-                updatePaginationButtons();
-                renderPageNumbers();
-            };
+            addEventListenersToButtons();
+            updatePaginationButtons();
+            renderPageNumbers();
+        };
 
-            const filterShifts = () => {
-                const searchTerm = (searchInput.value || '').toLowerCase();
-                filteredShifts = shifts.filter(shift => (shift.name || '').toLowerCase().includes(searchTerm) || (shift.description || '').toLowerCase().includes(searchTerm));
-                totalPages = Math.max(1, Math.ceil(filteredShifts.length / perPage));
-                currentPage = 1;
-                renderTable();
-            };
+        const filterShifts = () => {
+            const searchTerm = (searchInput.value || '').toLowerCase();
+            filteredShifts = shifts.filter(shift => (shift.name || '').toLowerCase().includes(searchTerm) || (shift.description || '').toLowerCase().includes(searchTerm));
+            totalPages = Math.max(1, Math.ceil(filteredShifts.length / perPage));
+            currentPage = 1;
+            renderTable();
+        };
 
-            searchInput.addEventListener('input', filterShifts);
+        searchInput.addEventListener('input', filterShifts);
 
-            const updatePaginationButtons = () => {
-                prevPageButton.disabled = currentPage <= 1;
-                nextPageButton.disabled = currentPage >= totalPages;
-            };
+        const updatePaginationButtons = () => {
+            prevPageButton.disabled = currentPage <= 1;
+            nextPageButton.disabled = currentPage >= totalPages;
+        };
 
-            const renderPageNumbers = () => {
-                pageNumbersContainer.innerHTML = '';
-                for (let i = 1; i <= totalPages; i++) {
-                    const pageButton = document.createElement('button');
-                    pageButton.textContent = i;
-                    pageButton.className = 'cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs transition';
+        const renderPageNumbers = () => {
+            pageNumbersContainer.innerHTML = '';
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.className = 'cursor-pointer px-3 py-1.5 rounded-lg text-xs font-bold shadow-xs transition';
 
-                    if (i === currentPage) {
-                        pageButton.classList.add('bg-blue-600', 'text-white');
-                    } else {
-                        pageButton.classList.add('text-gray-800', 'bg-gray-200', 'hover:bg-gray-300');
-                    }
-
-                    pageButton.addEventListener('click', () => {
-                        if (i !== currentPage) {
-                            currentPage = i;
-                            renderTable();
-                        }
-                    });
-                    pageNumbersContainer.appendChild(pageButton);
+                if (i === currentPage) {
+                    pageButton.classList.add('bg-blue-600', 'text-white');
+                } else {
+                    pageButton.classList.add('text-gray-800', 'bg-gray-200', 'hover:bg-gray-300');
                 }
-            };
 
-            const addEventListenersToButtons = () => {
-                // Event listener tombol EDIT
-                document.querySelectorAll('.editShiftModalBtn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const shiftId = this.getAttribute('data-id');
-                        const shift = shifts.find(s => String(s.id) === String(shiftId));
-                        if (!shift) return;
-
-                        $('#shiftId').val(shift.id);
-                        $('#nama_Shift').val(shift.name || '');
-                        $('#edit_description').val(shift.description || '');
-                        $('#jamMulai').val(formatTimeToHHMM(shift.start_time));
-                        $('#jamBerakhir').val(formatTimeToHHMM(shift.end_time));
-                        $('#edit_start_break_time').val(formatTimeToHHMM(shift.start_break_time, '12:00'));
-                        $('#edit_end_break_time').val(formatTimeToHHMM(shift.end_break_time, '13:00'));
-
-                        // GPS
-                        const gpsVal = (shift.is_gps_active === 0 || shift.is_gps_active === '0') ? '0' : '1';
-                        $('#edit_is_gps_active').val(gpsVal);
-
-                        // Friday Break
-                        const isFridayActive = shift.is_friday_break_active == 1 || shift.is_friday_break_active === true;
-                        $('#edit_is_friday_break_active').prop('checked', isFridayActive);
-                        $('#edit_friday_start_break_time').val(formatTimeToHHMM(shift.friday_start_break_time, '11:40'));
-                        $('#edit_friday_end_break_time').val(formatTimeToHHMM(shift.friday_end_break_time, '12:40'));
-                        if (isFridayActive) {
-                            $('#edit_friday_break_container').removeClass('hidden');
-                        } else {
-                            $('#edit_friday_break_container').addClass('hidden');
-                        }
-
-                        // Split Shift
-                        const isSplitActive = shift.is_split_shift == 1 || shift.is_split_shift === true;
-                        $('#edit_is_split_shift').prop('checked', isSplitActive);
-                        $('#edit_split_wfh_start').val(formatTimeToHHMM(shift.split_wfh_start, '13:00'));
-                        $('#edit_split_wfh_end').val(formatTimeToHHMM(shift.split_wfh_end, '16:00'));
-                        $('#edit_split_wfo_start').val(formatTimeToHHMM(shift.split_wfo_start, '16:00'));
-                        $('#edit_split_wfo_end').val(formatTimeToHHMM(shift.split_wfo_end, '21:00'));
-                        if (isSplitActive) {
-                            $('#edit_split_shift_container').removeClass('hidden');
-                        } else {
-                            $('#edit_split_shift_container').addClass('hidden');
-                        }
-
-                        // Rolling Mingguan
-                        const isRolling = shift.is_rolling == 1 || shift.is_rolling === true;
-                        $('#edit_is_rolling').prop('checked', isRolling);
-
-                        // Set Action URL
-                        var actionUrl = "{{ route('shifts.update', ':id') }}".replace(':id', shift.id);
-                        $('#topupForm').attr('action', actionUrl);
-
-                        $('#editShiftModal').removeClass('hidden');
-                    });
-                });
-
-                // Event listener tombol HAPUS
-                document.querySelectorAll('.deleteShiftModalBtn').forEach(button => {
-                    button.addEventListener('click', function() {
-                        const shiftId = this.getAttribute('data-id');
-                        const shift = shifts.find(s => String(s.id) === String(shiftId));
-                        if (!shift) return;
-
-                        var actionUrl = "{{ route('shifts.delete', ':id') }}".replace(':id', shift.id);
-                        $('#deleteForm').attr('action', actionUrl);
-                        $('#deleteForm').find('input[name="shiftId"]').val(shift.id);
-
-                        $('#deleteShiftNameDisplay').text(shift.name);
-
-                        const count = shift.detail_schedules_count || 0;
-                        if (count > 0) {
-                            $('#deleteScheduleCount').text(count);
-                            $('#deleteScheduleWarning').removeClass('hidden');
-                            $('#deleteSafeNotice').addClass('hidden');
-                            $('#forceDeleteCheckbox').prop('checked', false);
-                        } else {
-                            $('#deleteScheduleWarning').addClass('hidden');
-                            $('#deleteSafeNotice').removeClass('hidden');
-                            $('#forceDeleteCheckbox').prop('checked', false);
-                        }
-
-                        $('#deleteShiftModal').removeClass('hidden');
-                    });
-                });
-            };
-
-            window.toggleFridayBreakInputs = function(type) {
-                if (type === 'add') {
-                    const isChecked = $('#is_friday_break_active').is(':checked');
-                    if (isChecked) {
-                        $('#add_friday_break_container').removeClass('hidden');
-                    } else {
-                        $('#add_friday_break_container').addClass('hidden');
+                pageButton.addEventListener('click', () => {
+                    if (i !== currentPage) {
+                        currentPage = i;
+                        renderTable();
                     }
-                } else if (type === 'edit') {
-                    const isChecked = $('#edit_is_friday_break_active').is(':checked');
-                    if (isChecked) {
+                });
+                pageNumbersContainer.appendChild(pageButton);
+            }
+        };
+
+        const addEventListenersToButtons = () => {
+            // Event listener tombol EDIT
+            document.querySelectorAll('.editShiftModalBtn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const shiftId = this.getAttribute('data-id');
+                    const shift = shifts.find(s => String(s.id) === String(shiftId));
+                    if (!shift) return;
+
+                    $('#shiftId').val(shift.id);
+                    $('#nama_Shift').val(shift.name || '');
+                    $('#edit_description').val(shift.description || '');
+                    $('#jamMulai').val(formatTimeToHHMM(shift.start_time));
+                    $('#jamBerakhir').val(formatTimeToHHMM(shift.end_time));
+                    $('#edit_start_break_time').val(formatTimeToHHMM(shift.start_break_time, '12:00'));
+                    $('#edit_end_break_time').val(formatTimeToHHMM(shift.end_break_time, '13:00'));
+
+                    // GPS
+                    const gpsVal = (shift.is_gps_active === 0 || shift.is_gps_active === '0') ? '0' : '1';
+                    $('#edit_is_gps_active').val(gpsVal);
+
+                    // Friday Break
+                    const isFridayActive = shift.is_friday_break_active == 1 || shift.is_friday_break_active === true;
+                    $('#edit_is_friday_break_active').prop('checked', isFridayActive);
+                    $('#edit_friday_start_break_time').val(formatTimeToHHMM(shift.friday_start_break_time, '11:40'));
+                    $('#edit_friday_end_break_time').val(formatTimeToHHMM(shift.friday_end_break_time, '12:40'));
+                    if (isFridayActive) {
                         $('#edit_friday_break_container').removeClass('hidden');
                     } else {
                         $('#edit_friday_break_container').addClass('hidden');
                     }
-                }
-            };
 
-            window.toggleSplitShiftInputs = function(type) {
-                if (type === 'add') {
-                    const isChecked = $('#is_split_shift').is(':checked');
-                    if (isChecked) {
-                        $('#add_split_shift_container').removeClass('hidden');
-                    } else {
-                        $('#add_split_shift_container').addClass('hidden');
-                    }
-                } else if (type === 'edit') {
-                    const isChecked = $('#edit_is_split_shift').is(':checked');
-                    if (isChecked) {
+                    // Split Shift
+                    const isSplitActive = shift.is_split_shift == 1 || shift.is_split_shift === true;
+                    $('#edit_is_split_shift').prop('checked', isSplitActive);
+                    $('#edit_split_wfh_start').val(formatTimeToHHMM(shift.split_wfh_start, '13:00'));
+                    $('#edit_split_wfh_end').val(formatTimeToHHMM(shift.split_wfh_end, '16:00'));
+                    $('#edit_split_wfo_start').val(formatTimeToHHMM(shift.split_wfo_start, '16:00'));
+                    $('#edit_split_wfo_end').val(formatTimeToHHMM(shift.split_wfo_end, '21:00'));
+                    if (isSplitActive) {
                         $('#edit_split_shift_container').removeClass('hidden');
                     } else {
                         $('#edit_split_shift_container').addClass('hidden');
                     }
+
+                    // Rolling Mingguan
+                    const isRolling = shift.is_rolling == 1 || shift.is_rolling === true;
+                    $('#edit_is_rolling').prop('checked', isRolling);
+                    $('#edit_rolling_partner_shift_id').val(shift.rolling_partner_shift_id || '');
+                    // Nonaktifkan opsi yang bernilai ID shift sendiri agar tidak memilih dirinya sendiri
+                    $('#edit_rolling_partner_shift_id option').prop('disabled', false);
+                    $(`#edit_rolling_partner_shift_id option[value="${shift.id}"]`).prop('disabled', true);
+
+                    // Set Action URL
+                    var actionUrl = "{{ route('shifts.update', ':id') }}".replace(':id', shift.id);
+                    $('#topupForm').attr('action', actionUrl);
+
+                    $('#editShiftModal').removeClass('hidden');
+                });
+            });
+
+            // Event listener tombol HAPUS
+            document.querySelectorAll('.deleteShiftModalBtn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const shiftId = this.getAttribute('data-id');
+                    const shift = shifts.find(s => String(s.id) === String(shiftId));
+                    if (!shift) return;
+
+                    var actionUrl = "{{ route('shifts.delete', ':id') }}".replace(':id', shift.id);
+                    $('#deleteForm').attr('action', actionUrl);
+                    $('#deleteForm').find('input[name="shiftId"]').val(shift.id);
+
+                    $('#deleteShiftNameDisplay').text(shift.name);
+
+                    const count = shift.detail_schedules_count || 0;
+                    if (count > 0) {
+                        $('#deleteScheduleCount').text(count);
+                        $('#deleteScheduleWarning').removeClass('hidden');
+                        $('#deleteSafeNotice').addClass('hidden');
+                        $('#forceDeleteCheckbox').prop('checked', false);
+                    } else {
+                        $('#deleteScheduleWarning').addClass('hidden');
+                        $('#deleteSafeNotice').removeClass('hidden');
+                        $('#forceDeleteCheckbox').prop('checked', false);
+                    }
+
+                    $('#deleteShiftModal').removeClass('hidden');
+                });
+            });
+        };
+
+        window.toggleFridayBreakInputs = function(type) {
+            if (type === 'add') {
+                const isChecked = $('#is_friday_break_active').is(':checked');
+                if (isChecked) {
+                    $('#add_friday_break_container').removeClass('hidden');
+                } else {
+                    $('#add_friday_break_container').addClass('hidden');
                 }
-            };
-
-            prevPageButton.addEventListener('click', () => {
-                if (currentPage > 1) {
-                    currentPage--;
-                    renderTable();
+            } else if (type === 'edit') {
+                const isChecked = $('#edit_is_friday_break_active').is(':checked');
+                if (isChecked) {
+                    $('#edit_friday_break_container').removeClass('hidden');
+                } else {
+                    $('#edit_friday_break_container').addClass('hidden');
                 }
-            });
+            }
+        };
 
-            nextPageButton.addEventListener('click', () => {
-                if (currentPage < totalPages) {
-                    currentPage++;
-                    renderTable();
+        window.toggleSplitShiftInputs = function(type) {
+            if (type === 'add') {
+                const isChecked = $('#is_split_shift').is(':checked');
+                if (isChecked) {
+                    $('#add_split_shift_container').removeClass('hidden');
+                } else {
+                    $('#add_split_shift_container').addClass('hidden');
                 }
-            });
-
-            renderTable();
-
-            $('#openAddShiftModal').on('click', function() {
-                $('#is_friday_break_active').prop('checked', false);
-                $('#add_friday_break_container').addClass('hidden');
-                $('#friday_start_break_time').val('11:40');
-                $('#friday_end_break_time').val('12:40');
-
-                $('#is_split_shift').prop('checked', false);
-                $('#add_split_shift_container').addClass('hidden');
-                $('#split_wfh_start').val('13:00');
-                $('#split_wfh_end').val('16:00');
-                $('#split_wfo_start').val('16:00');
-                $('#split_wfo_end').val('21:00');
-
-                $('#is_rolling').prop('checked', false);
-                $('#addDescription').val('');
-
-                $('#showAddShiftModal').removeClass('hidden');
-            });
-
-            $('#closeAddShiftModal').on('click', function() {
-                $('#showAddShiftModal').addClass('hidden');
-            });
-
-            $('#closeEditModal').on('click', function() {
-                $('#editShiftModal').addClass('hidden');
-            });
-
-            $('#closeDeleteModal').on('click', function() {
-                $('#deleteShiftModal').addClass('hidden');
-            });
-
-            $(window).on('click', function(event) {
-                if ($(event.target).is('#showAddShiftModal')) {
-                    $('#showAddShiftModal').addClass('hidden');
+            } else if (type === 'edit') {
+                const isChecked = $('#edit_is_split_shift').is(':checked');
+                if (isChecked) {
+                    $('#edit_split_shift_container').removeClass('hidden');
+                } else {
+                    $('#edit_split_shift_container').addClass('hidden');
                 }
-                if ($(event.target).is('#editShiftModal')) {
-                    $('#editShiftModal').addClass('hidden');
-                }
-                if ($(event.target).is('#deleteShiftModal')) {
-                    $('#deleteShiftModal').addClass('hidden');
-                }
-            });
-        });
+            }
+        };
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const message = document.getElementById('success-message');
-            if (message) {
-                setTimeout(() => {
-                    message.style.opacity = '0';
-                    setTimeout(() => message.remove(), 400);
-                }, 3000);
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderTable();
             }
         });
-    </script>
+
+        nextPageButton.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderTable();
+            }
+        });
+
+        renderTable();
+
+        $('#openAddShiftModal').on('click', function() {
+            $('#is_friday_break_active').prop('checked', false);
+            $('#add_friday_break_container').addClass('hidden');
+            $('#friday_start_break_time').val('11:40');
+            $('#friday_end_break_time').val('12:40');
+
+            $('#is_split_shift').prop('checked', false);
+            $('#add_split_shift_container').addClass('hidden');
+            $('#split_wfh_start').val('13:00');
+            $('#split_wfh_end').val('16:00');
+            $('#split_wfo_start').val('16:00');
+            $('#split_wfo_end').val('21:00');
+
+            $('#is_rolling').prop('checked', false);
+            $('#addDescription').val('');
+
+            $('#showAddShiftModal').removeClass('hidden');
+        });
+
+        $('#closeAddShiftModal').on('click', function() {
+            $('#showAddShiftModal').addClass('hidden');
+        });
+
+        $('#closeEditModal').on('click', function() {
+            $('#editShiftModal').addClass('hidden');
+        });
+
+        $('#closeDeleteModal').on('click', function() {
+            $('#deleteShiftModal').addClass('hidden');
+        });
+
+        $(window).on('click', function(event) {
+            if ($(event.target).is('#showAddShiftModal')) {
+                $('#showAddShiftModal').addClass('hidden');
+            }
+            if ($(event.target).is('#editShiftModal')) {
+                $('#editShiftModal').addClass('hidden');
+            }
+            if ($(event.target).is('#deleteShiftModal')) {
+                $('#deleteShiftModal').addClass('hidden');
+            }
+        });
+    });
+
+    // =========================================================================
+    // PENGELOLAAN TAB & KUNCI PASANGAN ROLLING SHIFT (2 ARAH)
+    // =========================================================================
+    function switchShiftTab(tabId) {
+        document.querySelectorAll('.shift-tab-content').forEach(el => el.classList.add('hidden'));
+        document.querySelectorAll('.shift-tab-btn').forEach(btn => {
+            btn.classList.remove('bg-blue-600', 'text-white', 'shadow-xs');
+            btn.classList.add('text-slate-600', 'hover:text-slate-900', 'hover:bg-white');
+        });
+
+        const activeContent = document.getElementById(tabId);
+        const activeBtn = document.getElementById(`btn-${tabId}`);
+
+        if (activeContent) activeContent.classList.remove('hidden');
+        if (activeBtn) {
+            activeBtn.classList.add('bg-blue-600', 'text-white', 'shadow-xs');
+            activeBtn.classList.remove('text-slate-600', 'hover:text-slate-900', 'hover:bg-white');
+        }
+
+        // Update URL query parameter
+        const url = new URL(window.location);
+        url.searchParams.set('tab', tabId);
+        window.history.replaceState({}, '', url);
+    }
+
+    function updatePartnerBadge(shiftId, partnerId, partnerName) {
+        const badgeEl = document.getElementById(`partner-status-badge-${shiftId}`);
+        const rollingBadgeEl = document.getElementById(`rolling-status-badge-${shiftId}`);
+        if (!badgeEl) return;
+
+        if (partnerId && partnerName) {
+            badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200";
+            badgeEl.innerHTML = `<i class="fa-solid fa-link text-emerald-600"></i><span class="badge-text">Terkunci dg ${partnerName} (2 Arah)</span>`;
+
+            if (rollingBadgeEl) {
+                rollingBadgeEl.className = "inline-flex items-center gap-1 px-2.5 py-0.5 bg-blue-100 text-blue-800 rounded-full text-[11px] font-bold";
+                rollingBadgeEl.innerHTML = `<i class="fa-solid fa-arrows-rotate text-[10px]"></i><span class="status-text">Rolling Aktif</span>`;
+            }
+        } else {
+            badgeEl.className = "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-500";
+            badgeEl.innerHTML = `<i class="fa-solid fa-minus text-gray-400"></i><span class="badge-text">Tanpa Pasangan</span>`;
+
+            if (rollingBadgeEl) {
+                rollingBadgeEl.className = "inline-flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 text-gray-500 rounded-full text-[11px] font-bold";
+                rollingBadgeEl.innerHTML = `<i class="fa-solid fa-arrows-rotate text-[10px]"></i><span class="status-text">Shift Tetap</span>`;
+            }
+        }
+    }
+
+    function handlePartnerChange(selectEl) {
+        const shiftId = selectEl.getAttribute('data-shift-id');
+        const partnerId = selectEl.value;
+        const shiftName = $(selectEl).closest('tr').find('td:nth-child(2) span:last-child').text().trim();
+
+        if (partnerId) {
+            const partnerOption = selectEl.options[selectEl.selectedIndex];
+            const partnerName = partnerOption ? (partnerOption.getAttribute('data-name') || partnerOption.text.split('(')[0].trim()) : 'Partner';
+
+            // 1. Sinkronkan select milik partner secara 2 arah
+            const partnerSelect = document.getElementById(`partner_select_${partnerId}`);
+            if (partnerSelect) {
+                // Cek jika partner sebelumnya punya pasangan lain, putuskan relasi pasangan lamanya
+                const previousPartnerOfPartner = partnerSelect.value;
+                if (previousPartnerOfPartner && previousPartnerOfPartner !== shiftId) {
+                    const oldThirdSelect = document.getElementById(`partner_select_${previousPartnerOfPartner}`);
+                    if (oldThirdSelect) {
+                        oldThirdSelect.value = '';
+                        updatePartnerBadge(previousPartnerOfPartner, '', '');
+                    }
+                }
+
+                partnerSelect.value = shiftId;
+                updatePartnerBadge(partnerId, shiftId, shiftName);
+            }
+
+            updatePartnerBadge(shiftId, partnerId, partnerName);
+        } else {
+            // Lepaskan pasangan 2 arah
+            document.querySelectorAll('.partner-select').forEach(otherSelect => {
+                if (otherSelect !== selectEl && otherSelect.value === String(shiftId)) {
+                    otherSelect.value = '';
+                    const otherShiftId = otherSelect.getAttribute('data-shift-id');
+                    updatePartnerBadge(otherShiftId, '', '');
+                }
+            });
+            updatePartnerBadge(shiftId, '', '');
+        }
+    }
+
+    function openAddRollingGroupModal() {
+        const modal = document.getElementById('modalAddRollingGroup');
+        if (modal) modal.classList.remove('hidden');
+    }
+
+    function closeAddRollingGroupModal() {
+        const modal = document.getElementById('modalAddRollingGroup');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    function confirmDeleteRollingGroup(groupId, groupName) {
+        const deleteUrl = "{{ route('shifts.rolling-groups.delete', ['id' => ':id']) }}".replace(':id', groupId);
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+            document.querySelector('input[name="_token"]')?.value;
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Hapus Pasangan Rolling?',
+                html: `Apakah Anda yakin ingin menghapus grup pasangan <strong>${groupName}</strong>?<br><small class="text-slate-500">Pemagang dengan shift terkait akan otomatis tetap pada shift dasarnya.</small>`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Hapus',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Menghapus...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    fetch(deleteUrl, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': csrfToken,
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Terhapus!',
+                                    text: data.message,
+                                    timer: 1500,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    window.location.href = "{{ route('admin.pengaturan.shift') }}?tab=tab-lock-rolling";
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text: data.message
+                                });
+                            }
+                        })
+                        .catch(err => {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error',
+                                text: err.message
+                            });
+                        });
+                }
+            });
+        } else {
+            if (confirm(`Hapus pasangan rolling "${groupName}"?`)) {
+                fetch(deleteUrl, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'application/json'
+                        }
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        alert(data.message);
+                        window.location.href = "{{ route('admin.pengaturan.shift') }}?tab=tab-lock-rolling";
+                    });
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialTab = urlParams.get('tab') || 'tab-master-shift';
+        switchShiftTab(initialTab);
+
+        const message = document.getElementById('success-message');
+        if (message) {
+            setTimeout(() => {
+                message.style.opacity = '0';
+                setTimeout(() => message.remove(), 400);
+            }, 3000);
+        }
+    });
+</script>
 @endsection

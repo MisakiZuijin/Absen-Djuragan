@@ -115,8 +115,20 @@ class ScheduleService
             $category = (int) $data["type"]; // 1 = Tetap (daily), 2 = Bergantian (weekly)
             $typeString = $category == 1 ? "daily" : "weekly";
 
-            // Ambil seluruh ID shift yang aktif di kantor terkait (diurutkan berdasarkan start_time)
-            // Mengikuti shift yang disediakan kantor itu saja (Pagi -> Middle -> Siang)
+            $currentShiftObj = \App\Models\Shift::find($shiftId);
+
+            // Shift 'none' (ID 1) atau shift yang tidak aktif untuk rolling tidak boleh dirotasi
+            $isBaseShiftRollingEligible = $currentShiftObj
+                && $currentShiftObj->id != 1
+                && strtolower($currentShiftObj->name) !== 'none'
+                && !empty($currentShiftObj->is_rolling);
+
+            if (!$isBaseShiftRollingEligible && $category == 2) {
+                $category = 1;
+                $typeString = "daily";
+            }
+
+            // Ambil seluruh ID shift yang aktif dan diizinkan rolling di kantor terkait (diurutkan berdasarkan start_time)
             $officeShiftCapacities = \App\Models\OfficeShiftCapacity::where('office_id', $officeId)
                 ->where('is_enabled', true)
                 ->where('max_capacity', '>', 0)
@@ -125,12 +137,18 @@ class ScheduleService
 
             if (!empty($officeShiftCapacities)) {
                 $rollingShiftIds = \App\Models\Shift::whereIn('id', $officeShiftCapacities)
+                    ->where('id', '!=', 1)
+                    ->where('name', '!=', 'none')
                     ->where('is_active', 1)
+                    ->where('is_rolling', 1)
                     ->orderBy('start_time', 'asc')
                     ->pluck('id')
                     ->toArray();
             } else {
                 $rollingShiftIds = \App\Models\Shift::where('is_active', 1)
+                    ->where('id', '!=', 1)
+                    ->where('name', '!=', 'none')
+                    ->where('is_rolling', 1)
                     ->orderBy('start_time', 'asc')
                     ->pluck('id')
                     ->toArray();
@@ -140,7 +158,64 @@ class ScheduleService
                 $rollingShiftIds = [$shiftId];
             }
 
-            // Jika kantor hanya menyediakan 1 shift aktif (misal Kantor 2 yang hanya memiliki shift Middle),
+            // KUNCI PASANGAN ROLLING SHIFT (Berdasarkan Pasangan Grup Rolling Shift):
+            $hasGroupRotation = false;
+
+            if ($category == 2 && $isBaseShiftRollingEligible) {
+                // 1. Cek Pasangan Rolling dari Grup Divisi jika ada
+                $rollingGroup = $intern?->division?->rollingGroup;
+
+                // 2. Jika tidak ada di relasi divisi, cari di grup rolling umum (ShiftRollingGroup)
+                if (!$rollingGroup || !$rollingGroup->is_active) {
+                    $rollingGroup = \App\Models\ShiftRollingGroup::where('is_active', true)
+                        ->where(function ($q) use ($shiftId) {
+                            $q->where('shift_id_1', $shiftId)
+                              ->orWhere('shift_id_2', $shiftId);
+                        })->first();
+                }
+
+                if ($rollingGroup && $rollingGroup->is_active && $rollingGroup->shift_id_1 && $rollingGroup->shift_id_2) {
+                    $s1 = (int) $rollingGroup->shift_id_1;
+                    $s2 = (int) $rollingGroup->shift_id_2;
+
+                    $shift1Obj = \App\Models\Shift::find($s1);
+                    $shift2Obj = \App\Models\Shift::find($s2);
+
+                    // Kedua shift dalam grup harus aktif dan memiliki is_rolling == 1
+                    if ($s1 !== 1 && $s2 !== 1
+                        && $shift1Obj && $shift2Obj
+                        && !empty($shift1Obj->is_rolling) && !empty($shift2Obj->is_rolling)
+                        && !empty($shift1Obj->is_active) && !empty($shift2Obj->is_active)) {
+
+                        $partnerShiftId = ($shiftId === $s1) ? $s2 : $s1;
+                        if (in_array($partnerShiftId, $rollingShiftIds) && in_array($shiftId, $rollingShiftIds)) {
+                            $rollingShiftIds = [$shiftId, $partnerShiftId];
+                            $hasGroupRotation = true;
+                        }
+                    }
+                }
+
+                // 3. Fallback: Kunci Pasangan 1-to-1 di Master Shift (rolling_partner_shift_id)
+                if (!$hasGroupRotation && $currentShiftObj && $currentShiftObj->rolling_partner_shift_id) {
+                    $partnerShiftId = (int) $currentShiftObj->rolling_partner_shift_id;
+                    $partnerShiftObj = \App\Models\Shift::find($partnerShiftId);
+                    if ($partnerShiftId !== 1 && $partnerShiftObj && !empty($partnerShiftObj->is_rolling) && !empty($partnerShiftObj->is_active)) {
+                        if (in_array($partnerShiftId, $rollingShiftIds)) {
+                            $rollingShiftIds = [$shiftId, $partnerShiftId];
+                            $hasGroupRotation = true;
+                        }
+                    }
+                }
+
+                // Jika tidak ada grup pasangan rolling yang valid, jadwalkan Tetap (daily)
+                if (!$hasGroupRotation) {
+                    $category = 1;
+                    $typeString = "daily";
+                    $rollingShiftIds = [$shiftId];
+                }
+            }
+
+            // Jika kantor hanya menyediakan 1 shift aktif (misal Kantor yang hanya memiliki shift Middle),
             // maka sistem shift otomatis dipaksa Tetap (daily) karena rotasi shift tidak dimungkinkan.
             if (count($rollingShiftIds) <= 1) {
                 $category = 1;
@@ -168,9 +243,10 @@ class ScheduleService
                 ]);
             }
 
-            // Sinkronkan shift_id pada data pemagang
+            // Sinkronkan shift_id dan is_fixed_shift pada data pemagang
             if ($intern) {
                 $intern->shift_id = $shiftId;
+                $intern->is_fixed_shift = ($category == 1);
                 $intern->save();
             }
 
@@ -305,15 +381,52 @@ class ScheduleService
             return $currentShift;
         }
 
-        $currentIndex = array_search($currentShift, $indexShift);
-
-        if ($currentIndex === false) {
-            return $indexShift[0];
+        // 1. Jika indexShift sudah diset sebagai pasangan 2 shift yang saling rolling, langsung tukar ke pasangan
+        if (count($indexShift) === 2 && in_array($currentShift, $indexShift)) {
+            return ($currentShift === $indexShift[0]) ? $indexShift[1] : $indexShift[0];
         }
 
-        $nextIndex = ($currentIndex + 1) % count($indexShift);
+        // 2. Cek apakah ada grup rolling aktif (ShiftRollingGroup)
+        $rollingGroup = \App\Models\ShiftRollingGroup::where('is_active', true)
+            ->where(function ($q) use ($currentShift) {
+                $q->where('shift_id_1', $currentShift)
+                  ->orWhere('shift_id_2', $currentShift);
+            })->first();
 
-        return $indexShift[$nextIndex];
+        if ($rollingGroup) {
+            $partnerId = ($currentShift === (int) $rollingGroup->shift_id_1)
+                ? (int) $rollingGroup->shift_id_2
+                : (int) $rollingGroup->shift_id_1;
+
+            if (in_array($partnerId, $indexShift)) {
+                return $partnerId;
+            }
+        }
+
+        // 3. Cek pasangan 1-to-1 di kolom master shift
+        $shiftObj = \App\Models\Shift::find($currentShift);
+        if ($shiftObj && $shiftObj->is_rolling && $shiftObj->rolling_partner_shift_id) {
+            $partnerId = (int) $shiftObj->rolling_partner_shift_id;
+            if (in_array($partnerId, $indexShift)) {
+                return $partnerId;
+            }
+        }
+
+        $partnerOfThis = \App\Models\Shift::where('rolling_partner_shift_id', $currentShift)
+            ->where('is_rolling', 1)
+            ->first();
+        if ($partnerOfThis && in_array($partnerOfThis->id, $indexShift)) {
+            return (int) $partnerOfThis->id;
+        }
+
+        // 4. Default rotasi sirkuler jika lebih dari 2 shift
+        $currentIndex = array_search($currentShift, $indexShift);
+        if ($currentIndex !== false) {
+            $nextIndex = ($currentIndex + 1) % count($indexShift);
+            return $indexShift[$nextIndex];
+        }
+
+        return $currentShift;
     }
 
 

@@ -898,7 +898,7 @@
                 </div>
                 @endif
 
-                @if($this->isChangeTimeAllowed())
+                @if($isChangeTimeAllowed)
                 <a href="#" class="w-full text-center bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl text-base py-2.5 px-4 flex items-center justify-center gap-2 transition-colors"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableIn->value) ? 1 : 0 }}"
                     data-user-id="{{ $user->id }}"
@@ -925,7 +925,7 @@
 
                 @default
                 <!-- TOMBOL GANTI JAM - TERSEDIA JIKA TIDAK SEDANG AKTIF DALAM SHIFT KERJA -->
-                @if($this->isChangeTimeAllowed() && !$hasActiveAdjustable && !$isWorkingShiftToday && !in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AdjustableOut]))
+                @if($isChangeTimeAllowed && !$hasActiveAdjustable && !$isWorkingShiftToday && !in_array($stage, [AttendanceStatus::AllDone, AttendanceStatus::AdjustableOut]))
                 <a href="#" class="w-full text-center bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl text-base py-2.5 px-4 flex items-center justify-center gap-2 transition-colors"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableIn->value) ? 1 : 0 }}"
                     data-user-id="{{ $user->id }}"
@@ -1176,7 +1176,7 @@
                         onclick="handleAttendanceAction(event, this)">
                         <i class="fas fa-sign-in-alt mr-2"></i>Masuk
                     </a>
-                @if($this->isChangeTimeAllowed() && !$hasActiveAdjustable)
+                @if($isChangeTimeAllowed && !$hasActiveAdjustable)
                 <a href="#" class="w-full text-center bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-xl text-sm py-2.5 px-4 mt-2 flex items-center justify-center gap-2 transition-colors shadow-2xs"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableIn->value) ? 1 : 0 }}"
                     data-user-id="{{ $user->id }}"
@@ -1189,7 +1189,7 @@
                     <span>Ganti Jam</span>
                 </a>
                 @endif
-                @elseif($isHolidayToday && $this->isChangeTimeAllowed() && !$hasActiveAdjustable)
+                @elseif($isHolidayToday && $isChangeTimeAllowed && !$hasActiveAdjustable)
                 <a href="#" class="w-full text-center bg-gray-800 hover:bg-gray-700 text-white font-bold rounded-xl text-base py-3 px-4 block shadow-xs transition-colors"
                     data-gps="{{ $this->isGpsRequiredForStage(AttendanceStatus::AdjustableIn->value) ? 1 : 0 }}"
                     data-user-id="{{ $user->id }}"

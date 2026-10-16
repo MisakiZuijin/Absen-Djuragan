@@ -33,6 +33,11 @@ class Intern extends Model
         "locked_office_id",
         "blacklisted_office_id",
         "hr_placement_notes",
+        "is_fixed_shift",
+    ];
+
+    protected $casts = [
+        'is_fixed_shift' => 'boolean',
     ];
 
     /**

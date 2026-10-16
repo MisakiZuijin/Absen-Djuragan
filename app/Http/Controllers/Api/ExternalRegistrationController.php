@@ -57,10 +57,18 @@ class ExternalRegistrationController extends Controller
             'brand_id'               => 'nullable|integer',
             'start_date'             => 'nullable|date',
             'end_date'               => 'nullable|date',
+            'status'                 => 'nullable|string|max:50',
         ]);
 
         DB::beginTransaction();
         try {
+            // Evaluasi status keaktifan akun pemagang di Web Absen
+            $status = !empty($validated['status']) ? strtolower(trim($validated['status'])) : null;
+            $isActive = true;
+            if ($status && in_array($status, ['exited', 'completed', 'rejected'], true)) {
+                $isActive = false;
+            }
+
             // 1. Identifikasi User (Cari berdasarkan email)
             $user = User::where('email', $validated['email'])->first();
             $isNewUser = false;
@@ -94,7 +102,7 @@ class ExternalRegistrationController extends Controller
                     'username'        => $candidateUsername,
                     'email'           => $validated['email'],
                     'role_id'         => 3, // Role Pemagang
-                    'is_active'       => true, // Diaktifkan karena telah disetujui / di-ACC dari IMS
+                    'is_active'       => $isActive,
                     'is_confirm'      => true, // Dikonfirmasi
                     'is_gps_support'  => false,
                     'is_gps_activate' => false,
@@ -118,7 +126,11 @@ class ExternalRegistrationController extends Controller
                     $user->password = $validated['password'];
                 }
                 $user->role_id = 3;
-                $user->is_active = true;
+                if ($status !== null) {
+                    $user->is_active = $isActive;
+                } else {
+                    $user->is_active = true;
+                }
                 $user->is_confirm = true;
                 $user->save();
             }
@@ -137,9 +149,9 @@ class ExternalRegistrationController extends Controller
             }
 
             $existingProfile = Profile::where('user_id', $user->id)->first();
-            $effectiveAddress = !empty($validated['address']) && $validated['address'] !== '-'
-                ? $validated['address']
-                : ($existingProfile?->address ?? '-');
+            // Kebijakan Cross-API V2: Alamat domisili pendaftaran tidak disinkronkan otomatis.
+            // Pertahankan alamat yang sudah disetting manual di Web Absen, atau '-' untuk pemagang baru.
+            $effectiveAddress = $existingProfile?->address ?? '-';
 
             $profile = Profile::updateOrCreate(
                 ['user_id' => $user->id],
@@ -162,7 +174,7 @@ class ExternalRegistrationController extends Controller
                 if (!$school) {
                     $school = School::create([
                         'name'                 => $schoolName,
-                        'address'              => $validated['address'] ?? 'Indonesia',
+                        'address'              => 'Indonesia',
                         'educational_level_id' => 3, // Default level (Perguruan Tinggi / Kejuruan)
                         'is_remote_school'     => false,
                     ]);
@@ -188,19 +200,31 @@ class ExternalRegistrationController extends Controller
                 $brandId = $brand ? $brand->id : null;
             }
 
-            // 6. Resolusi Shift (Default Shift Pagi)
-            $shift = Shift::where('name', 'like', '%Pagi%')->first() ?: Shift::first();
-            $shiftId = $shift ? $shift->id : null;
+            // 6. Resolusi Shift & Proteksi Konfigurasi Absensi
+            // KRITIS: Jika pemagang SUDAH ADA di Web Absen, PERTAHANKAN shift_id dan tipe penempatan kerja
+            // yang sudah diset oleh HR / Admin di Web Absen! Dilarang menimpa ke Shift Pagi saat re-sync.
+            $existingIntern = Intern::where('user_id', $user->id)->first();
+
+            if ($existingIntern && $existingIntern->shift_id) {
+                $effectiveShiftId = $existingIntern->shift_id;
+            } else {
+                $defaultShift = Shift::where('name', 'like', '%Pagi%')->first() ?: Shift::first();
+                $effectiveShiftId = $defaultShift ? $defaultShift->id : null;
+            }
 
             // 7. Simpan / Perbarui Data Magang (Interns)
-            $existingIntern = Intern::where('user_id', $user->id)->first();
             $startDate = !empty($validated['start_date']) ? $validated['start_date'] : ($existingIntern?->start_date ?? now()->toDateString());
             $endDate   = !empty($validated['end_date']) ? $validated['end_date'] : ($existingIntern?->end_date ?? now()->addMonths(3)->toDateString());
             $effectiveNim = !empty($validated['student_id']) ? $validated['student_id'] : ($existingIntern?->nim ?? null);
             $effectiveSchoolId = $schoolId ?: ($existingIntern?->school_id ?? null);
             $effectiveDivisionId = $divisionId ?: ($existingIntern?->division_id ?? null);
             $effectiveBrandId = $brandId ?: ($existingIntern?->brand_id ?? null);
-            $effectiveShiftId = $shiftId ?: ($existingIntern?->shift_id ?? null);
+
+            // Pengaturan khusus absensi yang 100% dikendalikan di Web Absen
+            $effectiveWorkPlacement = $existingIntern?->work_placement_type ?? 'auto_office';
+            $effectiveHybridGroup   = $existingIntern?->hybrid_group ?? 'auto';
+            $effectiveLockedOffice  = $existingIntern?->locked_office_id ?? null;
+            $effectiveIsFixedShift  = $existingIntern?->is_fixed_shift ?? false;
 
             $intern = Intern::updateOrCreate(
                 ['user_id' => $user->id],
@@ -212,8 +236,10 @@ class ExternalRegistrationController extends Controller
                     'nim'                 => $effectiveNim,
                     'start_date'          => $startDate,
                     'end_date'            => $endDate,
-                    'work_placement_type' => $existingIntern?->work_placement_type ?? 'auto_office',
-                    'hybrid_group'        => $existingIntern?->hybrid_group ?? 'auto',
+                    'work_placement_type' => $effectiveWorkPlacement,
+                    'hybrid_group'        => $effectiveHybridGroup,
+                    'locked_office_id'    => $effectiveLockedOffice,
+                    'is_fixed_shift'      => $effectiveIsFixedShift,
                 ]
             );
 
@@ -237,7 +263,7 @@ class ExternalRegistrationController extends Controller
             ActivityLogger::log(
                 'CREATE',
                 'API External',
-                "Sinkronisasi pendaftaran pemagang via API: {$validated['full_name']} ({$validated['email']})"
+                "Sinkronisasi pendaftaran pemagang via API V2: {$validated['full_name']} ({$validated['email']}) - Status: " . ($status ?: 'accepted')
             );
 
             return response()->json([
@@ -254,7 +280,10 @@ class ExternalRegistrationController extends Controller
                     'division_id'   => $intern->division_id,
                     'brand_id'      => $intern->brand_id,
                     'school_id'     => $intern->school_id,
+                    'shift_id'      => $intern->shift_id,
                     'is_active'     => (bool) $user->is_active,
+                    'start_date'    => $intern->start_date,
+                    'end_date'      => $intern->end_date,
                 ],
             ], $isNewUser ? 201 : 200);
 

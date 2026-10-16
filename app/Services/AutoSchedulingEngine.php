@@ -117,7 +117,12 @@ class AutoSchedulingEngine
 
         // 1.3. Master Data Kantor & Shift
         $offices = Office::with(['divisions', 'shiftCapacities', 'coordinates'])->get()->keyBy('id');
-        $shifts = Shift::orderBy('start_time')->get()->keyBy('id');
+        $shifts = Shift::where('id', '!=', 1)
+            ->where('name', '!=', 'none')
+            ->with('rollingPartner')
+            ->orderBy('start_time')
+            ->get()
+            ->keyBy('id');
 
         // Lengkapi jam WFO/WFH split shift in-memory jika belum terisi
         foreach ($shifts as $s) {
@@ -171,6 +176,8 @@ class AutoSchedulingEngine
             'user.profile',
             'school',
             'division.scheduleRule',
+            'division.rollingGroup.shift1',
+            'division.rollingGroup.shift2',
             'lockedOffice',
             'blacklistedOffice',
             'schedules',
@@ -345,15 +352,14 @@ class AutoSchedulingEngine
             foreach ($divInterns as $intern) {
                 $isRemoteSchool = (bool) ($intern->school?->is_remote_school ?? false);
                 $isWfhPlacement = ($intern->work_placement_type === 'wfh_only');
-                $isFixedSchedule = ($intern->schedules->first()?->type === 'daily')
-                    || ($intern->shift && !$intern->shift->is_rolling);
+                $isFixedSchedule = (bool) ($intern->is_fixed_shift ?? false);
 
                 if ($isRemoteSchool || $isWfhPlacement) {
                     $internBaseProfiles[$intern->id] = [
                         'is_remote' => true,
                         'primary_office_id' => null,
                         'closest_office_id' => null,
-                        'base_shift_id' => ($intern->shift_id && isset($shifts[$intern->shift_id])) ? $intern->shift_id : ($defaultShift?->id ?? 1),
+                        'base_shift_id' => ($intern->shift_id && isset($shifts[$intern->shift_id])) ? $intern->shift_id : ($defaultShift?->id ?? 2),
                         'cohort_group' => $intern->effective_hybrid_group ?? 'A',
                         'work_placement_type' => 'wfh_only',
                         'candidate_offices' => [],
@@ -518,7 +524,7 @@ class AutoSchedulingEngine
 
             $validShifts = $this->getOfficeValidShifts($oId, null, $officeShiftEnabled, $shifts);
             if (empty($validShifts)) {
-                $validShifts = [$defaultShift?->id ?? 1];
+                $validShifts = [$defaultShift?->id ?? 2];
             }
 
             // Urutkan shift berdasarkan jam mulai paling awal
@@ -591,7 +597,7 @@ class AutoSchedulingEngine
                     // Utamakan FULL WFO untuk seluruh pemagang yang muat
                     foreach ($shiftRecs as $rec) {
                         $i = $rec['intern'];
-                        $isFixed = ($i->schedules->first()?->type === 'daily') || ($i->shift && !$i->shift->is_rolling);
+                        $isFixed = (bool) ($i->is_fixed_shift ?? false);
                         $internBaseProfiles[$i->id] = [
                             'is_remote' => false,
                             'primary_office_id' => $oId,
@@ -709,7 +715,7 @@ class AutoSchedulingEngine
                 foreach ($shiftRecs as $rec) {
                     $i = $rec['intern'];
                     $isPaired = isset($partnersMap[$i->id]);
-                    $isFixed = ($i->schedules->first()?->type === 'daily') || ($i->shift && !$i->shift->is_rolling);
+                    $isFixed = (bool) ($i->is_fixed_shift ?? false);
 
                     if ($isPaired) {
                         $internBaseProfiles[$i->id] = [
@@ -827,13 +833,14 @@ class AutoSchedulingEngine
                         return strcmp($startA, $startB);
                     });
                     $pNumShifts = count($primValidShifts);
-                    if ($pNumShifts <= 1 || !empty($profile['is_fixed_schedule'])) {
-                        $weeklyRotatedShiftId = in_array($baseShiftId, $primValidShifts) ? $baseShiftId : $primValidShifts[0];
-                    } else {
-                        $bIdx = array_search($baseShiftId, $primValidShifts);
-                        if ($bIdx === false) $bIdx = 0;
-                        $weeklyRotatedShiftId = $primValidShifts[($bIdx + $weekOffset) % $pNumShifts];
-                    }
+                    $weeklyRotatedShiftId = $this->resolveWeeklyRotatedShift(
+                        $intern,
+                        $baseShiftId,
+                        $weekOffset,
+                        $primValidShifts,
+                        $shifts,
+                        !empty($profile['is_fixed_schedule'])
+                    )[0];
                 } else {
                     $weeklyRotatedShiftId = $baseShiftId;
                 }
@@ -986,27 +993,40 @@ class AutoSchedulingEngine
                         $numOfficeShifts = count($validShifts);
 
                         // Aturan Rotasi Shift Mingguan (Setiap hari SENIN):
-                        // 1. Jika kantor hanya menyediakan 1 shift: tidak perlu dirotasi (tetap di shift tersebut).
-                        // 2. Jika kantor menyediakan 2 atau 3 shift: rotasi shift mengikuti shift yang disediakan kantor tersebut setiap hari Senin!
-                        // 3. JIKA PEMAGANG BERSTATUS JADWAL TETAP (is_fixed_schedule): shift dikunci pada base_shift_id pemagang, TIDAK dirotasi mingguan!
-                        if ($numOfficeShifts <= 1 || !empty($profile['is_fixed_schedule'])) {
-                            if (in_array($profile['base_shift_id'], $validShifts)) {
-                                $shiftsToTry = array_merge([$profile['base_shift_id']], array_diff($validShifts, [$profile['base_shift_id']]));
-                            } else {
-                                $shiftsToTry = $validShifts;
-                            }
-                        } else {
-                            $baseIdx = array_search($profile['base_shift_id'], $validShifts);
-                            if ($baseIdx === false) {
-                                $baseIdx = $internIndexInDivision % $numOfficeShifts;
-                            }
-                            $rotatedIdx = ($baseIdx + $weekOffset) % $numOfficeShifts;
+                        // 1. Jika kantor hanya menyediakan 1 shift atau pemagang berstatus jadwal tetap: KUNCI pada base_shift_id.
+                        // 2. JIKA SHIFT MEMILIKI PASANGAN TERKUNCI (rolling_partner_shift_id) (A <-> B, C <-> D):
+                        //    - Minggu Genap (offset 0, 2, 4): Base Shift pemagang.
+                        //    - Minggu Ganjil (offset 1, 3, 5): Partner Shift pemagang.
+                        //    - Mencegah perputaran acak saat ada banyak shift di kantor.
+                        // 3. JIKA SHIFT TIDAK MEMILIKI PASANGAN ATAU is_rolling = false:
+                        //    - Shift tetap (tidak dirotasi).
+                        // Aturan Rotasi Shift Mingguan Berdasarkan Grup Rolling Divisi (Opsi 1):
+                        $rotatedPairs = $this->resolveWeeklyRotatedShift(
+                            $intern,
+                            $profile['base_shift_id'],
+                            $weekOffset,
+                            $validShifts,
+                            $shifts,
+                            !empty($profile['is_fixed_schedule'])
+                        );
 
-                            // Susun urutan shift yang dicoba: shift rotasi minggu ini terlebih dahulu, lalu shift lainnya secara berurutan
-                            $shiftsToTry = [];
-                            for ($sOff = 0; $sOff < $numOfficeShifts; $sOff++) {
-                                $shiftsToTry[] = $validShifts[($rotatedIdx + $sOff) % $numOfficeShifts];
+                        $targetRotatedShift = $rotatedPairs[0];
+                        $altRotatedShift = $rotatedPairs[1];
+
+                        $shiftsToTry = [];
+                        if (in_array($targetRotatedShift, $validShifts)) {
+                            $shiftsToTry[] = $targetRotatedShift;
+                        }
+                        if (in_array($altRotatedShift, $validShifts) && !in_array($altRotatedShift, $shiftsToTry)) {
+                            $shiftsToTry[] = $altRotatedShift;
+                        }
+                        foreach ($validShifts as $vs) {
+                            if (!in_array($vs, $shiftsToTry)) {
+                                $shiftsToTry[] = $vs;
                             }
+                        }
+                        if (empty($shiftsToTry)) {
+                            $shiftsToTry = $validShifts;
                         }
 
                         foreach ($shiftsToTry as $shiftId) {
@@ -1022,7 +1042,7 @@ class AutoSchedulingEngine
                                     $assignedShiftId = $shiftId;
                                     $isSpillover = ($candOffId !== $closestOfficeId);
 
-                                     if ($isSplit) {
+                                    if ($isSplit) {
                                         $assignedWorkType = 'split_shift';
                                         $executionTier = 2;
                                         if (!empty($profile['needs_hybrid_rotation'])) {
@@ -1618,5 +1638,82 @@ class AutoSchedulingEngine
         });
 
         return $validShifts;
+    }
+
+    /**
+     * Tentukan Shift Mingguan Pemagang Berdasarkan Grup Rolling Divisi (Opsi 1)
+     * Mengembalikan array shift terurut prioritas: [primary_target_shift, alternate_partner_shift]
+     *
+     * @param Intern $intern
+     * @param int $baseShiftId
+     * @param int $weekOffset
+     * @param array $validOfficeShifts
+     * @param array|\Illuminate\Support\Collection $shifts
+     * @param bool $isFixedSchedule
+     * @return array
+     */
+    private function resolveWeeklyRotatedShift(
+        Intern $intern,
+        int $baseShiftId,
+        int $weekOffset,
+        array $validOfficeShifts,
+        mixed $shifts,
+        bool $isFixedSchedule = false
+    ): array {
+        // ATURAN PALING UTAMA: Jika pemagang disetel Shift Tetap, TIDAK PERNAH terpengaruh rolling!
+        if ($isFixedSchedule || (bool) ($intern->is_fixed_shift ?? false) || count($validOfficeShifts) <= 1) {
+            $fallback = in_array($baseShiftId, $validOfficeShifts) ? $baseShiftId : ($validOfficeShifts[0] ?? $baseShiftId);
+            return [$fallback, $fallback];
+        }
+
+        // ATURAN SHIFT ROLLING: Shift dasar pemagang WAJIB memiliki status is_rolling = true di Pengaturan Shift!
+        $baseShiftObj = $shifts[$baseShiftId] ?? null;
+        if (!$baseShiftObj || empty($baseShiftObj->is_rolling)) {
+            $fallback = in_array($baseShiftId, $validOfficeShifts) ? $baseShiftId : ($validOfficeShifts[0] ?? $baseShiftId);
+            return [$fallback, $fallback];
+        }
+
+        // TINGKAT 1: Pasangan Rolling Shift dari Grup (ShiftRollingGroup)
+        $rollingGroup = \App\Models\ShiftRollingGroup::where('is_active', true)
+            ->where(function ($q) use ($baseShiftId) {
+                $q->where('shift_id_1', $baseShiftId)
+                    ->orWhere('shift_id_2', $baseShiftId);
+            })->first();
+
+        if ($rollingGroup && $rollingGroup->shift_id_1 && $rollingGroup->shift_id_2) {
+            $s1 = (int) $rollingGroup->shift_id_1;
+            $s2 = (int) $rollingGroup->shift_id_2;
+
+            $shift1Obj = $shifts[$s1] ?? null;
+            $shift2Obj = $shifts[$s2] ?? null;
+
+            // Pastikan kedua shift dalam grup sama-sama aktif opsi rolling-nya di Master Data Shift
+            if ($s1 !== 1 && $s2 !== 1 && $shift1Obj && $shift2Obj && !empty($shift1Obj->is_rolling) && !empty($shift2Obj->is_rolling)) {
+                $partnerShiftId = ($baseShiftId === $s1) ? $s2 : $s1;
+
+                $target = ($weekOffset % 2 === 0) ? $baseShiftId : $partnerShiftId;
+                $alt    = ($weekOffset % 2 === 0) ? $partnerShiftId : $baseShiftId;
+
+                $primary = in_array($target, $validOfficeShifts) ? $target : (in_array($alt, $validOfficeShifts) ? $alt : ($validOfficeShifts[0] ?? $baseShiftId));
+                $secondary = in_array($alt, $validOfficeShifts) ? $alt : $primary;
+                return [$primary, $secondary];
+            }
+        }
+
+        // TINGKAT 2: Kunci Pasangan 1-to-1 di Master Shift (rolling_partner_shift_id)
+        $partnerId = $baseShiftObj->rolling_partner_shift_id;
+        $partnerShiftObj = $partnerId ? ($shifts[$partnerId] ?? null) : null;
+        if ($partnerId && $partnerId !== 1 && $partnerShiftObj && !empty($partnerShiftObj->is_rolling)) {
+            $target = ($weekOffset % 2 === 0) ? $baseShiftId : $partnerId;
+            $alt    = ($weekOffset % 2 === 0) ? $partnerId : $baseShiftId;
+
+            $primary = in_array($target, $validOfficeShifts) ? $target : (in_array($alt, $validOfficeShifts) ? $alt : ($validOfficeShifts[0] ?? $baseShiftId));
+            $secondary = in_array($alt, $validOfficeShifts) ? $alt : $primary;
+            return [$primary, $secondary];
+        }
+
+        // TINGKAT 3: Shift Tetap (Base Shift pemagang)
+        $fallback = in_array($baseShiftId, $validOfficeShifts) ? $baseShiftId : ($validOfficeShifts[0] ?? $baseShiftId);
+        return [$fallback, $fallback];
     }
 }

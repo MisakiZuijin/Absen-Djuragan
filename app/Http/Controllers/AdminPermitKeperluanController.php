@@ -69,10 +69,10 @@ class AdminPermitKeperluanController extends Controller
         // Date / Period filter
         $today = Carbon::today()->toDateString();
         if (!empty($dateFilter)) {
-            $query->whereDate('date', $dateFilter);
+            $query->where('date', $dateFilter);
             $period = 'custom';
         } elseif ($period === 'today') {
-            $query->whereDate('date', $today);
+            $query->where('date', $today);
         }
 
         // Type filter
@@ -101,10 +101,10 @@ class AdminPermitKeperluanController extends Controller
         $dateCondition = '';
         $dateBindings = [];
         if (!empty($dateFilter)) {
-            $dateCondition = 'AND DATE(detail_schedules.date) = ?';
+            $dateCondition = 'AND detail_schedules.date = ?';
             $dateBindings[] = $dateFilter;
         } elseif ($period === 'today') {
-            $dateCondition = 'AND DATE(detail_schedules.date) = ?';
+            $dateCondition = 'AND detail_schedules.date = ?';
             $dateBindings[] = $today;
         }
         // period = 'all' → no date condition

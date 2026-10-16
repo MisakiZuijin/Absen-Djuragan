@@ -54,7 +54,7 @@ class ShiftRepositoryIMPL implements ShiftRepository
 
     public function getAll()
     {
-        return $this->model->where('id', '!=', 1)->withCount('detailSchedules')->get();
+        return $this->model->where('id', '!=', 1)->with('rollingPartner')->withCount('detailSchedules')->get();
     }
 
     public function delete(int $id)

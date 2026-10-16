@@ -14,4 +14,16 @@ class Holiday extends Model {
         "date",
         "name"
     ];
+
+    protected static function booted()
+    {
+        static::saved(function () {
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates');
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates_until_today');
+        });
+        static::deleted(function () {
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates');
+            \Illuminate\Support\Facades\Cache::forget('active_holiday_dates_until_today');
+        });
+    }
 }

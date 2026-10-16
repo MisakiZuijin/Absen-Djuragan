@@ -20,7 +20,9 @@ class SsoController extends Controller
             abort(403, 'Akses terbatas untuk Admin dan Super Admin.');
         }
 
-        $secret = config('services.external.api_key', 'djuragan_ext_140633f34edfaf504a3d6812c8c2485c');
+        $secret = config('services.external.api_key')
+            ?: config('services.intern_system.api_key')
+            ?: 'djuragan_ext_140633f34edfaf504a3d6812c8c2485c';
 
         $roleId = (int) $user->role_id;
 
@@ -32,12 +34,15 @@ class SsoController extends Controller
             'role_id'        => $roleId,
             'is_super_admin' => ($roleId === 7),
             'timestamp'      => time(),
-            'expires'        => time() + 60, // Token berlaku selama 60 detik
+            'expires'        => time() + 300, // Token berlaku selama 5 menit (300 detik)
         ];
 
         $payloadJson = json_encode($payload);
         $signature = hash_hmac('sha256', $payloadJson, $secret);
-        $token = base64_encode($payloadJson) . '.' . $signature;
+
+        // Gunakan URL-safe base64 encoding RFC 4648 (tanpa padding '=' dan tanpa titik '.')
+        $encodedPayload = rtrim(strtr(base64_encode($payloadJson), '+/', '-_'), '=');
+        $token = $encodedPayload . '.' . $signature;
 
         $targetUrl = rtrim(config('services.intern_system.url', 'http://Internship_Management_System_SevenInc-develop.test'), '/');
 

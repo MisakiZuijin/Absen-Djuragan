@@ -64,11 +64,11 @@
     </div>
     @endif
 
-    <!-- 5 Main Navigation Tabs -->
+    <!-- 7 Main Navigation Tabs -->
     <div class="bg-white rounded-2xl p-1.5 sm:p-2 border border-slate-200/80 shadow-2xs w-full">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-1.5 sm:gap-2 w-full" id="tabs-container">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-1.5 sm:gap-2 w-full" id="tabs-container">
             <button type="button" onclick="switchTab('tab-matrix')" id="btn-tab-matrix"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-center transition-all duration-200 bg-blue-600 text-white shadow-xs">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold text-center transition-all duration-200 bg-blue-600 text-white shadow-xs">
                 <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
                 </svg>
@@ -76,7 +76,7 @@
             </button>
 
             <button type="button" onclick="switchTab('tab-capacities')" id="btn-tab-capacities"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
                 </svg>
@@ -84,7 +84,7 @@
             </button>
 
             <button type="button" onclick="switchTab('tab-division-rules')" id="btn-tab-division-rules"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 18H7.5m6-6h6m-6 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0M3.75 12H10.5" />
                 </svg>
@@ -92,7 +92,7 @@
             </button>
 
             <button type="button" onclick="switchTab('tab-conflicts')" id="btn-tab-conflicts"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
@@ -100,19 +100,27 @@
             </button>
 
             <button type="button" onclick="switchTab('tab-intern-policies')" id="btn-tab-intern-policies"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                 <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
                 </svg>
                 <span class="truncate">5. Kebijakan Anggota</span>
             </button>
 
+            <button type="button" onclick="switchTab('tab-shift-rolling')" id="btn-tab-shift-rolling"
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+                <span class="truncate">6. Kunci Rolling Shift</span>
+            </button>
+
             <button type="button" onclick="switchTab('tab-simulator')" id="btn-tab-simulator"
-                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2.5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
+                class="tab-btn w-full flex items-center justify-center gap-1.5 px-2 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-semibold text-center transition-all duration-200 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
                 <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 00-1.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z" />
                 </svg>
-                <span class="truncate">6. Simulator Jadwal</span>
+                <span class="truncate">7. Simulator Jadwal</span>
             </button>
         </div>
     </div>
@@ -773,6 +781,7 @@
                                 <th class="p-3.5 min-w-[130px]">Grup Hybrid</th>
                                 <th class="p-3.5 min-w-[150px]">Kunci Kantor (Lock)</th>
                                 <th class="p-3.5 min-w-[150px]">Blacklist Kantor</th>
+                                <th class="p-3.5 min-w-[170px]">Status Shift (Kunci)</th>
                                 <th class="p-3.5 min-w-[220px]">Periode Magang (Mulai - Selesai)</th>
                             </tr>
                         </thead>
@@ -885,6 +894,18 @@
                                 </td>
 
                                 <td class="p-3.5">
+                                    <select name="interns[{{ $intern->id }}][is_fixed_shift]"
+                                        class="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500">
+                                        <option value="0" {{ empty($intern->is_fixed_shift) ? 'selected' : '' }}>
+                                            Ikut Rolling (Auto)
+                                        </option>
+                                        <option value="1" {{ !empty($intern->is_fixed_shift) ? 'selected' : '' }}>
+                                            🔒 Kunci Shift Tetap
+                                        </option>
+                                    </select>
+                                </td>
+
+                                <td class="p-3.5">
                                     <div class="flex items-center gap-1.5">
                                         <input type="date" name="interns[{{ $intern->id }}][start_date]"
                                             value="{{ $intern->start_date ? \Carbon\Carbon::parse($intern->start_date)->toDateString() : '' }}"
@@ -925,7 +946,169 @@
     </div>
 
     <!-- ========================================================================= -->
-    <!-- TAB 5: SIMULATOR & GENERATOR JADWAL (CORE SCHEDULING ENGINE)              -->
+    <!-- TAB 6: KUNCI PASANGAN ROLLING SHIFT & SPLIT SHIFT                         -->
+    <!-- ========================================================================= -->
+    <div id="tab-shift-rolling" class="tab-content hidden space-y-4">
+        <!-- Info Ringkas -->
+        <div class="flex items-center gap-3 px-4 py-3 bg-blue-50/70 border border-blue-200/80 rounded-2xl text-xs text-slate-700 shadow-2xs">
+            <div class="w-8 h-8 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                </svg>
+            </div>
+            <div class="flex-1 min-w-0">
+                <span class="font-bold text-slate-900">Kunci Pasangan Rolling Shift:</span>
+                <span class="text-slate-600">Shift hanya berputar bolak-balik antara 2 shift yang dipasangkan (misal: <strong>Shift Pagi ↔ Shift Siang</strong>). Shift tanpa pasangan tidak akan di-rolling (tetap). <em>Paling Utama: Pemagang yang berstatus <strong>Shift Tetap</strong> (di Tab Kebijakan Pemagang atau Penjadwalan) tidak akan pernah terpengaruh rolling.</em></span>
+            </div>
+        </div>
+
+        <form action="{{ route('admin.automation-rules.save-shift-rolling') }}" method="POST">
+            @csrf
+            <div class="bg-white rounded-2xl border border-slate-200/80 shadow-2xs overflow-hidden">
+                <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                            <svg class="w-5 h-5 text-blue-600 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244" />
+                            </svg>
+                            <span>Daftar Pemetaan Pasangan Shift & Split Shift</span>
+                        </h2>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Pasangkan shift untuk rotasi mingguan yang sinkron dua arah. Pengaturan ini juga terhubung dengan halaman Pengaturan Shift.
+                        </p>
+                    </div>
+
+                    <button type="submit"
+                        class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-xs hover:shadow transition cursor-pointer shrink-0">
+                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                        <span>Simpan Aturan Rolling & Split Shift</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                            <tr>
+                                <th class="p-3.5 text-center w-12">No.</th>
+                                <th class="p-3.5 min-w-[180px]">Shift Operasional</th>
+                                <th class="p-3.5 whitespace-nowrap">Jam Kerja</th>
+                                <th class="p-3.5 text-center min-w-[130px]">Status Rolling</th>
+                                <th class="p-3.5 min-w-[260px]">Pasangan Terkunci (Locked Partner)</th>
+                                <th class="p-3.5 text-center min-w-[130px]">Opsi Split Shift</th>
+                                <th class="p-3.5 min-w-[280px]">Rentang Jam Split Shift</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @php
+                                $validShifts = $shifts->filter(fn($s) => $s->id != 1);
+                            @endphp
+                            @forelse($validShifts as $idx => $s)
+                            @php
+                                $isMorning = (stripos($s->name, 'pagi') !== false) || ($s->start_time && $s->start_time < '12:00:00');
+                            @endphp
+                            <tr class="hover:bg-slate-50/80 transition-colors">
+                                <td class="p-3.5 text-center font-mono text-slate-400 text-xs">{{ $idx + 1 }}</td>
+                                <td class="p-3.5 font-bold text-slate-900">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full {{ $s->rolling_partner_shift_id ? 'bg-blue-600' : 'bg-slate-400' }}"></span>
+                                        <span>{{ $s->name }}</span>
+                                    </div>
+                                </td>
+                                <td class="p-3.5 font-mono text-xs font-semibold text-slate-700 whitespace-nowrap">
+                                    {{ substr($s->start_time, 0, 5) }} - {{ substr($s->end_time, 0, 5) }}
+                                </td>
+                                <td class="p-3.5 text-center whitespace-nowrap">
+                                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                        <input type="checkbox" name="shifts[{{ $s->id }}][is_rolling]" value="1"
+                                            {{ $s->is_rolling ? 'checked' : '' }}
+                                            id="rolling_check_{{ $s->id }}"
+                                            class="w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500 cursor-pointer">
+                                        <span class="text-xs font-semibold {{ $s->is_rolling ? 'text-blue-700' : 'text-slate-500' }}">
+                                            {{ $s->is_rolling ? 'Aktif' : 'Nonaktif' }}
+                                        </span>
+                                    </label>
+                                </td>
+                                <td class="p-3.5">
+                                    <select name="shifts[{{ $s->id }}][rolling_partner_shift_id]"
+                                        id="partner_select_{{ $s->id }}"
+                                        data-shift-id="{{ $s->id }}"
+                                        onchange="onAutoRulesPartnerChange(this)"
+                                        class="auto-rules-partner-select w-full px-3 py-1.5 text-xs border border-slate-300 rounded-xl bg-white font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none transition cursor-pointer">
+                                        <option value="">-- Tanpa Pasangan (Shift Tetap) --</option>
+                                        @foreach($validShifts as $partnerOpt)
+                                            @if($partnerOpt->id !== $s->id)
+                                                <option value="{{ $partnerOpt->id }}" {{ (int) $s->rolling_partner_shift_id === (int) $partnerOpt->id ? 'selected' : '' }}>
+                                                    {{ $partnerOpt->name }} ({{ substr($partnerOpt->start_time, 0, 5) }}-{{ substr($partnerOpt->end_time, 0, 5) }})
+                                                </option>
+                                            @endif
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td class="p-3.5 text-center whitespace-nowrap">
+                                    @if($isMorning)
+                                    <span class="text-[11px] text-slate-400 italic">Full WFO (Non-Split)</span>
+                                    @else
+                                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                        <input type="checkbox" name="shifts[{{ $s->id }}][is_split_shift]" value="1"
+                                            {{ $s->is_split_shift ? 'checked' : '' }}
+                                            id="split_check_{{ $s->id }}"
+                                            onchange="onAutoRulesSplitToggle({{ $s->id }}, this.checked)"
+                                            class="w-4 h-4 text-amber-600 rounded-sm border-slate-300 focus:ring-amber-500 cursor-pointer">
+                                        <span class="text-xs font-semibold text-slate-700">Split Aktif</span>
+                                    </label>
+                                    @endif
+                                </td>
+                                <td class="p-3.5">
+                                    @if($isMorning)
+                                    <span class="text-[11px] text-slate-400">-</span>
+                                    @else
+                                    <div id="split_inputs_{{ $s->id }}" class="grid grid-cols-2 gap-2 {{ $s->is_split_shift ? '' : 'opacity-40 pointer-events-none' }}">
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 font-bold block uppercase">WFH (Awal)</span>
+                                            <div class="flex items-center gap-1 mt-0.5">
+                                                <input type="time" name="shifts[{{ $s->id }}][split_wfh_start]"
+                                                    value="{{ $s->split_wfh_start ? substr($s->split_wfh_start, 0, 5) : '13:00' }}"
+                                                    class="w-full text-xs font-mono px-2 py-1 border border-slate-300 rounded-lg">
+                                                <span class="text-slate-400 text-xs">-</span>
+                                                <input type="time" name="shifts[{{ $s->id }}][split_wfh_end]"
+                                                    value="{{ $s->split_wfh_end ? substr($s->split_wfh_end, 0, 5) : '16:00' }}"
+                                                    class="w-full text-xs font-mono px-2 py-1 border border-slate-300 rounded-lg">
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <span class="text-[10px] text-slate-400 font-bold block uppercase">WFO Kantor</span>
+                                            <div class="flex items-center gap-1 mt-0.5">
+                                                <input type="time" name="shifts[{{ $s->id }}][split_wfo_start]"
+                                                    value="{{ $s->split_wfo_start ? substr($s->split_wfo_start, 0, 5) : '16:00' }}"
+                                                    class="w-full text-xs font-mono px-2 py-1 border border-slate-300 rounded-lg">
+                                                <span class="text-slate-400 text-xs">-</span>
+                                                <input type="time" name="shifts[{{ $s->id }}][split_wfo_end]"
+                                                    value="{{ $s->split_wfo_end ? substr($s->split_wfo_end, 0, 5) : substr($s->end_time, 0, 5) }}"
+                                                    class="w-full text-xs font-mono px-2 py-1 border border-slate-300 rounded-lg">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="7" class="p-6 text-center text-slate-400">
+                                    Belum ada data shift operasional.
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- TAB 7: SIMULATOR & GENERATOR JADWAL (CORE SCHEDULING ENGINE)              -->
     <!-- ========================================================================= -->
     <div id="tab-simulator" class="tab-content hidden space-y-6">
 
@@ -2100,6 +2283,47 @@ foreach ($offices as $office) {
 
         html += '</nav>';
         container.innerHTML = html;
+    }
+
+    // =========================================================================
+    // TAB 6: KUNCI PASANGAN ROLLING SHIFT & SPLIT SHIFT HELPERS
+    // =========================================================================
+    function onAutoRulesPartnerChange(selectEl) {
+        const currentShiftId = selectEl.getAttribute('data-shift-id');
+        const selectedPartnerId = selectEl.value;
+
+        // Auto-check status rolling jika partner dipilih
+        const currentRollingCb = document.getElementById('rolling_check_' + currentShiftId);
+        if (currentRollingCb) {
+            currentRollingCb.checked = selectedPartnerId ? true : false;
+        }
+
+        // Sinkronkan 2 arah
+        document.querySelectorAll('.auto-rules-partner-select').forEach(otherSelect => {
+            const otherShiftId = otherSelect.getAttribute('data-shift-id');
+            if (otherShiftId === currentShiftId) return;
+
+            if (selectedPartnerId && otherShiftId === selectedPartnerId) {
+                otherSelect.value = currentShiftId;
+                const otherRollingCb = document.getElementById('rolling_check_' + otherShiftId);
+                if (otherRollingCb) otherRollingCb.checked = true;
+            } else if (otherSelect.value === currentShiftId && (!selectedPartnerId || otherShiftId !== selectedPartnerId)) {
+                otherSelect.value = '';
+                const otherRollingCb = document.getElementById('rolling_check_' + otherShiftId);
+                if (otherRollingCb) otherRollingCb.checked = false;
+            }
+        });
+    }
+
+    function onAutoRulesSplitToggle(shiftId, isChecked) {
+        const box = document.getElementById('split_inputs_' + shiftId);
+        if (box) {
+            if (isChecked) {
+                box.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                box.classList.add('opacity-40', 'pointer-events-none');
+            }
+        }
     }
 
     function goToInternPolicyPage(page) {

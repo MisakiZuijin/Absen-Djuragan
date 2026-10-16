@@ -159,7 +159,7 @@
 
         <!-- Summary Stat Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-6">
-            <div class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <button type="button" onclick="setSystemType('')" class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0 text-left hover:border-blue-300 hover:shadow-sm transition cursor-pointer">
                 <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
                     <i class="fa-solid fa-users text-base sm:text-lg"></i>
                 </div>
@@ -167,9 +167,9 @@
                     <div class="text-[11px] sm:text-xs text-gray-500 font-medium truncate">Total Pemagang</div>
                     <div class="text-base sm:text-lg font-bold text-gray-900 leading-tight">{{ $totalInterns ?? $interns->total() }}</div>
                 </div>
-            </div>
+            </button>
 
-            <div class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <button type="button" onclick="setSystemType('weekly')" class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0 text-left hover:border-indigo-300 hover:shadow-sm transition cursor-pointer">
                 <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold shrink-0">
                     <i class="fa-solid fa-arrows-rotate text-base sm:text-lg"></i>
                 </div>
@@ -177,9 +177,9 @@
                     <div class="text-[11px] sm:text-xs text-gray-500 font-medium truncate">Rolling</div>
                     <div class="text-base sm:text-lg font-bold text-indigo-700 leading-tight">{{ $totalRolling ?? 0 }}</div>
                 </div>
-            </div>
+            </button>
 
-            <div class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <button type="button" onclick="setSystemType('daily')" class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0 text-left hover:border-slate-300 hover:shadow-sm transition cursor-pointer">
                 <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-slate-50 text-slate-600 flex items-center justify-center font-bold shrink-0">
                     <i class="fa-solid fa-calendar-day text-base sm:text-lg"></i>
                 </div>
@@ -187,9 +187,9 @@
                     <div class="text-[11px] sm:text-xs text-gray-500 font-medium truncate">Shift Tetap</div>
                     <div class="text-base sm:text-lg font-bold text-slate-800 leading-tight">{{ $totalFixed ?? 0 }}</div>
                 </div>
-            </div>
+            </button>
 
-            <div class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <button type="button" onclick="setSystemType('none')" class="bg-white rounded-xl p-3 sm:p-4 border border-gray-100 shadow-xs flex items-center gap-2.5 sm:gap-3 min-w-0 text-left hover:border-amber-300 hover:shadow-sm transition cursor-pointer">
                 <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold shrink-0">
                     <i class="fa-solid fa-triangle-exclamation text-base sm:text-lg"></i>
                 </div>
@@ -197,12 +197,15 @@
                     <div class="text-[11px] sm:text-xs text-gray-500 font-medium truncate">Belum Diatur</div>
                     <div class="text-base sm:text-lg font-bold text-amber-700 leading-tight">{{ $totalUnset ?? 0 }}</div>
                 </div>
-            </div>
+            </button>
         </div>
 
         <!-- Filter & Search Toolbar -->
         <div class="bg-white rounded-2xl border border-gray-100 shadow-xs p-3.5 sm:p-4 mb-6">
-            <form action="{{ route('admin.penjadwalan.index') }}" method="GET" class="space-y-3">
+            <form id="filterForm" action="{{ route('admin.penjadwalan.index') }}" method="GET" class="space-y-3"
+                data-paginated="{{ (method_exists($interns, 'hasPages') && $interns->hasPages()) || ($interns->total() > 50) ? 'true' : 'false' }}">
+                <input type="hidden" name="system_type" id="filter_system_type" value="{{ request('system_type') }}">
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
                     <!-- Search Input (Server + Instant Filter) -->
                     <div class="sm:col-span-2 lg:col-span-1 xl:col-span-1">
@@ -212,8 +215,13 @@
                                 <i class="fa-solid fa-search text-sm"></i>
                             </span>
                             <input type="text" id="searchInput" name="search" value="{{ request('search') }}"
-                                class="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                                class="w-full pl-9 pr-8 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                                 placeholder="Ketik nama, NIM, sekolah...">
+                            @if(request('search'))
+                                <button type="button" onclick="clearSearch()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 cursor-pointer" title="Hapus pencarian">
+                                    <i class="fa-solid fa-circle-xmark text-sm"></i>
+                                </button>
+                            @endif
                         </div>
                     </div>
 
@@ -287,6 +295,7 @@
                             <option value="active" {{ request('intern_remaining') === 'active' ? 'selected' : '' }}>Sisa > 30 Hari</option>
                             <option value="upcoming" {{ request('intern_remaining') === 'upcoming' ? 'selected' : '' }}>Belum Mulai</option>
                             <option value="expired" {{ request('intern_remaining') === 'expired' ? 'selected' : '' }}>Magang Selesai</option>
+                            <option value="unset" {{ request('intern_remaining') === 'unset' ? 'selected' : '' }}>Belum Diatur</option>
                         </select>
                     </div>
                 </div>
@@ -295,14 +304,14 @@
                     <div class="flex items-center gap-1.5 flex-wrap">
                         <!-- Filter Sistem Shift Toggle -->
                         <span class="text-xs text-gray-500 mr-1 font-medium">Sistem:</span>
-                        <a href="{{ request()->fullUrlWithQuery(['system_type' => '']) }}"
-                            class="px-2.5 py-1 text-xs rounded-lg transition {{ !request('system_type') ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Semua</a>
-                        <a href="{{ request()->fullUrlWithQuery(['system_type' => 'weekly']) }}"
-                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'weekly' ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Rolling</a>
-                        <a href="{{ request()->fullUrlWithQuery(['system_type' => 'daily']) }}"
-                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'daily' ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Tetap</a>
-                        <a href="{{ request()->fullUrlWithQuery(['system_type' => 'none']) }}"
-                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'none' ? 'bg-amber-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Belum Diatur</a>
+                        <button type="button" onclick="setSystemType('')"
+                            class="px-2.5 py-1 text-xs rounded-lg transition {{ !request('system_type') ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Semua</button>
+                        <button type="button" onclick="setSystemType('weekly')"
+                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'weekly' ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Rolling</button>
+                        <button type="button" onclick="setSystemType('daily')"
+                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'daily' ? 'bg-blue-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Tetap</button>
+                        <button type="button" onclick="setSystemType('none')"
+                            class="px-2.5 py-1 text-xs rounded-lg transition {{ request('system_type') === 'none' ? 'bg-amber-600 text-white font-bold' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Belum Diatur</button>
                     </div>
                     <div class="flex items-center gap-2 justify-end">
                         <a href="{{ route('admin.penjadwalan.index') }}"
@@ -378,7 +387,8 @@
                                     $today = \Carbon\Carbon::today();
 
                                     // 1. Perhitungan Periode & Sisa Hari Jadwal
-                                    $hasSchedule = $sched && !empty($sched->start_period) && !empty($sched->end_period);
+                                    $hasDetailSchedules = ($sched?->detail_schedules_count ?? ($sched ? $sched->detailSchedules()->count() : 0)) > 0;
+                                    $hasSchedule = $sched && !empty($sched->start_period) && !empty($sched->end_period) && $hasDetailSchedules;
                                     $schedBadgeText = null;
                                     $schedBadgeClass = '';
                                     $schedTotalDays = 0;
@@ -507,7 +517,7 @@
                                         @endif
                                     </td>
                                     <td class="py-3.5 px-4 whitespace-nowrap">
-                                        @if ($sched)
+                                        @if ($sched && $hasSchedule)
                                             @if ($isWeekly)
                                                 <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">
                                                     <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
@@ -607,8 +617,8 @@
                                                     data-end="{{ $modalEnd ? \Carbon\Carbon::parse($modalEnd)->format('Y-m-d') : '' }}"
                                                     onclick="closeAllDropdowns(); openModal(this.dataset.id, this.dataset.name, this.dataset.division, this.dataset.office, this.dataset.shift, this.dataset.type, this.dataset.start, this.dataset.end)"
                                                     class="w-full text-left px-3.5 py-2 text-xs font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 flex items-center gap-2.5 transition">
-                                                    <i class="fa-solid {{ $sched ? 'fa-pen-to-square text-blue-600' : 'fa-plus text-emerald-600' }} w-4 text-center"></i>
-                                                    <span>{{ $sched ? 'Atur Ulang Shift' : 'Atur Shift Baru' }}</span>
+                                                    <i class="fa-solid {{ $hasSchedule ? 'fa-pen-to-square text-blue-600' : 'fa-plus text-emerald-600' }} w-4 text-center"></i>
+                                                    <span>{{ $hasSchedule ? 'Atur Ulang Shift' : 'Atur Shift Baru' }}</span>
                                                 </button>
                                                 <a href="{{ route('admin.shift.schedule.update', ['internId' => $data->id]) }}"
                                                     onclick="closeAllDropdowns()"
@@ -895,21 +905,64 @@
                     });
                 }
 
-                // Instant client-side search across all row contents
+                // Search Input Handler (Enter + Debounce Submit for Paginated Dataset)
                 const searchInput = document.getElementById('searchInput');
+                let searchTimeout = null;
+                const isPaginated = document.getElementById('filterForm')?.dataset?.paginated === 'true';
+
                 if (searchInput) {
+                    // Enter key immediately submits server search
+                    searchInput.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (searchTimeout) clearTimeout(searchTimeout);
+                            document.getElementById('filterForm').submit();
+                        }
+                    });
+
                     searchInput.addEventListener('input', function() {
                         const filter = this.value.toLowerCase().trim();
-                        const tableRows = document.querySelectorAll('#teamTableBody tr');
-                        if (tableRows.length > 0) {
-                            tableRows.forEach(function(row) {
-                                const rowText = row.textContent.toLowerCase();
-                                row.style.display = rowText.includes(filter) ? '' : 'none';
-                            });
+
+                        if (searchTimeout) clearTimeout(searchTimeout);
+
+                        // If data is paginated or search cleared, client DOM filtering cannot see other pages!
+                        // Debounce 600ms to submit to server so all interns across DB are searched.
+                        if (isPaginated || filter.length === 0) {
+                            searchTimeout = setTimeout(function() {
+                                document.getElementById('filterForm').submit();
+                            }, 600);
+                        } else {
+                            // If single page, provide instant client feedback AND debounce submit to ensure accuracy
+                            const tableRows = document.querySelectorAll('#teamTableBody tr');
+                            if (tableRows.length > 0) {
+                                tableRows.forEach(function(row) {
+                                    const rowText = row.textContent.toLowerCase();
+                                    row.style.display = rowText.includes(filter) ? '' : 'none';
+                                });
+                            }
+                            searchTimeout = setTimeout(function() {
+                                document.getElementById('filterForm').submit();
+                            }, 800);
                         }
                     });
                 }
             });
+
+            function clearSearch() {
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                    document.getElementById('filterForm').submit();
+                }
+            }
+
+            function setSystemType(val) {
+                const systemInput = document.getElementById('filter_system_type');
+                if (systemInput) {
+                    systemInput.value = val;
+                    document.getElementById('filterForm').submit();
+                }
+            }
 
             // Toggle Action Dropdown
             function toggleActionDropdown(event, dropdownId) {

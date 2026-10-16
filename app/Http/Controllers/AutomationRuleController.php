@@ -13,6 +13,7 @@ use App\Models\OfficeDivision;
 use App\Models\OfficeShiftCapacity;
 use App\Models\School;
 use App\Models\Shift;
+use App\Models\ShiftRollingGroup;
 use App\Services\AutoSchedulingEngine;
 use App\Services\UserService;
 use Illuminate\Contracts\View\View;
@@ -42,13 +43,14 @@ class AutomationRuleController extends Controller
         // 1. Ambil data kantor berserta relasi divisi dan shift
         $offices = Office::with(['coordinate', 'coordinates', 'divisions', 'shiftCapacities'])->get();
 
-        // 2. Ambil data divisi berserta aturan jadwal
-        $divisions = Division::with(['scheduleRule', 'offices'])->get();
+        // 2. Ambil data divisi berserta aturan jadwal dan grup rolling
+        $divisions = Division::with(['scheduleRule', 'offices', 'rollingGroup', 'intern.shift'])->get();
+        $rollingGroups = ShiftRollingGroup::with(['shift1', 'shift2', 'divisions.intern'])->orderBy('id')->get();
 
         // Konfigurasi split-shift sepenuhnya mengikuti halaman Manage Shift (tidak lagi ditimpa paksa di sini).
 
-        // 3. Ambil data shift
-        $shifts = Shift::orderBy('start_time')->get();
+        // 3. Ambil data shift (kecualikan Shift 1 "none")
+        $shifts = Shift::where('id', '!=', 1)->with('rollingPartner')->orderBy('start_time')->get();
 
         // 4. Matriks Checklist Divisi per Kantor [division_id][office_id] => bool
         $matrixMap = [];
@@ -112,6 +114,7 @@ class AutomationRuleController extends Controller
             'conflictRules' => $conflictRules,
             'interns' => $interns,
             'schools' => $schools,
+            'rollingGroups' => $rollingGroups,
             'automationSettings' => $automationSettings,
         ]);
     }
@@ -404,14 +407,18 @@ class AutomationRuleController extends Controller
 
         DB::beginTransaction();
         try {
+            $allActiveShifts = Shift::where('id', '!=', 1)->get()->keyBy('id');
+
             foreach ($shiftsData as $shiftId => $data) {
-                $shift = Shift::find($shiftId);
+                $shift = $allActiveShifts->get($shiftId);
                 if (!$shift) continue;
 
                 $isMorning = (stripos($shift->name, 'pagi') !== false) || ($shift->start_time && $shift->start_time < '12:00:00');
                 $isRolling = !empty($data['is_rolling']);
                 // Shift Pagi selalu Full WFO (tidak pernah split)
                 $isSplit = $isMorning ? false : !empty($data['is_split_shift']);
+
+                $partnerId = !empty($data['rolling_partner_shift_id']) ? (int) $data['rolling_partner_shift_id'] : null;
 
                 $shift->update([
                     'is_rolling' => $isRolling,
@@ -421,6 +428,29 @@ class AutomationRuleController extends Controller
                     'split_wfo_start' => $isSplit ? ($data['split_wfo_start'] ?? '16:00:00') : null,
                     'split_wfo_end' => $isSplit ? ($data['split_wfo_end'] ?? ($shift->end_time ?: '21:00:00')) : null,
                 ]);
+
+                // Sinkronisasi pasangan lock rolling 2 arah jika ada field rolling_partner_shift_id
+                if (array_key_exists('rolling_partner_shift_id', $data)) {
+                    if ($partnerId && $partnerId !== $shiftId && isset($allActiveShifts[$partnerId])) {
+                        // Putuskan relasi pasangan lama
+                        Shift::where('rolling_partner_shift_id', $shiftId)
+                            ->whereNotIn('id', [$partnerId])
+                            ->update(['rolling_partner_shift_id' => null, 'is_rolling' => false]);
+
+                        Shift::where('rolling_partner_shift_id', $partnerId)
+                            ->whereNotIn('id', [$shiftId])
+                            ->update(['rolling_partner_shift_id' => null, 'is_rolling' => false]);
+
+                        $shift->update(['rolling_partner_shift_id' => $partnerId, 'is_rolling' => true]);
+                        $allActiveShifts[$partnerId]->update(['rolling_partner_shift_id' => $shiftId, 'is_rolling' => true]);
+                    } else {
+                        $oldPId = $shift->rolling_partner_shift_id;
+                        if ($oldPId && isset($allActiveShifts[$oldPId])) {
+                            $allActiveShifts[$oldPId]->update(['rolling_partner_shift_id' => null, 'is_rolling' => false]);
+                        }
+                        $shift->update(['rolling_partner_shift_id' => null, 'is_rolling' => false]);
+                    }
+                }
             }
 
             DB::commit();
@@ -444,6 +474,127 @@ class AutomationRuleController extends Controller
                 ], 500);
             }
             return back()->with('error', 'Terjadi kesalahan saat menyimpan pengaturan shift: ' . $th->getMessage());
+        }
+    }
+
+    /**
+     * Simpan pemetaan grup rolling shift ke divisi (Tab 6: Kunci Rolling Shift).
+     */
+    public function saveDivisionRollingGroups(Request $request): RedirectResponse|JsonResponse
+    {
+        $mappings = $request->input('division_groups', []); // [division_id => shift_rolling_group_id]
+
+        DB::beginTransaction();
+        try {
+            foreach ($mappings as $divisionId => $groupId) {
+                $targetGroupId = !empty($groupId) ? (int) $groupId : null;
+                Division::where('id', $divisionId)->update([
+                    'shift_rolling_group_id' => $targetGroupId
+                ]);
+            }
+
+            DB::commit();
+            ActivityLogger::log('UPDATE', 'Otomatisasi Penjadwalan', 'Admin memperbarui pemetaan grup rolling shift per divisi');
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Pemetaan grup rolling shift divisi berhasil diperbarui!',
+                ]);
+            }
+
+            return redirect()->route('admin.automation-rules.index', ['tab' => 'tab-shift-rolling'])
+                ->with('success', 'Pemetaan grup rolling shift divisi berhasil disimpan!');
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menyimpan pemetaan divisi: ' . $th->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Terjadi kesalahan saat menyimpan pemetaan divisi: ' . $th->getMessage());
+        }
+    }
+
+    /**
+     * Tambah Grup Pasangan Rolling Shift Baru (Tab 6).
+     */
+    public function storeRollingGroup(Request $request): RedirectResponse|JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:100',
+            'shift_id_1' => 'required|integer|exists:shifts,id|different:shift_id_2',
+            'shift_id_2' => 'required|integer|exists:shifts,id',
+            'description' => 'nullable|string|max:255',
+        ], [
+            'shift_id_1.different' => 'Shift 1 dan Shift 2 tidak boleh shift yang sama.',
+            'name.required' => 'Nama grup wajib diisi.',
+            'shift_id_1.required' => 'Pilih shift pertama.',
+            'shift_id_2.required' => 'Pilih shift kedua.',
+        ]);
+
+        try {
+            $group = ShiftRollingGroup::create([
+                'name' => $validated['name'],
+                'shift_id_1' => $validated['shift_id_1'],
+                'shift_id_2' => $validated['shift_id_2'],
+                'description' => $validated['description'] ?? null,
+                'is_active' => true,
+            ]);
+
+            ActivityLogger::log('CREATE', 'Otomatisasi Penjadwalan', "Admin membuat grup rolling shift baru: {$group->name}");
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Grup rolling \"{$group->name}\" berhasil ditambahkan!",
+                    'data' => $group->load(['shift1', 'shift2']),
+                ]);
+            }
+
+            return redirect()->route('admin.automation-rules.index', ['tab' => 'tab-shift-rolling'])
+                ->with('success', "Grup rolling \"{$group->name}\" berhasil ditambahkan!");
+        } catch (\Throwable $th) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menambahkan grup: ' . $th->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Gagal menambahkan grup rolling: ' . $th->getMessage());
+        }
+    }
+
+    /**
+     * Hapus Grup Pasangan Rolling Shift (Tab 6).
+     */
+    public function deleteRollingGroup(int $id, Request $request): RedirectResponse|JsonResponse
+    {
+        try {
+            $group = ShiftRollingGroup::findOrFail($id);
+            $name = $group->name;
+            $group->delete();
+
+            ActivityLogger::log('DELETE', 'Otomatisasi Penjadwalan', "Admin menghapus grup rolling shift: {$name}");
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => "Grup rolling \"{$name}\" berhasil dihapus!",
+                ]);
+            }
+
+            return redirect()->route('admin.automation-rules.index', ['tab' => 'tab-shift-rolling'])
+                ->with('success', "Grup rolling \"{$name}\" berhasil dihapus!");
+        } catch (\Throwable $th) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus grup: ' . $th->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Gagal menghapus grup rolling: ' . $th->getMessage());
         }
     }
 
@@ -483,6 +634,7 @@ class AutomationRuleController extends Controller
                     'hybrid_group' => in_array($data['hybrid_group'] ?? 'auto', ['auto', 'A', 'B'], true) ? $data['hybrid_group'] : 'auto',
                     'locked_office_id' => $lockedOffice,
                     'blacklisted_office_id' => !empty($data['blacklisted_office_id']) ? (int) $data['blacklisted_office_id'] : null,
+                    'is_fixed_shift' => !empty($data['is_fixed_shift']),
                 ];
 
                 if (array_key_exists('start_date', $data)) {
