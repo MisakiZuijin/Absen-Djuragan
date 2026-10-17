@@ -54,14 +54,38 @@ class LogActivityController extends Controller
         // Riwayat logbook pemagang (dibatasi 50 data terbaru untuk performa)
         $logActivityHistory = LogActivity::whereHas('detailSchedule.schedule', function ($query) use ($user) {
             $query->where('intern_id', $user->intern->id);
-        })->with('status')->latest('date')->take(50)->get();
+        })->with('status')->latest('date')->latest('id')->take(50)->get();
 
-        // Cari logbook hari ini
-        $todaysLogActivity = $todaysDetailSchedule?->logActivity ?? $logActivityHistory->first(function ($log) {
-            return Carbon::parse($log->date)->isToday();
-        });
+        // Aturan Logbook Divisi
+        $division = $user->intern?->division;
+        $maxLogbookPerDay = max(1, (int)($division?->max_logbook_per_day ?? 1));
 
-        $hasFilledLogToday = !is_null($todaysLogActivity);
+        // Ambil semua logbook yang telah dibuat hari ini
+        $todaysLogActivities = collect();
+        if ($todaysDetailSchedule) {
+            $todaysLogActivities = LogActivity::with('status')
+                ->where(function ($q) use ($todaysDetailSchedule) {
+                    $q->where('detail_schedule_id', $todaysDetailSchedule->id);
+                    if (!empty($todaysDetailSchedule->log_activity_id)) {
+                        $q->orWhere('id', $todaysDetailSchedule->log_activity_id);
+                    }
+                })
+                ->orderBy('id', 'asc')
+                ->get();
+        }
+
+        // Fallback jika ada log hari ini dari riwayat
+        if ($todaysLogActivities->isEmpty()) {
+            $todayLogsFromHistory = $logActivityHistory->filter(fn($log) => Carbon::parse($log->date)->isToday());
+            if ($todayLogsFromHistory->isNotEmpty()) {
+                $todaysLogActivities = $todayLogsFromHistory->values();
+            }
+        }
+
+        $todaysFilledCount = $todaysLogActivities->count();
+        $todaysLogActivity = $todaysLogActivities->first();
+        $hasFilledLogToday = $todaysFilledCount > 0;
+        $canAddMoreToday = $todaysFilledCount < $maxLogbookPerDay;
 
         // Quotes & Tanggal
         $birth_date = $user->profile->date_of_birth ?? null;
@@ -78,7 +102,11 @@ class LogActivityController extends Controller
             'user',
             'todaysDetailSchedule',
             'todaysLogActivity',
+            'todaysLogActivities',
+            'todaysFilledCount',
+            'maxLogbookPerDay',
             'hasFilledLogToday',
+            'canAddMoreToday',
             'logActivityHistory',
             'quotes',
             'date_now',
@@ -177,12 +205,15 @@ class LogActivityController extends Controller
                     'activity' => $activityText,
                     'date' => $request->date ? Carbon::parse($request->date)->format('Y-m-d') : Carbon::today()->format('Y-m-d'),
                     'status_id' => 2,
+                    'detail_schedule_id' => $request->attd_id,
+                    'time' => Carbon::now()->format('H:i:s'),
                 ]);
 
                 if ($request->filled('attd_id')) {
-                    DetailSchedule::where('id', $request->attd_id)->update([
-                        'log_activity_id' => $log->id,
-                    ]);
+                    $ds = DetailSchedule::find($request->attd_id);
+                    if ($ds && empty($ds->log_activity_id)) {
+                        $ds->update(['log_activity_id' => $log->id]);
+                    }
                 }
 
                 \App\Helper\ActivityLogger::log('CREATE', 'Logbook', "Admin menambahkan Log Activity baru untuk tanggal {$request->date}.");

@@ -15,9 +15,11 @@ class LogActivity extends Model {
     const UPDATED_AT = null;
 
     protected $fillable = [
+        "detail_schedule_id",
         "attendance_id",
         "status_id",
         "date",
+        "time",
         "activity",
         "is_approved"
     ];
@@ -30,7 +32,11 @@ class LogActivity extends Model {
         return $this->belongsTo(Status::class, "status_id", "id");
     }
 
-    public function detailSchedule(): HasOne {
+    public function detailSchedule(): BelongsTo {
+        return $this->belongsTo(DetailSchedule::class, "detail_schedule_id");
+    }
+
+    public function legacyDetailSchedule(): HasOne {
         return $this->hasOne(DetailSchedule::class, "log_activity_id");
     }
 

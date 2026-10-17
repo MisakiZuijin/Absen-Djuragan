@@ -159,6 +159,27 @@ class InternController extends Controller
 
             DB::commit();
 
+            // Sinkronisasi data pemagang yang didaftarkan Admin ke IMS via API (non-blocking)
+            try {
+                $school = !empty($validated['school_id']) ? \App\Models\School::find($validated['school_id']) : null;
+                $division = !empty($validated['division_id']) ? \App\Models\Division::find($validated['division_id']) : null;
+                $brand = !empty($validated['brand_id']) ? \App\Models\Brand::find($validated['brand_id']) : null;
+
+                $syncData = array_merge($validated, [
+                    'effective_address' => $effectiveAddress,
+                    'home_latitude'     => $coords['lat'],
+                    'home_longitude'    => $coords['lng'],
+                    'school_name'       => $school?->name,
+                    'division_name'     => $division?->name,
+                    'brand_name'        => $brand?->name,
+                    'is_active'         => true,
+                    'status'            => 'active',
+                ]);
+                \App\Services\InternSystemSyncService::syncRegistration($syncData, $school?->name);
+            } catch (\Throwable $syncErr) {
+                Log::warning('Sinkronisasi store intern ke Intern System gagal (non-blocking): ' . $syncErr->getMessage());
+            }
+
             \App\Helper\ActivityLogger::log('CREATE', 'User Management', "Admin mendaftarkan pemagang baru: {$validated['full_name']} ({$validated['username']})");
 
             return redirect()->route('admin.division.team', ['divisionId' => $validated['division_id']])

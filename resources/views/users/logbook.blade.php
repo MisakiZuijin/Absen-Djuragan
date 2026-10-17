@@ -22,6 +22,10 @@
                 </svg>
                 <span>Divisi: {{ $user->intern->division->name ?? 'Umum' }}</span>
             </span>
+            <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap shrink-0">
+                <i class="fa-solid fa-repeat text-blue-600 text-xs"></i>
+                <span>Batas: {{ $maxLogbookPerDay ?? 1 }}x / Hari</span>
+            </span>
             @if($user->intern?->school)
             <span class="inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-700 border border-slate-200 whitespace-nowrap shrink-0">
                 <svg class="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,10 +127,10 @@
             <div id="content-tab-today" class="logbook-tab-content space-y-6">
 
                 <!-- Date & Status Info Card -->
-                <div class="p-4 rounded-xl border {{ $hasFilledLogToday ? 'bg-emerald-50 border-emerald-200' : 'bg-blue-50 border-blue-200' }} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                <div class="p-4 rounded-xl border {{ $todaysFilledCount >= ($maxLogbookPerDay ?? 1) ? 'bg-emerald-50 border-emerald-200' : ($todaysFilledCount > 0 ? 'bg-blue-50 border-blue-200' : 'bg-slate-50 border-slate-200') }} flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-lg {{ $hasFilledLogToday ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600' }} flex items-center justify-center text-lg flex-shrink-0">
-                            <i class="fa-regular {{ $hasFilledLogToday ? 'fa-circle-check' : 'fa-calendar' }}"></i>
+                        <div class="w-10 h-10 rounded-lg {{ $todaysFilledCount >= ($maxLogbookPerDay ?? 1) ? 'bg-emerald-100 text-emerald-600' : ($todaysFilledCount > 0 ? 'bg-blue-100 text-blue-600' : 'bg-slate-200 text-slate-600') }} flex items-center justify-center text-lg flex-shrink-0">
+                            <i class="fa-regular {{ $todaysFilledCount >= ($maxLogbookPerDay ?? 1) ? 'fa-circle-check' : 'fa-calendar' }}"></i>
                         </div>
                         <div>
                             <div class="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tanggal Laporan</div>
@@ -136,72 +140,114 @@
                         </div>
                     </div>
 
-                    <div>
-                        @if($hasFilledLogToday)
-                        @php
-                        $todayStatusId = $todaysLogActivity->status_id ?? 1;
-                        $todayStatusName = $todaysLogActivity->status->name ?? 'Menunggu';
-                        @endphp
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold {{ $todayStatusId == 2 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : ($todayStatusId == 3 ? 'bg-rose-100 text-rose-800 border border-rose-300' : 'bg-amber-100 text-amber-800 border border-amber-300') }}">
-                            <span class="w-2 h-2 rounded-full {{ $todayStatusId == 2 ? 'bg-emerald-500' : ($todayStatusId == 3 ? 'bg-rose-500' : 'bg-amber-500 animate-pulse') }}"></span>
-                            <span>Status: {{ $todayStatusName }}</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Progress Pengisian Badge -->
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold {{ $todaysFilledCount >= ($maxLogbookPerDay ?? 1) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : ($todaysFilledCount > 0 ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-amber-100 text-amber-800 border border-amber-300') }}">
+                            <span class="w-2 h-2 rounded-full {{ $todaysFilledCount >= ($maxLogbookPerDay ?? 1) ? 'bg-emerald-500' : ($todaysFilledCount > 0 ? 'bg-blue-500' : 'bg-amber-500 animate-pulse') }}"></span>
+                            <span>{{ $todaysFilledCount }} dari {{ $maxLogbookPerDay ?? 1 }} Terisi</span>
                         </div>
-                        @else
-                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300">
-                            <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                            <span>Belum Disimpan</span>
-                        </div>
-                        @endif
                     </div>
                 </div>
 
-                @if($hasFilledLogToday)
-                <!-- TAMPILAN JIKA SUDAH MENGISI LOGBOOK HARI INI -->
+                @if($todaysFilledCount > 0)
+                <!-- DAFTAR LOGBOOK YANG SUDAH DIISI HARI INI -->
                 <div class="space-y-4">
-                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
-                        <span>Logbook hari ini sudah disimpan.</span>
-                    </div>
-
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <span class="block font-bold text-gray-700 text-xs sm:text-sm flex items-center gap-1.5">
+                    <div class="flex items-center justify-between">
+                        <span class="block font-bold text-gray-800 text-xs sm:text-sm flex items-center gap-2">
                             <i class="fa-solid fa-list-check text-blue-600"></i>
-                            <span>Aktivitas yang Telah Dilaporkan:</span>
+                            <span>Logbook yang Telah Disimpan Hari Ini ({{ $todaysFilledCount }} dari {{ $maxLogbookPerDay ?? 1 }}):</span>
                         </span>
-                        @if(($todaysLogActivity->status_id ?? 1) != 2)
-                        <button type="button" onclick="toggleTodayEditMode()" id="btn-toggle-today-edit" class="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center justify-center gap-1 border border-blue-300 hover:border-blue-500 px-3 py-1.5 rounded-lg transition bg-blue-50/50 w-full sm:w-auto">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                            <span id="text-toggle-today-edit">Edit Laporan</span>
-                        </button>
-                        @endif
                     </div>
 
-                    <!-- Read-only view -->
-                    <div id="today-readonly-view" class="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5 text-gray-800 text-xs sm:text-sm whitespace-pre-line leading-relaxed min-h-[100px] sm:min-h-[120px] shadow-inner">
-                        {!! nl2br(e($todaysLogActivity->activity ?? '')) !!}
+                    <div class="space-y-3">
+                        @foreach($todaysLogActivities as $idx => $tLog)
+                        @php
+                            $tStatusId = $tLog->status_id ?? 1;
+                            $tStatusName = $tLog->status->name ?? 'Menunggu';
+                            $tBadgeClass = $tStatusId == 2 ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : ($tStatusId == 3 ? 'bg-rose-100 text-rose-800 border-rose-300' : 'bg-amber-100 text-amber-800 border-amber-300');
+                        @endphp
+                        <div class="bg-gray-50/70 border border-gray-200 rounded-xl p-4 sm:p-5 space-y-3 shadow-2xs">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-gray-200">
+                                <div class="flex items-center gap-2">
+                                    <span class="w-6 h-6 rounded-lg bg-blue-100 text-blue-700 font-bold text-xs flex items-center justify-center border border-blue-200">
+                                        #{{ $idx + 1 }}
+                                    </span>
+                                    <span class="font-bold text-xs sm:text-sm text-gray-800">
+                                        Laporan Ke-{{ $idx + 1 }}
+                                    </span>
+                                    @if(!empty($tLog->time))
+                                    <span class="text-xs text-gray-500 font-medium inline-flex items-center gap-1">
+                                        <i class="fa-regular fa-clock text-gray-400"></i> Diisi Pukul {{ substr($tLog->time, 0, 5) }} WIB
+                                    </span>
+                                    @endif
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border {{ $tBadgeClass }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $tStatusId == 2 ? 'bg-emerald-500' : ($tStatusId == 3 ? 'bg-rose-500' : 'bg-amber-500 animate-pulse') }}"></span>
+                                        <span>{{ $tStatusName }}</span>
+                                    </span>
+
+                                    @if($tStatusId != 2)
+                                    <button type="button" onclick="openInlineEditLog(this)"
+                                        data-id="{{ $tLog->id }}"
+                                        data-activity="{{ $tLog->activity }}"
+                                        class="text-xs text-white bg-blue-600 hover:bg-blue-700 font-semibold flex items-center gap-1 px-2.5 py-1 rounded-lg transition cursor-pointer shadow-2xs">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                        <span>Edit</span>
+                                    </button>
+                                    @else
+                                    <span class="text-emerald-600 text-xs font-semibold flex items-center gap-1">
+                                        <i class="fa-solid fa-lock text-[10px]"></i> Terkunci
+                                    </span>
+                                    @endif
+                                </div>
+                            </div>
+
+                            <div class="text-gray-800 text-xs sm:text-sm whitespace-pre-line leading-relaxed">
+                                {!! nl2br(e($tLog->activity ?? '')) !!}
+                            </div>
+                        </div>
+                        @endforeach
                     </div>
 
-                    @if(($todaysLogActivity->status_id ?? 1) != 2)
-                    <!-- Form Edit Mode (hidden by default) -->
-                    <form id="today-edit-form" action="{{ route('home.logActivity.update.action') }}" method="POST" class="hidden space-y-3">
-                        @csrf
-                        <input type="hidden" name="id" value="{{ $todaysLogActivity->id }}">
-                        <div>
-                            <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition"
-                                id="today_edit_activity" name="activity" required>{{ $todaysLogActivity->activity ?? '' }}</textarea>
-                            <p class="text-xs text-gray-500 mt-1">Dapat diedit sebelum disetujui pembimbing.</p>
+                    @if($canAddMoreToday)
+                    <!-- FORM TAMBAH LAPORAN KE-N -->
+                    <div class="border-t border-gray-200 pt-5 space-y-4">
+                        <div class="p-3 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 flex items-center gap-2">
+                            <i class="fa-solid fa-circle-plus text-blue-600 shrink-0"></i>
+                            <span><strong>Pengisian Laporan Tambahan:</strong> Anda masih dapat mengisi laporan ke-{{ $todaysFilledCount + 1 }} dari total {{ $maxLogbookPerDay ?? 1 }} kali hari ini.</span>
                         </div>
-                        <div class="flex flex-col-reverse sm:flex-row justify-end gap-2">
-                            <button type="button" onclick="toggleTodayEditMode()" class="w-full sm:w-auto px-4 py-2 border border-gray-300 rounded-lg text-xs sm:text-sm text-gray-700 hover:bg-gray-100 transition text-center">Batal</button>
-                            <button type="submit" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg text-xs sm:text-sm transition flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-check"></i> Simpan Perubahan
-                            </button>
-                        </div>
-                    </form>
+
+                        <form id="activity-form-additional" action="{{ route('home.logActivity.action') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <input type="hidden" name="user_id" value="{{ $user->id }}">
+                            <div>
+                                <label class="block font-bold text-gray-700 text-xs sm:text-sm mb-1.5 flex items-center justify-between" for="activity_additional">
+                                    <span>Rincian Aktivitas (Laporan Ke-{{ $todaysFilledCount + 1 }}) <span class="text-red-500">*</span></span>
+                                    <span class="text-xs font-normal text-gray-400" id="char-count-additional">0 karakter</span>
+                                </label>
+                                <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed activity-textarea"
+                                    id="activity_additional" name="activity"
+                                    placeholder="Contoh:&#10;1. Mengerjakan tugas tambahan berikutnya&#10;2. Melakukan evaluasi progres harian" required></textarea>
+                                <div id="activity-error-additional" class="text-red-500 text-xs mt-1.5 hidden"></div>
+                            </div>
+
+                            <div class="flex justify-end pt-2 border-t border-gray-100">
+                                <button type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm cursor-pointer">
+                                    <i class="fa-regular fa-paper-plane"></i>
+                                    <span>Simpan Laporan Ke-{{ $todaysFilledCount + 1 }}</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                     @else
-                    <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
-                        <span>Logbook hari ini sudah disetujui dan terkunci.</span>
+                    <!-- SUDAH MENCAPAI BATAS HARI INI -->
+                    <div class="p-4 bg-emerald-50 rounded-xl border border-emerald-200 text-xs text-emerald-900 flex items-center gap-3">
+                        <i class="fa-solid fa-circle-check text-emerald-600 text-xl shrink-0"></i>
+                        <div>
+                            <div class="font-bold text-xs sm:text-sm">Batas Pengisian Hari Ini Telah Lengkap</div>
+                            <p class="text-emerald-800 mt-0.5">Anda telah melengkapi seluruh kuota pengisian logbook untuk hari ini ({{ $todaysFilledCount }} dari {{ $maxLogbookPerDay ?? 1 }} kali). Terima kasih atas kedisiplinan Anda!</p>
+                        </div>
                     </div>
                     @endif
 
@@ -217,10 +263,10 @@
                 </div>
 
                 @else
-                <!-- FORM INPUT JIKA BELUM MENGISI HARI INI -->
+                <!-- FORM INPUT JIKA BELUM PERNAH MENGISI HARI INI -->
                 <div class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
                     <i class="fa-solid fa-triangle-exclamation text-amber-600 shrink-0"></i>
-                    <span><strong>Perhatian:</strong> Isi logbook sebelum presensi pulang.</span>
+                    <span><strong>Perhatian:</strong> Isi logbook sebelum presensi pulang (Batas divisi: {{ $maxLogbookPerDay ?? 1 }}x / hari).</span>
                 </div>
 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 text-xs text-gray-500 pt-1 pb-1">
@@ -235,17 +281,17 @@
                     <input type="hidden" name="user_id" value="{{ $user->id }}">
                     <div>
                         <label class="block font-bold text-gray-700 text-xs sm:text-sm mb-1.5 flex items-center justify-between" for="activity">
-                            <span>Rincian Aktivitas Hari Ini <span class="text-red-500">*</span></span>
+                            <span>Rincian Aktivitas Hari Ini (Laporan Ke-1) <span class="text-red-500">*</span></span>
                             <span class="text-xs font-normal text-gray-400" id="char-count">0 karakter</span>
                         </label>
-                        <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-44 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed"
+                        <textarea class="border border-gray-300 rounded-xl p-3.5 sm:p-4 w-full h-44 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs sm:text-sm transition leading-relaxed activity-textarea"
                             id="activity" name="activity"
                             placeholder="Contoh:&#10;1. Mengerjakan implementasi integrasi API&#10;2. Melakukan code review dan perbaikan logic tugas&#10;3. Menyelesaikan testing dan dokumentasi progress harian" required></textarea>
                         <div id="activity-error" class="text-red-500 text-xs mt-1.5 hidden"></div>
                     </div>
 
                     <div class="flex justify-end pt-2 border-t border-gray-100">
-                        <button id="submit-button" type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm">
+                        <button id="submit-button" type="submit" class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold text-xs sm:text-sm hover:bg-blue-700 transition flex items-center justify-center gap-2 shadow-sm cursor-pointer">
                             <i class="fa-regular fa-paper-plane"></i>
                             <span>Simpan Laporan Hari Ini</span>
                         </button>
@@ -302,7 +348,14 @@
                                 <td class="py-3.5 px-4 text-center text-xs text-gray-400 font-medium row-number">{{ $index + 1 }}</td>
                                 <td class="py-3.5 px-4 whitespace-nowrap text-xs">
                                     <div class="font-semibold text-gray-800">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('D MMMM Y') }}</div>
-                                    <div class="text-xs text-gray-500">{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('dddd') }}</div>
+                                    <div class="text-xs text-gray-500 flex items-center gap-1.5 mt-0.5">
+                                        <span>{{ \Carbon\Carbon::parse($history->date)->locale('id')->isoFormat('dddd') }}</span>
+                                        @if(!empty($history->time))
+                                        <span class="inline-flex items-center gap-0.5 text-gray-400">
+                                            <i class="fa-regular fa-clock text-[10px]"></i> {{ substr($history->time, 0, 5) }} WIB
+                                        </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="py-3.5 px-4 max-w-xs md:max-w-md">
                                     <p class="text-xs text-gray-700 whitespace-pre-line line-clamp-3 hover:line-clamp-none transition leading-relaxed">
@@ -596,6 +649,11 @@
             $('#char-count').text(`${count} karakter`);
         });
 
+        $('#activity_additional').on('input', function() {
+            const count = $(this).val().length;
+            $('#char-count-additional').text(`${count} karakter`);
+        });
+
         // Form submission validation
         $('#activity-form').on('submit', function(e) {
             const activityInput = $('#activity').val().trim();
@@ -616,9 +674,39 @@
             errorDiv.addClass('hidden');
         });
 
+        $('#activity-form-additional').on('submit', function(e) {
+            const activityInput = $('#activity_additional').val().trim();
+            const errorDiv = $('#activity-error-additional');
+
+            if (!activityInput) {
+                errorDiv.text('Keterangan aktivitas tidak boleh kosong.').removeClass('hidden');
+                e.preventDefault();
+                return;
+            }
+
+            if (!validateActivityInput(activityInput)) {
+                errorDiv.text('Input mengandung karakter yang tidak diizinkan. Hanya huruf, angka, dan tanda baca standar yang diperbolehkan.').removeClass('hidden');
+                e.preventDefault();
+                return;
+            }
+
+            errorDiv.addClass('hidden');
+        });
+
         // Realtime validation
         $('#activity').on('input', function() {
             const errorDiv = $('#activity-error');
+            const input = $(this).val();
+
+            if (!validateActivityInput(input)) {
+                errorDiv.text('Input mengandung karakter yang tidak diizinkan. Hanya huruf, angka, dan tanda baca standar yang diperbolehkan.').removeClass('hidden');
+            } else {
+                errorDiv.addClass('hidden');
+            }
+        });
+
+        $('#activity_additional').on('input', function() {
+            const errorDiv = $('#activity-error-additional');
             const input = $(this).val();
 
             if (!validateActivityInput(input)) {

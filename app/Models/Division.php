@@ -20,6 +20,13 @@ class Division extends Model
         "description",
         "meet_url",
         "shift_rolling_group_id",
+        "max_logbook_per_day",
+        "logbook_start_time",
+        "logbook_end_time",
+    ];
+
+    protected $casts = [
+        'max_logbook_per_day' => 'integer',
     ];
 
     public function rollingGroup(): BelongsTo

@@ -153,6 +153,8 @@ class UserService
                     'effective_address' => $effectiveAddress,
                     'home_latitude'     => $homeLat,
                     'home_longitude'    => $homeLng,
+                    'is_active'         => (bool) ($userResult['is_active'] ?? false),
+                    'status'            => (!empty($userResult['is_active'])) ? 'active' : 'accepted',
                 ]);
                 \App\Services\InternSystemSyncService::syncRegistration($syncData);
             } catch (\Throwable $syncErr) {

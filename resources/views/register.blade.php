@@ -11,6 +11,134 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        /* Select2 Custom Tailwind Styling for Register Page */
+        .select2-container {
+            width: 100% !important;
+            display: block !important;
+        }
+        .select2-container--default .select2-selection--single {
+            height: 42px !important;
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 0 10px !important;
+            display: flex !important;
+            align-items: center !important;
+            background-color: #ffffff !important;
+            font-size: 0.875rem !important;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #374151 !important;
+            line-height: 40px !important;
+            padding-left: 2px !important;
+            padding-right: 24px !important;
+            font-size: 0.875rem !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__placeholder {
+            color: #9ca3af !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 8px !important;
+        }
+        .select2-container--default.select2-container--open .select2-selection--single,
+        .select2-container--default.select2-container--focus .select2-selection--single {
+            border-color: #6b7280 !important;
+            box-shadow: 0 0 0 1px #6b7280 !important;
+            outline: none !important;
+        }
+        select.border-rose-500 + .select2-container .select2-selection--single {
+            border-color: #f43f5e !important;
+        }
+        .select2-dropdown {
+            border: 1px solid #e5e7eb !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+            font-size: 0.875rem !important;
+            z-index: 99999 !important;
+            overflow: hidden !important;
+            margin-top: 4px !important;
+            background-color: #ffffff !important;
+        }
+        .select2-search--dropdown {
+            padding: 8px 10px !important;
+            background-color: #f9fafb !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+            position: relative !important;
+        }
+        .select2-search--dropdown .select2-search__field {
+            border: 1px solid #d1d5db !important;
+            border-radius: 0.375rem !important;
+            padding: 7px 10px 7px 30px !important;
+            font-size: 16px !important; /* Mencegah auto-zoom di iOS Safari */
+            outline: none !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            background-color: #ffffff !important;
+        }
+        .select2-search--dropdown::before {
+            content: "\f002";
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            color: #9ca3af;
+            pointer-events: none;
+            z-index: 10;
+        }
+        .select2-search--dropdown .select2-search__field:focus {
+            border-color: #6b7280 !important;
+            box-shadow: 0 0 0 1px #6b7280 !important;
+        }
+        .select2-results__options {
+            max-height: 240px !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+        .select2-results__option {
+            padding: 9px 12px !important;
+            font-size: 0.875rem !important;
+            color: #374151 !important;
+            cursor: pointer !important;
+            touch-action: pan-y !important;
+            -webkit-tap-highlight-color: rgba(0, 0, 0, 0.05) !important;
+            min-height: 38px !important;
+            display: flex !important;
+            align-items: center !important;
+            border-bottom: 1px solid #f8fafc !important;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #111827 !important;
+            color: #ffffff !important;
+        }
+        .select2-container--default .select2-results__option[aria-selected=true] {
+            background-color: #f3f4f6 !important;
+            color: #111827 !important;
+            font-weight: 600 !important;
+        }
+
+        /* Mode Mobile Touch Optimization */
+        @media (max-width: 767px) {
+            .select2-container {
+                width: 100% !important;
+            }
+            .select2-dropdown {
+                width: 100% !important;
+            }
+            .select2-results__option {
+                padding: 12px 14px !important;
+                font-size: 0.875rem !important;
+                min-height: 44px !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="h-screen bg-gray-100">
@@ -274,9 +402,9 @@
                             Asal Sekolah/Kampus <span class="text-red-500">*</span>
                         </label>
                         <select
-                            class="shadow border @error('school_origin_id') border-rose-500 @else border-gray-300 @enderror rounded w-full py-2 px-2 text-gray-700 leading-tight focus:outline-none focus:ring-1 focus:ring-gray-500 select2"
-                            id="school" name="school_origin_id">
-                            <option value="" disabled selected>--Pilih asal sekolah/kampus--</option>
+                            class="shadow border @error('school_origin_id') border-rose-500 focus:ring-rose-500 @else border-gray-300 focus:ring-gray-500 @enderror rounded w-full py-2.5 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-1 select2 bg-white text-sm"
+                            id="school" name="school_origin_id" required>
+                            <option value="" disabled {{ old('school_origin_id') ? '' : 'selected' }}>--Pilih asal sekolah/kampus--</option>
                             @foreach ($schoolList as $school)
                             <option value="{{ $school->id }}"
                                 {{ old('school_origin_id') == $school->id ? 'selected' : '' }}>
@@ -285,8 +413,9 @@
                             @endforeach
                         </select>
                         @error('school_origin_id')
-                            <p class="text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
+                            <p class="server-error text-xs text-rose-600 mt-1 font-medium"><i class="fa-solid fa-circle-exclamation mr-1"></i>{{ $message }}</p>
                         @enderror
+                        <p id="school_error_msg" class="text-xs text-rose-600 mt-1 font-medium hidden"></p>
                     </div>
 
                     <!-- Password and Konfirmasi Password - 2 Grid Layout for Desktop, 1 Grid Layout for Mobile -->
@@ -347,7 +476,78 @@
     <script src="{{ asset('js/index/register.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            $('.select2').select2();
+            const $school = $('#school');
+
+            // Inisialisasi Select2 Searchable Dropdown untuk Semua Layar (Mobile & Desktop)
+            if ($school.length) {
+                $school.select2({
+                    width: '100%',
+                    placeholder: '--Pilih asal sekolah/kampus--',
+                    allowClear: false,
+                    language: {
+                        noResults: function() {
+                            return 'Tidak ada sekolah/kampus ditemukan';
+                        }
+                    }
+                });
+            }
+
+            // Atur placeholder pencarian dan fokus otomatis (hanya di desktop non-touch)
+            $(document).on('select2:open', function() {
+                const isTouch = ('ontouchstart' in window) || (window.innerWidth < 768) || (navigator.maxTouchPoints > 0);
+                const searchInput = document.querySelector('.select2-container--open .select2-search__field');
+                if (searchInput) {
+                    searchInput.setAttribute('placeholder', 'Ketik nama sekolah atau kampus...');
+                    if (!isTouch) {
+                        setTimeout(() => { searchInput.focus(); }, 50);
+                    }
+                }
+            });
+
+            // FIX BUG SENTUHAN DI MODE MOBILE (iOS & Android):
+            // Di perangkat sentuh, blur keyboard virtual sering membatalkan klik opsi.
+            // Handler ini mendeteksi ketukan (tap) presisi pada opsi dan langsung memilihnya tanpa tertutup prematur.
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let isScrollingResults = false;
+
+            $(document).on('touchstart', '.select2-results__options', function(e) {
+                const touch = e.originalEvent.touches ? e.originalEvent.touches[0] : e;
+                touchStartY = touch.clientY;
+                touchStartX = touch.clientX;
+                isScrollingResults = false;
+            });
+
+            $(document).on('touchmove', '.select2-results__options', function(e) {
+                const touch = e.originalEvent.touches ? e.originalEvent.touches[0] : e;
+                if (Math.abs(touch.clientY - touchStartY) > 8 || Math.abs(touch.clientX - touchStartX) > 8) {
+                    isScrollingResults = true; // Pengguna sedang menggeser daftar (scroll), bukan mengetuk
+                }
+            });
+
+            $(document).on('touchend', '.select2-results__option', function(e) {
+                if (isScrollingResults) {
+                    return; // Abaikan saat selesai scroll
+                }
+
+                const $option = $(this);
+                if ($option.hasClass('select2-results__option--load-more') || $option.attr('aria-disabled') === 'true') {
+                    return;
+                }
+
+                const data = $option.data('data');
+                if (data && data.id !== undefined && data.id !== '') {
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    $school.val(data.id).trigger('change');
+                    $school.trigger({
+                        type: 'select2:select',
+                        params: { data: data }
+                    });
+                    $school.select2('close');
+                }
+            });
 
             // Helper untuk menampilkan error inline dan border merah tanpa menghapus input
             function setFieldError(inputEl, errorEl, message) {
@@ -538,6 +738,33 @@
                 });
             }
 
+            // Validasi Input Sekolah / Kampus
+            const schoolInput = document.getElementById('school');
+            const schoolError = document.getElementById('school_error_msg');
+
+            function validateSchool(showRequired = false) {
+                if (!schoolInput) return true;
+                const val = schoolInput.value;
+                if (!val) {
+                    if (showRequired) {
+                        setFieldError(schoolInput, schoolError, 'Asal sekolah/kampus wajib dipilih.');
+                        return false;
+                    }
+                    return true;
+                }
+                clearFieldError(schoolInput, schoolError);
+                return true;
+            }
+
+            if (schoolInput) {
+                schoolInput.addEventListener('change', function() {
+                    validateSchool(false);
+                });
+                $('#school').on('select2:select', function() {
+                    validateSchool(false);
+                });
+            }
+
             // Validasi saat form di-submit
             const regForm = document.getElementById('registerForm');
             if (regForm) {
@@ -545,8 +772,9 @@
                     const isEmailValid = validateEmail(true);
                     const isPhoneValid = validatePhone(true);
                     const isAddressValid = updateAddressCounter();
+                    const isSchoolValid = validateSchool(true);
 
-                    if (!isEmailValid || !isPhoneValid || !isAddressValid) {
+                    if (!isEmailValid || !isPhoneValid || !isAddressValid || !isSchoolValid) {
                         e.preventDefault();
 
                         // Fokuskan ke input yang pertama kali error tanpa menghapus input apapun
@@ -556,6 +784,12 @@
                             phoneInput.focus();
                         } else if (!isAddressValid && addressInput) {
                             addressInput.focus();
+                        } else if (!isSchoolValid && schoolInput) {
+                            if (window.innerWidth >= 768 && $('#school').data('select2')) {
+                                $('#school').select2('open');
+                            } else {
+                                schoolInput.focus();
+                            }
                         }
                     }
                 });

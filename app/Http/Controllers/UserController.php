@@ -348,8 +348,8 @@ class UserController extends Controller
         }
 
         // Logbook Harian data
-        $hasFilledLogToday = !empty($todaysDetailSchedule?->log_activity_id);
-        $todaysLogActivity = $hasFilledLogToday ? $todaysDetailSchedule?->logActivity : null;
+        $hasFilledLogToday = !empty($todaysDetailSchedule?->log_activity_id) || ($todaysDetailSchedule && \App\Models\LogActivity::where('detail_schedule_id', $todaysDetailSchedule->id)->exists());
+        $todaysLogActivity = $hasFilledLogToday ? ($todaysDetailSchedule?->logActivity ?? \App\Models\LogActivity::where('detail_schedule_id', $todaysDetailSchedule->id)->first()) : null;
         $logActivityHistory = collect();
 
         $activeTasksCount = $user->getActiveTasksCount();

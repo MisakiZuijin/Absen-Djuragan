@@ -418,15 +418,15 @@
     </div>
 
     <!-- Modal Log Activity -->
-    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-2xs hidden z-50 p-4">
-        <div class="bg-white p-5 sm:p-6 rounded-2xl w-full max-w-lg shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+    <div id="modal" class="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-2xs hidden z-50 p-4">
+        <div class="bg-white p-5 sm:p-6 rounded-2xl w-full max-w-xl shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col overflow-hidden">
             <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4 shrink-0">
                 <div class="flex items-center gap-2.5">
                     <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold">
                         <i class="fa-regular fa-file-lines"></i>
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-gray-800">Log Activity</h2>
+                        <h2 class="text-base font-bold text-gray-800">Catatan Log Activity</h2>
                         <p class="text-xs text-gray-500">Tanggal: <span id="log-activity-date-text" class="font-semibold text-gray-700">---</span></p>
                     </div>
                 </div>
@@ -434,31 +434,35 @@
                     <i class="fas fa-times text-base"></i>
                 </button>
             </div>
-            <form id="log-activity-form" action="" method="POST" class="flex-1 flex flex-col overflow-y-auto">
-                @csrf
-                <!-- Textarea -->
-                <div class="mb-4 flex-1">
-                    <input type="hidden" id="attdId" name="attd_id" />
-                    <input type="hidden" id="activity-date" name="date" />
-                    <label for="log-activity" class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Isi Aktivitas Harian</label>
-                    <textarea id="log-activity" name="activity" required
-                        placeholder="Tuliskan aktivitas atau kegiatan pemagang di sini..."
-                        class="p-3 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm leading-relaxed"
-                        rows="5"></textarea>
-                </div>
+            
+            <!-- Dynamic Content for 1 or Multiple Logbooks -->
+            <div id="detail-log-modal-content" class="flex-1 space-y-4 overflow-y-auto max-h-[calc(90vh-140px)] pr-1">
+                <form id="log-activity-form" action="" method="POST" class="flex-1 flex flex-col">
+                    @csrf
+                    <!-- Textarea -->
+                    <div class="mb-4 flex-1">
+                        <input type="hidden" id="attdId" name="attd_id" />
+                        <input type="hidden" id="activity-date" name="date" />
+                        <label for="log-activity" class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">Isi Aktivitas Harian</label>
+                        <textarea id="log-activity" name="activity" required
+                            placeholder="Tuliskan aktivitas atau kegiatan pemagang di sini..."
+                            class="p-3 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm leading-relaxed"
+                            rows="5"></textarea>
+                    </div>
 
-                <!-- Tombol -->
-                <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 shrink-0">
-                    <button type="button" onclick="closeModalActivity()"
-                        class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors cursor-pointer text-xs">
-                        Batal
-                    </button>
-                    <button type="submit" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-xs transition-colors cursor-pointer text-xs flex items-center gap-1.5">
-                        <i class="fa-solid fa-floppy-disk text-xs"></i>
-                        <span>Simpan Log</span>
-                    </button>
-                </div>
-            </form>
+                    <!-- Tombol -->
+                    <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 shrink-0">
+                        <button type="button" onclick="closeModalActivity()"
+                            class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors cursor-pointer text-xs">
+                            Batal
+                        </button>
+                        <button type="submit" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-xs transition-colors cursor-pointer text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-floppy-disk text-xs"></i>
+                            <span>Simpan Log</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 
@@ -651,33 +655,155 @@
             }
         });
 
+        // Fungsi escape HTML sederhana
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;',
+                '`': '&#96;',
+                '%': '&#37;'
+            };
+            return String(text).replace(/[&<>"'`%]/g, function (m) { return map[m]; });
+        }
+
         function openModalActivity(btnOrActivity, id, attdId, date) {
             const modal = document.getElementById('modal');
+            const container = document.getElementById('detail-log-modal-content');
+            const dateTextEl = document.getElementById('log-activity-date-text');
 
-            const textarea = document.getElementById('log-activity');
-            const form = document.getElementById('log-activity-form');
-            const attd_id = document.getElementById('attdId');
-            const activityDate = document.getElementById('activity-date');
+            if (dateTextEl) {
+                dateTextEl.textContent = date || '---';
+            }
 
-            let rawActivity = '';
-            if (typeof btnOrActivity === 'string') {
-                rawActivity = (btnOrActivity === 'Belum membuat Log Activity') ? '' : btnOrActivity;
-            } else if (btnOrActivity && btnOrActivity.getAttribute) {
+            let logs = [];
+            if (btnOrActivity && btnOrActivity.getAttribute) {
                 try {
-                    rawActivity = decodeURIComponent(btnOrActivity.getAttribute('data-activity') || '');
+                    const rawLogs = btnOrActivity.getAttribute('data-logs');
+                    if (rawLogs) {
+                        logs = JSON.parse(decodeURIComponent(rawLogs));
+                    }
                 } catch (e) {
-                    rawActivity = btnOrActivity.getAttribute('data-activity') || '';
+                    console.error('Error parsing data-logs:', e);
                 }
             }
 
-            form.action = `/admin/log-activity/update-isi/${id || 'kosong'}`;
-            attd_id.value = attdId;
-            textarea.value = rawActivity;
-            activityDate.value = date;
+            // Fallback jika tidak ada data-logs tapi ada activity string / dataset lama
+            if (!Array.isArray(logs) || logs.length === 0) {
+                let rawActivity = '';
+                if (typeof btnOrActivity === 'string') {
+                    rawActivity = (btnOrActivity === 'Belum membuat Log Activity') ? '' : btnOrActivity;
+                } else if (btnOrActivity && btnOrActivity.getAttribute) {
+                    try {
+                        rawActivity = decodeURIComponent(btnOrActivity.getAttribute('data-activity') || '');
+                    } catch (e) {
+                        rawActivity = btnOrActivity.getAttribute('data-activity') || '';
+                    }
+                }
+                if (rawActivity) {
+                    logs = [{ id: id, activity: rawActivity, status_id: 1, time: null }];
+                }
+            }
 
-            const dateTextEl = document.getElementById('log-activity-date-text');
-            if (dateTextEl) {
-                dateTextEl.textContent = date || '---';
+            const csrf = $('meta[name="csrf-token"]').attr('content') || '{{ csrf_token() }}';
+
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="mb-3 p-3.5 bg-amber-50 rounded-xl border border-amber-200 text-xs text-amber-800 flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-600 shrink-0"></i>
+                        <span>Pemagang belum mengisi logbook pada tanggal ini. Anda dapat menambahkan catatan manual di bawah:</span>
+                    </div>
+                    <form id="log-activity-form" action="/admin/log-activity/update-isi/kosong" method="POST" class="space-y-3">
+                        <input type="hidden" name="_token" value="${csrf}">
+                        <input type="hidden" name="attd_id" value="${attdId}">
+                        <input type="hidden" name="date" value="${date}">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">Isi Aktivitas Harian</label>
+                            <textarea name="activity" required placeholder="Tuliskan aktivitas atau kegiatan pemagang di sini..."
+                                class="p-3 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm leading-relaxed"
+                                rows="5"></textarea>
+                        </div>
+                        <div class="flex justify-end gap-2 pt-2 border-t border-gray-100">
+                            <button type="button" onclick="closeModalActivity()" class="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition text-xs">
+                                Batal
+                            </button>
+                            <button type="submit" class="px-5 py-2 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 shadow-xs transition text-xs flex items-center gap-1.5 cursor-pointer">
+                                <i class="fa-solid fa-floppy-disk text-xs"></i>
+                                <span>Simpan Log Baru</span>
+                            </button>
+                        </div>
+                    </form>
+                `;
+            } else {
+                let html = '';
+                logs.forEach((log, idx) => {
+                    const timeStr = log.time 
+                        ? `<span class="inline-flex items-center gap-1 text-[11px] text-gray-600 font-mono bg-white px-2 py-0.5 rounded-md border border-gray-200"><i class="fa-regular fa-clock text-[10px] text-blue-600"></i> ${log.time.substring(0, 5)} WIB</span>` 
+                        : '';
+                    
+                    let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Menunggu</span>`;
+                    if (log.status_id == 2) {
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check text-[9px] mr-0.5"></i> Disetujui</span>`;
+                    } else if (log.status_id == 3) {
+                        statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark text-[9px] mr-0.5"></i> Ditolak</span>`;
+                    }
+
+                    let actionButtons = '';
+                    if (log.id && log.id !== 'kosong') {
+                        actionButtons = `
+                            <div class="flex items-center gap-1.5">
+                                <form action="/admin/log-activity/update-status/${log.id}" method="POST" class="inline m-0">
+                                    <input type="hidden" name="_token" value="${csrf}">
+                                    <input type="hidden" name="status" value="2">
+                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition cursor-pointer ${log.status_id == 2 ? 'ring-2 ring-emerald-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Setujui Logbook">
+                                        <i class="fa-solid fa-check text-[10px]"></i> <span>Setuju</span>
+                                    </button>
+                                </form>
+                                <form action="/admin/log-activity/update-status/${log.id}" method="POST" class="inline m-0">
+                                    <input type="hidden" name="_token" value="${csrf}">
+                                    <input type="hidden" name="status" value="3">
+                                    <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition cursor-pointer ${log.status_id == 3 ? 'ring-2 ring-rose-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Tolak Logbook">
+                                        <i class="fa-solid fa-xmark text-[10px]"></i> <span>Tidak</span>
+                                    </button>
+                                </form>
+                            </div>
+                        `;
+                    }
+
+                    const title = logs.length > 1 ? `Logbook Ke-${idx + 1}` : 'Laporan Logbook';
+                    const targetLogId = (log.id && log.id !== 'kosong') ? log.id : (id || 'kosong');
+
+                    html += `
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-2xs overflow-hidden mb-3">
+                            <div class="px-4 py-2.5 bg-gray-50/90 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-xs text-gray-800">${title}</span>
+                                    ${timeStr}
+                                    ${statusBadge}
+                                </div>
+                                ${actionButtons}
+                            </div>
+                            <form action="/admin/log-activity/update-isi/${targetLogId}" method="POST" class="p-3.5 space-y-2.5">
+                                <input type="hidden" name="_token" value="${csrf}">
+                                <input type="hidden" name="attd_id" value="${attdId}">
+                                <input type="hidden" name="date" value="${date}">
+                                <textarea name="activity" required rows="4"
+                                    class="p-3 w-full border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm leading-relaxed"
+                                    placeholder="Tuliskan aktivitas atau perbaikan...">${escapeHtml(log.activity || '')}</textarea>
+                                <div class="flex justify-end">
+                                    <button type="submit" class="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fa-solid fa-floppy-disk text-[10px]"></i>
+                                        <span>Simpan ${logs.length > 1 ? 'Log Ke-' + (idx + 1) : 'Perubahan'}</span>
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    `;
+                });
+                container.innerHTML = html;
             }
 
             modal.classList.remove('hidden');
@@ -930,6 +1056,27 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                             const logActivity = item.log_activity;
                             const attdStatus = item.attd_status;
 
+                            // Data logbook (1 atau beberapa log)
+                            const logs = (item.log_activities && item.log_activities.length > 0)
+                                ? item.log_activities
+                                : (logActivity ? [logActivity] : []);
+                            const logsCount = logs.length;
+                            const logsJson = encodeURIComponent(JSON.stringify(logs));
+
+                            let logBtnClass = "bg-blue-600 hover:bg-blue-700 text-white shadow-xs";
+                            let logBtnText = "Cek Log";
+                            let logIcon = "fa-regular fa-file-lines";
+
+                            if (logsCount > 1) {
+                                logBtnClass = "bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs font-bold";
+                                logBtnText = `${logsCount} Logbook`;
+                                logIcon = "fa-solid fa-layer-group";
+                            } else if (logsCount === 0) {
+                                logBtnClass = "bg-slate-400 hover:bg-slate-500 text-white shadow-xs";
+                                logBtnText = "Belum Ada";
+                                logIcon = "fa-regular fa-file-excel";
+                            }
+
                             var status_id_main = logActivity?.status_id ?? 0;
                             var log_activity_id = logActivity?.id ?? 0;
 
@@ -983,11 +1130,13 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
                                             ${mapsValue}
                                             <td ${rowspan} class="py-2.5 px-2.5 border-t border-gray-100 text-center align-middle">
                                                 <button type="button"
+                                                        data-logs="${logsJson}"
                                                         data-activity="${encodeURIComponent(logActivity?.activity || '')}"
                                                         onclick="openModalActivity(this, '${logActivity?.id || 'kosong'}', '${schedule.id}', '${schedule.date}')"
-                                                        class="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition-colors cursor-pointer">
-                                                    <i class="fa-regular fa-file-lines text-[10px]"></i>
-                                                    <span>Cek Log</span>
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-semibold ${logBtnClass} rounded-lg transition-colors cursor-pointer"
+                                                        title="Lihat ${logsCount} Logbook">
+                                                    <i class="${logIcon} text-[10px]"></i>
+                                                    <span>${logBtnText}</span>
                                                 </button>
                                             </td>
                                             <td class="py-2.5 px-2.5 border-t border-gray-100 text-center align-middle">
@@ -1460,7 +1609,7 @@ $(document).on('ajaxSuccess', function(event, xhr, settings) {
             // Intercept all POST forms inside main and modals, submit via AJAX
             // supaya tetap berada di halaman pagination sekarang (pageNow)
             // ===========================
-            $(document).on('submit', 'main form, #editForm, #permit-form, #log-activity-form', function (e) {
+            $(document).on('submit', 'main form, #editForm, #permit-form, #log-activity-form, #detail-log-modal-content form', function (e) {
                 const form = this;
                 const method = (form.method || 'GET').toUpperCase();
 

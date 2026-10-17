@@ -44,6 +44,9 @@ class DetailSchedule extends Model {
     public function logActivity(): BelongsTo {
         return $this->belongsTo(LogActivity::class, 'log_activity_id');
     }
+    public function logActivities(): HasMany {
+        return $this->hasMany(LogActivity::class, 'detail_schedule_id');
+    }
     public function attdStatus(): BelongsTo {
         return $this->belongsTo(AttdStatus::class, "attd_status_id");
     }

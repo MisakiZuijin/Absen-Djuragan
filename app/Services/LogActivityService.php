@@ -60,21 +60,36 @@ class LogActivityService
                 return new ActionResult(false, "Jadwal hari ini belum ditemukan. Harap hubungi admin untuk konfirmasi jadwal.", null);
             }
 
-            if (!is_null($detailSchedule->log_activity_id)) {
-                return new ActionResult(false, "Kamu sudah membuat Logbook hari ini!", [
+            $division = $user->intern?->division;
+            $maxLogbookPerDay = max(1, (int)($division?->max_logbook_per_day ?? 1));
+
+            // Validasi Batas Frekuensi Pengisian Hari Ini
+            $todayLogsCount = \App\Models\LogActivity::where(function ($query) use ($detailSchedule) {
+                $query->where('detail_schedule_id', $detailSchedule->id);
+                if (!empty($detailSchedule->log_activity_id)) {
+                    $query->orWhere('id', $detailSchedule->log_activity_id);
+                }
+            })->count();
+
+            if ($todayLogsCount >= $maxLogbookPerDay) {
+                $divName = $division?->name ?? 'divisi Anda';
+                return new ActionResult(false, "Kamu sudah mencapai batas maksimal pengisian logbook hari ini ({$maxLogbookPerDay} kali untuk divisi {$divName}).", [
                     "absenceHistory" => null,
                     "stage" => 1
                 ]);
             }
 
             $data['date'] = $currentDateYMD;
+            $data['detail_schedule_id'] = $detailSchedule->id;
+            $data['time'] = \Carbon\Carbon::now()->format('H:i:s');
             $resultLA = $this->logActivityRepository->store($data);
 
-            $updateData = [
-                'log_activity_id' => $resultLA->id
-            ];
-
-            $this->detailScheduleRepository->update($detailSchedule->id, $updateData);
+            // Set log_activity_id pada detail_schedules jika masih kosong untuk kompatibilitas backward
+            if (empty($detailSchedule->log_activity_id)) {
+                $this->detailScheduleRepository->update($detailSchedule->id, [
+                    'log_activity_id' => $resultLA->id
+                ]);
+            }
 
             DB::commit();
 

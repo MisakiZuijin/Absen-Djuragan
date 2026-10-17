@@ -913,7 +913,8 @@ class AttendanceService
                 'shift',
                 'attendance.permitLogs',
                 'adjustableAttendance',
-                'logActivity',
+                'logActivity.status',
+                'logActivities.status',
             ]);
 
             $finalData = [];
@@ -1066,7 +1067,14 @@ class AttendanceService
                     $modifiedData['adjustableAttendance'] = $adjustableResponse;
                 }
 
-                $modifiedData['log_activity'] = $item->logActivity;
+                $allLogs = $item->logActivities ?? collect();
+                if ($allLogs->isEmpty() && $item->logActivity) {
+                    $allLogs = collect([$item->logActivity]);
+                } elseif ($allLogs->isNotEmpty() && $item->logActivity && !$allLogs->contains('id', $item->logActivity->id)) {
+                    $allLogs->prepend($item->logActivity);
+                }
+                $modifiedData['log_activity'] = $item->logActivity ?? $allLogs->first();
+                $modifiedData['log_activities'] = $allLogs->values();
                 array_push($finalData, $modifiedData);
             }
 
@@ -1293,7 +1301,8 @@ class AttendanceService
                 'attendance.permitLogs',
                 'shift',
                 'adjustableAttendance',
-                'logActivity',
+                'logActivity.status',
+                'logActivities.status',
                 'attdStatus',
                 'permitReason.category',
                 'schedule.intern.user.profile',
@@ -1476,11 +1485,19 @@ class AttendanceService
                     $adjustableAttendance = [];
                 }
 
+                $allLogs = $detailSchedule->logActivities ?? collect();
+                if ($allLogs->isEmpty() && $detailSchedule->logActivity) {
+                    $allLogs = collect([$detailSchedule->logActivity]);
+                } elseif ($allLogs->isNotEmpty() && $detailSchedule->logActivity && !$allLogs->contains('id', $detailSchedule->logActivity->id)) {
+                    $allLogs->prepend($detailSchedule->logActivity);
+                }
+
                 return [
                     'schedule' => $ds_data,
                     'attendance' => $dataAttendance,
                     'adjustableAttendance' => $adjustableAttendance,
-                    'log_activity' => $detailSchedule->logActivity,
+                    'log_activity' => $detailSchedule->logActivity ?? $allLogs->first(),
+                    'log_activities' => $allLogs->values(),
                     'attd_status' => $detailSchedule->attdStatus,
                     "permit_data" => $detailSchedule->permitReason
                 ];

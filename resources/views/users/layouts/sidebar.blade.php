@@ -136,6 +136,21 @@ $sidebarSchool = $sidebarIntern?->school;
             <span class="text-sm truncate">Monitoring Izin Shalat</span>
         </a>
         @endif
+
+        <!-- Integrasi Sistem Eksternal -->
+        <div class="pt-3 px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-link text-indigo-400 text-xs"></i>
+            <span>Integrasi Sistem</span>
+        </div>
+        <a href="{{ route('sso.to-intern') }}"
+            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 hover:bg-gray-800 hover:translate-x-1 text-indigo-300 hover:text-white border border-indigo-900/40 bg-indigo-950/20"
+            title="Buka & Login Otomatis ke InternHub">
+            <div class="flex items-center gap-x-3.5 min-w-0">
+                <i class="fa-solid fa-graduation-cap w-5 text-center text-base text-indigo-400"></i>
+                <span class="text-sm font-medium truncate">InternHub</span>
+            </div>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px] text-indigo-400"></i>
+        </a>
     </nav>
 
     <!-- Footer: Logout Button -->

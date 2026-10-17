@@ -47,7 +47,7 @@
             border-radius: 0.75rem !important;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
             font-size: 0.8125rem !important;
-            z-index: 50 !important;
+            z-index: 99999 !important;
             overflow: hidden !important;
             margin-top: 4px !important;
         }
@@ -86,11 +86,15 @@
         }
         .select2-results__options {
             max-height: 220px !important;
+            -webkit-overflow-scrolling: touch !important;
         }
         .select2-results__option {
-            padding: 7px 12px !important;
+            padding: 8px 12px !important;
             font-size: 0.8125rem !important;
             color: #334155 !important;
+            cursor: pointer !important;
+            touch-action: manipulation !important;
+            -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1) !important;
         }
         .select2-container--default .select2-results__option--highlighted[aria-selected] {
             background-color: #2563eb !important;
@@ -100,6 +104,24 @@
             background-color: #eff6ff !important;
             color: #1d4ed8 !important;
             font-weight: 600 !important;
+        }
+
+        /* Mode Mobile Touch Optimization */
+        @media (max-width: 767px) {
+            .select2-container {
+                width: 100% !important;
+            }
+            .select2-dropdown {
+                width: 100% !important;
+            }
+            .select2-results__option {
+                padding: 11px 14px !important;
+                font-size: 0.875rem !important;
+                min-height: 44px !important;
+            }
+            .select2-search--dropdown .select2-search__field {
+                font-size: 16px !important; /* Mencegah auto-zoom di iOS Safari */
+            }
         }
     </style>
 
@@ -229,7 +251,7 @@
                     <div>
                         <label for="school_id" class="block text-xs font-semibold text-gray-600 mb-1">Sekolah / Kampus</label>
                         <select name="school_id" id="school_id" onchange="this.form.submit()"
-                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
                             <option value="">Semua Sekolah</option>
                             @foreach ($schools as $sch)
                                 <option value="{{ $sch->id }}" {{ request('school_id') == $sch->id ? 'selected' : '' }}>
@@ -243,7 +265,7 @@
                     <div>
                         <label for="division_id" class="block text-xs font-semibold text-gray-600 mb-1">Divisi</label>
                         <select name="division_id" id="division_id" onchange="this.form.submit()"
-                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
                             <option value="">Semua Divisi</option>
                             @foreach ($divisions as $div)
                                 <option value="{{ $div->id }}" {{ request('division_id') == $div->id ? 'selected' : '' }}>
@@ -257,7 +279,7 @@
                     <div>
                         <label for="office_id_filter" class="block text-xs font-semibold text-gray-600 mb-1">Kantor</label>
                         <select name="office_id" id="office_id_filter" onchange="this.form.submit()"
-                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
                             <option value="">Semua Kantor</option>
                             @foreach ($offices as $off)
                                 <option value="{{ $off->id }}" {{ request('office_id') == $off->id ? 'selected' : '' }}>
@@ -271,7 +293,7 @@
                     <div>
                         <label for="schedule_remaining" class="block text-xs font-semibold text-gray-600 mb-1">Sisa Hari Jadwal</label>
                         <select name="schedule_remaining" id="schedule_remaining" onchange="this.form.submit()"
-                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
                             <option value="">Semua Sisa Jadwal</option>
                             <option value="today" {{ request('schedule_remaining') === 'today' ? 'selected' : '' }}>Hari Terakhir (0 hr)</option>
                             <option value="soon_3" {{ request('schedule_remaining') === 'soon_3' ? 'selected' : '' }}>Sisa ≤ 3 Hari</option>
@@ -287,7 +309,7 @@
                     <div>
                         <label for="intern_remaining" class="block text-xs font-semibold text-gray-600 mb-1">Sisa Hari Magang</label>
                         <select name="intern_remaining" id="intern_remaining" onchange="this.form.submit()"
-                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
+                            class="filter-searchable-select w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition bg-white">
                             <option value="">Semua Sisa Magang</option>
                             <option value="today" {{ request('intern_remaining') === 'today' ? 'selected' : '' }}>Hari Terakhir (0 hr)</option>
                             <option value="soon_7" {{ request('intern_remaining') === 'soon_7' ? 'selected' : '' }}>Sisa ≤ 7 Hari</option>
@@ -1011,7 +1033,7 @@
         <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
         <script>
             $(document).ready(function() {
-                // Inisialisasi Searchable Select pada seluruh filter dropdown penjadwalan
+                // Inisialisasi Searchable Select pada seluruh filter dropdown penjadwalan (Mobile & Desktop)
                 $('.filter-searchable-select').select2({
                     width: '100%',
                     minimumResultsForSearch: 0,
@@ -1024,15 +1046,70 @@
                     this.form.submit();
                 });
 
-                // Fokus otomatis ke search field saat dropdown dibuka dan beri placeholder pencarian
-                $(document).on('select2:open', () => {
-                    setTimeout(() => {
-                        const searchInput = document.querySelector('.select2-container--open .select2-search__field');
-                        if (searchInput) {
-                            searchInput.setAttribute('placeholder', 'Ketik untuk mencari opsi...');
-                            searchInput.focus();
+                // Atur placeholder pencarian dan fokus otomatis (hanya di desktop non-touch)
+                $(document).on('select2:open', function() {
+                    const isTouch = ('ontouchstart' in window) || (window.innerWidth < 768) || (navigator.maxTouchPoints > 0);
+                    const searchInput = document.querySelector('.select2-container--open .select2-search__field');
+                    if (searchInput) {
+                        searchInput.setAttribute('placeholder', 'Ketik untuk mencari opsi...');
+                        if (!isTouch) {
+                            setTimeout(() => { searchInput.focus(); }, 50);
                         }
-                    }, 50);
+                    }
+                });
+
+                // FIX BUG SENTUHAN DI MODE MOBILE (iOS & Android):
+                // Mencegah blur keyboard virtual membatalkan pemilihan opsi saat disentuh di layar mobile.
+                let touchStartY = 0;
+                let touchStartX = 0;
+                let isScrollingResults = false;
+
+                $(document).on('touchstart', '.select2-results__options', function(e) {
+                    const touch = e.originalEvent.touches ? e.originalEvent.touches[0] : e;
+                    touchStartY = touch.clientY;
+                    touchStartX = touch.clientX;
+                    isScrollingResults = false;
+                });
+
+                $(document).on('touchmove', '.select2-results__options', function(e) {
+                    const touch = e.originalEvent.touches ? e.originalEvent.touches[0] : e;
+                    if (Math.abs(touch.clientY - touchStartY) > 8 || Math.abs(touch.clientX - touchStartX) > 8) {
+                        isScrollingResults = true; // Pengguna sedang menggeser daftar (scroll), bukan mengetuk
+                    }
+                });
+
+                $(document).on('touchend', '.select2-results__option', function(e) {
+                    if (isScrollingResults) {
+                        return; // Abaikan saat selesai scroll
+                    }
+
+                    const $option = $(this);
+                    if ($option.hasClass('select2-results__option--load-more') || $option.attr('aria-disabled') === 'true') {
+                        return;
+                    }
+
+                    const data = $option.data('data');
+                    if (data && data.id !== undefined) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        // Temukan elemen select yang terkait dengan dropdown yang sedang terbuka
+                        const $openContainer = $option.closest('.select2-container');
+                        const $select = $openContainer.prev('.select2-hidden-accessible');
+                        const targetSelect = $select.length ? $select[0] : document.querySelector('.select2-hidden-accessible[data-select2-id]');
+
+                        if (targetSelect) {
+                            $(targetSelect).val(data.id).trigger('change');
+                            $(targetSelect).trigger({
+                                type: 'select2:select',
+                                params: { data: data }
+                            });
+                            $(targetSelect).select2('close');
+                            if (targetSelect.form) {
+                                targetSelect.form.submit();
+                            }
+                        }
+                    }
                 });
             });
         </script>

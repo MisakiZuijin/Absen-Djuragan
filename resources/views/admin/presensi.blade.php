@@ -273,21 +273,38 @@
     </div>
 
     <!-- Modal untuk Log Activity -->
-    <div id="modal-activity" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4 hidden">
-        <div class="bg-white p-5 sm:p-6 rounded-xl w-full max-w-xl mx-auto shadow-2xl max-h-[90vh] flex flex-col">
-            <h2 class="text-lg font-semibold mb-3 text-gray-800">Log Activity</h2>
-
-            <!-- Textarea -->
-            <div class="mb-4 flex-1">
-                <textarea id="log-activity"
-                    class="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm font-mono"
-                    rows="6" readonly></textarea>
+    <div id="modal-activity" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-2xs p-4 hidden">
+        <div class="bg-white rounded-2xl w-full max-w-xl mx-auto shadow-2xl max-h-[90vh] flex flex-col border border-gray-100 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/80">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold shrink-0">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm sm:text-base font-bold text-gray-800">Catatan Log Activity</h2>
+                        <p class="text-xs text-gray-500"><span id="modal-activity-user-name" class="font-semibold text-gray-700">---</span> &bull; <span id="modal-activity-date">---</span></p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeModalActivity()" class="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition cursor-pointer">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
             </div>
 
-            <!-- Tombol Tutup -->
-            <div class="flex justify-end">
+            <!-- Content Area (Scrollable) -->
+            <div id="modal-activity-content" class="p-5 space-y-3.5 overflow-y-auto max-h-[calc(90vh-130px)]">
+                <!-- Dynamically rendered -->
+                <div class="mb-4 flex-1">
+                    <textarea id="log-activity"
+                        class="mt-1 p-3 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs sm:text-sm font-mono"
+                        rows="6" readonly></textarea>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-5 py-3 border-t border-gray-100 flex justify-end bg-gray-50/50">
                 <button id="close-activity-modal-btn" onclick="closeModalActivity()"
-                    class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition">
+                    class="px-4 py-2 bg-gray-700 hover:bg-gray-800 text-white rounded-xl text-xs font-semibold transition cursor-pointer">
                     Tutup
                 </button>
             </div>
@@ -535,14 +552,98 @@
                 return textArea.value;
             }
 
-            // Fungsi untuk membuka modal activity dengan handling karakter khusus
+            // Fungsi untuk membuka modal activity dengan handling 1 atau beberapa logbook
             function openModalActivity(buttonElement) {
                 const modal = document.getElementById('modal-activity');
-                const textarea = document.getElementById('log-activity');
+                const content = document.getElementById('modal-activity-content');
+                const nameEl = document.getElementById('modal-activity-user-name');
+                const dateEl = document.getElementById('modal-activity-date');
 
-                // Decode HTML entities sebelum menampilkan
-                const decodedActivity = decodeHtmlEntities(buttonElement.dataset.activity);
-                textarea.value = decodedActivity;
+                const name = buttonElement.dataset.name || '---';
+                const date = buttonElement.dataset.date || (selectedDate || '---');
+                if (nameEl) nameEl.textContent = name;
+                if (dateEl) dateEl.textContent = date;
+
+                let logs = [];
+                try {
+                    const rawLogs = buttonElement.dataset.logs;
+                    if (rawLogs) {
+                        logs = JSON.parse(decodeURIComponent(rawLogs));
+                    }
+                } catch (e) {
+                    console.error('Error parsing logs:', e);
+                }
+
+                if (!Array.isArray(logs) || logs.length === 0) {
+                    const oldActivity = buttonElement.dataset.activity ? decodeHtmlEntities(buttonElement.dataset.activity) : '';
+                    if (oldActivity && oldActivity !== 'Belum membuat Log Activity') {
+                        logs = [{ activity: oldActivity, status_id: 1, time: null }];
+                    }
+                }
+
+                if (logs.length === 0) {
+                    content.innerHTML = `
+                        <div class="py-8 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <i class="fa-regular fa-folder-open text-3xl mb-2 text-gray-300 block"></i>
+                            <p class="text-xs sm:text-sm font-medium">Belum ada Log Activity yang diisi oleh pemagang pada tanggal ini.</p>
+                        </div>
+                    `;
+                } else {
+                    let html = '';
+                    logs.forEach((log, idx) => {
+                        const timeStr = log.time 
+                            ? `<span class="inline-flex items-center gap-1 text-[11px] text-gray-600 font-mono bg-white px-2 py-0.5 rounded-md border border-gray-200"><i class="fa-regular fa-clock text-[10px] text-blue-600"></i> ${log.time.substring(0, 5)} WIB</span>` 
+                            : '';
+                        
+                        let statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">Menunggu</span>`;
+                        if (log.status_id == 2) {
+                            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200"><i class="fa-solid fa-check text-[9px] mr-0.5"></i> Disetujui</span>`;
+                        } else if (log.status_id == 3) {
+                            statusBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200"><i class="fa-solid fa-xmark text-[9px] mr-0.5"></i> Ditolak</span>`;
+                        }
+
+                        let actionButtons = '';
+                        if (log.id) {
+                            actionButtons = `
+                                <div class="flex items-center gap-1.5">
+                                    <form action="/admin/log-activity/update-status/${log.id}" method="POST" class="inline ajax-form m-0">
+                                        <input type="hidden" name="_token" value="${csrfToken}">
+                                        <input type="hidden" name="status" value="2">
+                                        <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs transition cursor-pointer ${log.status_id == 2 ? 'ring-2 ring-emerald-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Setujui Logbook">
+                                            <i class="fa-solid fa-check text-[10px]"></i> Setuju
+                                        </button>
+                                    </form>
+                                    <form action="/admin/log-activity/update-status/${log.id}" method="POST" class="inline ajax-form m-0">
+                                        <input type="hidden" name="_token" value="${csrfToken}">
+                                        <input type="hidden" name="status" value="3">
+                                        <button type="submit" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-2xs transition cursor-pointer ${log.status_id == 3 ? 'ring-2 ring-rose-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Tolak Logbook">
+                                            <i class="fa-solid fa-xmark text-[10px]"></i> Tidak
+                                        </button>
+                                    </form>
+                                </div>
+                            `;
+                        }
+
+                        const title = logs.length > 1 ? `Laporan Ke-${idx + 1}` : 'Laporan Aktivitas';
+
+                        html += `
+                            <div class="bg-white rounded-xl border border-gray-200 shadow-2xs overflow-hidden">
+                                <div class="px-4 py-2.5 bg-gray-50/90 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-xs text-gray-800">${title}</span>
+                                        ${timeStr}
+                                        ${statusBadge}
+                                    </div>
+                                    ${actionButtons}
+                                </div>
+                                <div class="p-3.5 text-xs sm:text-sm text-gray-800 whitespace-pre-wrap leading-relaxed font-normal bg-white">
+                                    ${escapeHtml(log.activity || '-')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    content.innerHTML = html;
+                }
 
                 modal.classList.remove('hidden');
             }
@@ -624,22 +725,28 @@
             // Fungsi untuk mendapatkan status icons main
             function getStatusIconsMain(item) {
                 let logActivityIcons = '-';
-                if (item.log_activity) {
-                    const status_id = item.log_activity.status_id;
-                    const logActivityId = item.log_activity.id;
+                const logs = (item.log_activities && item.log_activities.length > 0)
+                    ? item.log_activities
+                    : (item.log_activity ? [item.log_activity] : []);
+
+                if (logs.length > 0) {
+                    const firstLog = logs[0];
+                    const allApproved = logs.every(l => l.status_id == 2);
+                    const anyRejected = logs.some(l => l.status_id == 3);
+
                     logActivityIcons = `
-                             <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="inline group ajax-form">
+                             <form action="/admin/log-activity/update-status/${firstLog.id}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="status" value="2">
-                                 <button type="submit" class="bg-transparent border-none p-0" title="Setujui Log Activity">
-                                     <i class="fa-solid fa-check-circle ${status_id == 2 ? 'text-green-600' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer ${allApproved ? 'ring-2 ring-emerald-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Setujui Log Activity">
+                                     <i class="fa-solid fa-check text-[11px]"></i> <span>Setuju</span>
                                  </button>
                              </form>
-                             <form action="/admin/log-activity/update-status/${logActivityId}" method="POST" class="inline group ajax-form">
+                             <form action="/admin/log-activity/update-status/${firstLog.id}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="status" value="3">
-                                 <button type="submit" class="bg-transparent border-none p-0" title="Tolak Log Activity">
-                                     <i class="fa-solid fa-xmark-circle ${status_id == 3 ? 'text-red-600' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer ${anyRejected ? 'ring-2 ring-rose-300 ring-offset-1' : 'opacity-90 hover:opacity-100'}" title="Tolak Log Activity">
+                                     <i class="fa-solid fa-xmark text-[11px]"></i> <span>Tidak</span>
                                  </button>
                              </form>
                          `;
@@ -648,7 +755,7 @@
                 const escapedName = item.name ? escapeHtml(item.name).replace(/'/g, "\\'") : '';
                 const remotePermitBtn = `
                     <button type="button" onclick="openRemotePermitModal('${item.intern_id}', '${escapedName}')" 
-                        class="p-1 rounded-md text-amber-600 hover:text-amber-800 hover:bg-amber-100 transition ml-1.5 cursor-pointer inline-flex items-center justify-center shrink-0"
+                        class="p-1 rounded-lg text-amber-600 hover:text-amber-800 hover:bg-amber-100 transition ml-1.5 cursor-pointer inline-flex items-center justify-center shrink-0"
                         title="Aktivasi Izin Remote untuk ${escapedName}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
@@ -656,7 +763,7 @@
                     </button>
                 `;
 
-                return `<div class="inline-flex items-center justify-center">${logActivityIcons}${remotePermitBtn}</div>`;
+                return `<div class="inline-flex items-center gap-1.5 justify-center">${logActivityIcons}${remotePermitBtn}</div>`;
             }
 
             // Fungsi untuk mendapatkan status icons adjustable - DIPERBAIKI
@@ -670,36 +777,36 @@
                 // Icon Approve dan Reject
                 if (is_approved != null) {
                     actionIcons = `
-                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form">
+                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="is_approved" value="1">
-                                 <button type="submit" class="bg-transparent border-none p-0">
-                                     <i class="fa-solid fa-check-circle ${is_approved == 1 ? 'text-blue-600' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer ${is_approved == 1 ? 'ring-2 ring-emerald-300 ring-offset-1' : 'opacity-85 hover:opacity-100'}" title="Setujui Ganti Jam">
+                                     <i class="fa-solid fa-check text-[10px]"></i> <span>Setuju</span>
                                  </button>
                              </form>
-                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form">
+                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="is_approved" value="2">
-                                 <button type="submit" class="bg-transparent border-none p-0">
-                                     <i class="fa-solid fa-xmark-circle ${is_approved == 2 ? 'text-red-500' : 'text-gray-500'} text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer ${is_approved == 2 ? 'ring-2 ring-rose-300 ring-offset-1' : 'opacity-85 hover:opacity-100'}" title="Tolak Ganti Jam">
+                                     <i class="fa-solid fa-xmark text-[10px]"></i> <span>Tidak</span>
                                  </button>
                              </form>
                          `;
                 } else {
                     // Jika belum ada status approval, tampilkan tombol approve/reject default
                     actionIcons = `
-                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form">
+                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="is_approved" value="1">
-                                 <button type="submit" class="bg-transparent border-none p-0">
-                                     <i class="fa-solid fa-check-circle text-gray-500 text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer opacity-90 hover:opacity-100" title="Setujui Ganti Jam">
+                                     <i class="fa-solid fa-check text-[10px]"></i> <span>Setuju</span>
                                  </button>
                              </form>
-                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form">
+                             <form action="/admin/adjustable-attendance/update-status/${adjustableId}" method="POST" class="inline ajax-form m-0">
                                  @csrf
                                  <input type="hidden" name="is_approved" value="2">
-                                 <button type="submit" class="bg-transparent border-none p-0">
-                                     <i class="fa-solid fa-xmark-circle text-gray-500 text-xl hover:text-gray-800"></i>
+                                 <button type="submit" class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-2xs transition cursor-pointer opacity-90 hover:opacity-100" title="Tolak Ganti Jam">
+                                     <i class="fa-solid fa-xmark text-[10px]"></i> <span>Tidak</span>
                                  </button>
                              </form>
                          `;
@@ -707,22 +814,22 @@
 
                 // TAMBAHKAN ICON RECYCLE (RESTORE) DAN DELETE
                 actionIcons += `
-                        <form action="/admin/adjustable-attendance/restore/${adjustableId}" method="POST" class="inline ajax-form ml-1">
+                        <form action="/admin/adjustable-attendance/restore/${adjustableId}" method="POST" class="inline ajax-form m-0 ml-1">
                             @csrf
-                            <button type="submit" class="bg-transparent border-none p-0" title="Restore">
-                                <i class="fa-solid fa-recycle text-green-600 text-xl hover:text-green-800"></i>
+                            <button type="submit" class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs shadow-2xs transition cursor-pointer" title="Restore">
+                                <i class="fa-solid fa-recycle text-[11px]"></i>
                             </button>
                         </form>
-                        <form action="/admin/adjustable-attendance/delete/${adjustableId}" method="POST" class="inline ajax-form ml-1">
+                        <form action="/admin/adjustable-attendance/delete/${adjustableId}" method="POST" class="inline ajax-form m-0 ml-1">
                             @csrf
                             @method('DELETE')
-                            <button type="submit" class="bg-transparent border-none p-0" title="Delete" onclick="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
-                                <i class="fa-solid fa-trash text-red-600 text-xl hover:text-red-800"></i>
+                            <button type="submit" class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs shadow-2xs transition cursor-pointer" title="Delete" onclick="return confirm('Apakah Anda yakin ingin menghapus data ganti jam ini?')">
+                                <i class="fa-solid fa-trash text-[11px]"></i>
                             </button>
                         </form>
                     `;
 
-                return actionIcons;
+                return `<div class="inline-flex items-center gap-1.5 justify-center">${actionIcons}</div>`;
             }
 
             // Fungsi untuk generate attendance type dengan status jelas dan tanpa modal
@@ -863,56 +970,74 @@
                                 // Handle attendance type
                                 const attendanceType = generateAttendanceType(item, rowspan);
 
-                                // Escape activity log
-                                const activityLog = escapeHtml(item.log_activity?.activity || 'Belum membuat Log Activity');
+                                 // Data logbook (1 atau beberapa log)
+                                 const logs = (item.log_activities && item.log_activities.length > 0)
+                                     ? item.log_activities
+                                     : (item.log_activity ? [item.log_activity] : []);
+                                 const logsCount = logs.length;
+                                 const logsJson = encodeURIComponent(JSON.stringify(logs));
+                                 const escapedInternName = item.name ? escapeHtml(item.name).replace(/'/g, "\\'") : '';
 
-                                let allRowsHtml = '';
+                                 let logBtnClass = "bg-blue-600 hover:bg-blue-700 text-white py-1 px-2.5 rounded-lg text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition cursor-pointer";
+                                 let logBtnContent = `<i class="fa-regular fa-file-lines text-[11px]"></i> <span>Cek Disini</span>`;
 
-                                // Generate the main row
-                                if (attendance != null) {
-                                    allRowsHtml += `
-                                            <tr class="border-b border-gray-300 text-center">
-                                                <td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>
-                                                ${generateNameCell(item, rowspan)}
-                                                <td class="p-2 border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Masuk', 'start_time', attendance, item.name, item.detail_schedule_id)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name, item.detail_schedule_id)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name, item.detail_schedule_id)}</td>
-                                                <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance, item.name, item.detail_schedule_id)}</td>
-                                                <td class="border-t text-center align-middle">${attendance.total_time || '00:00'}</td>
-                                                <td class="border-t text-center align-middle ${(attendance.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((attendance.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">
-                                                    ${attendance.target_time?.value || '00:00'}
-                                                </td>
-                                                ${attendanceType}
-                                                <td rowspan="${rowspan}" class="border-t text-center align-middle"><button onclick="openModalActivity(this)" data-activity="${activityLog}" class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">Cek Disini</button></td>
-                                                <td class="border-t text-center align-middle">${statusIconsMain}</td>
-                                            </tr>
-                                        `;
-                                }
+                                 if (logsCount > 1) {
+                                     logBtnClass = "bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-2.5 rounded-lg text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition cursor-pointer";
+                                     logBtnContent = `<i class="fa-solid fa-layer-group text-[11px]"></i> <span>${logsCount} Logbook</span>`;
+                                 } else if (logsCount === 0) {
+                                     logBtnClass = "bg-slate-400 hover:bg-slate-500 text-white py-1 px-2.5 rounded-lg text-xs font-semibold shadow-2xs inline-flex items-center gap-1.5 transition cursor-pointer";
+                                     logBtnContent = `<i class="fa-regular fa-file-excel text-[11px]"></i> <span>Kosong</span>`;
+                                 }
 
-                                // Generate adjustable rows
-                                if (adjustableCount > 0) {
-                                    $.each(adjustableArray, function (adjIndex, adjustable) {
-                                        if (!adjustable) return;
+                                 const logButtonHtml = `<button onclick="openModalActivity(this)" data-logs="${logsJson}" data-name="${escapedInternName}" data-date="${selectedDate || ''}" class="${logBtnClass}" title="Buka Catatan Logbook">${logBtnContent}</button>`;
 
-                                        var bgColor = adjustable.is_approved === 1 ? 'bg-blue-100' : 'bg-red-100';
-                                        const isFirstRow = !attendance && adjIndex === 0;
+                                 let allRowsHtml = '';
 
-                                        allRowsHtml += `
-                                                <tr class="border-b border-gray-300 text-center ${bgColor}">
-                                                    ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>${generateNameCell(item, rowspan)}` : ""}
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Masuk', 'start_time', adjustable, item.name, item.detail_schedule_id)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name, item.detail_schedule_id)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name, item.detail_schedule_id)}</td>
-                                                    <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable, item.name, item.detail_schedule_id)}</td>
-                                                    <td class="border-t text-center align-middle">${adjustable.total_time || '00:00'}</td>
-                                                    <td class="border-t text-center align-middle ${(adjustable.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((adjustable.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">${adjustable.target_time?.value || '00:00'}</td>
-                                                    ${isFirstRow ? attendanceType : ''}
-                                                    ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle"><button onclick="openModalActivity(this)" data-activity="${activityLog}" class="bg-blue-500 hover:bg-blue-600 text-white py-1 px-2 rounded text-sm">Cek Disini</button></td>` : ''}
-                                                    <td class="border-t text-center align-middle">${getStatusIconsAdjustable(adjustable)}</td>
-                                                </tr>
-                                            `;
-                                    });
-                                }
+                                 // Generate the main row
+                                 if (attendance != null) {
+                                     allRowsHtml += `
+                                             <tr class="border-b border-gray-300 text-center">
+                                                 <td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>
+                                                 ${generateNameCell(item, rowspan)}
+                                                 <td class="p-2 border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Masuk', 'start_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Jam Pulang', 'end_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Mulai Istirahat', 'break_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                 <td class="border-t text-center align-middle">${generateAttendanceCell('default', 'Selesai Istirahat', 'back_time', attendance, item.name, item.detail_schedule_id)}</td>
+                                                 <td class="border-t text-center align-middle">${attendance.total_time || '00:00'}</td>
+                                                 <td class="border-t text-center align-middle ${(attendance.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((attendance.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">
+                                                     ${attendance.target_time?.value || '00:00'}
+                                                 </td>
+                                                 ${attendanceType}
+                                                 <td rowspan="${rowspan}" class="border-t text-center align-middle">${logButtonHtml}</td>
+                                                 <td class="border-t text-center align-middle">${statusIconsMain}</td>
+                                             </tr>
+                                         `;
+                                 }
+
+                                 // Generate adjustable rows
+                                 if (adjustableCount > 0) {
+                                     $.each(adjustableArray, function (adjIndex, adjustable) {
+                                         if (!adjustable) return;
+
+                                         var bgColor = adjustable.is_approved === 1 ? 'bg-blue-100' : 'bg-red-100';
+                                         const isFirstRow = !attendance && adjIndex === 0;
+
+                                         allRowsHtml += `
+                                                 <tr class="border-b border-gray-300 text-center ${bgColor}">
+                                                     ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${(currentPage - 1) * requestParams.per_page + index + 1}</td>${generateNameCell(item, rowspan)}` : ""}
+                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Masuk', 'start_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Ganti Jam Pulang', 'end_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Mulai Istirahat', 'break_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                     <td class="border-t text-center align-middle">${generateAttendanceCell('adst', 'Selesai Istirahat', 'back_time', adjustable, item.name, item.detail_schedule_id)}</td>
+                                                     <td class="border-t text-center align-middle">${adjustable.total_time || '00:00'}</td>
+                                                     <td class="border-t text-center align-middle ${(adjustable.target_time?.value || '').startsWith('-') ? 'text-red-600' : ((adjustable.target_time?.value || '') === '00:00' ? 'text-gray-700' : 'text-green-600')}">${adjustable.target_time?.value || '00:00'}</td>
+                                                     ${isFirstRow ? attendanceType : ''}
+                                                     ${isFirstRow ? `<td rowspan="${rowspan}" class="border-t text-center align-middle">${logButtonHtml}</td>` : ''}
+                                                     <td class="border-t text-center align-middle">${getStatusIconsAdjustable(adjustable)}</td>
+                                                 </tr>
+                                             `;
+                                     });
+                                 }
                                 tbody.append(allRowsHtml);
                             });
                         } catch (error) {

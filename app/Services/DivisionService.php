@@ -84,6 +84,8 @@ class DivisionService
             $data = $storeDivisionRequest->validated();
 
             $data['name'] = $data['namaDivisi'];
+            unset($data['namaDivisi']);
+            $data['max_logbook_per_day'] = !empty($data['max_logbook_per_day']) ? max(1, (int)$data['max_logbook_per_day']) : 1;
 
             if ($storeDivisionRequest->hasFile('iconDivisi')) {
                 $file = $storeDivisionRequest->file('iconDivisi');
@@ -122,6 +124,8 @@ class DivisionService
             $data['id'] = $id;
             $data['name'] = $data['namaDivisi'];
             unset($data['namaDivisi']);
+            $data['max_logbook_per_day'] = !empty($data['max_logbook_per_day']) ? max(1, (int)$data['max_logbook_per_day']) : 1;
+
             if ($updateDivisionRequest->hasFile('iconDivisi')) {
                 $file = $updateDivisionRequest->file('iconDivisi');
                 $filename = time() . '_' . $file->getClientOriginalName();

@@ -40,7 +40,7 @@ class ExternalRegistrationV2Test extends TestCase
             ]);
     }
 
-    public function test_register_sync_creates_new_intern_with_default_shift_and_protected_address()
+    public function test_register_sync_creates_new_intern_with_brand_and_inactive_status()
     {
         $email = 'intern_v2_' . uniqid() . '@example.com';
         $payload = [
@@ -74,14 +74,15 @@ class ExternalRegistrationV2Test extends TestCase
                 'data'    => [
                     'email'     => $email,
                     'full_name' => 'Budi Test V2',
-                    'is_active' => true,
+                    'is_active' => false, // Kebijakan: Masuk ke kondisi belum aktif
                 ],
             ]);
 
         $user = User::where('email', $email)->first();
         $this->assertNotNull($user);
         $this->assertEquals(3, $user->role_id);
-        $this->assertTrue((bool) $user->is_active);
+        // Akun harus dalam kondisi belum aktif
+        $this->assertFalse((bool) $user->is_active);
 
         $profile = Profile::where('user_id', $user->id)->first();
         $this->assertNotNull($profile);
@@ -93,6 +94,13 @@ class ExternalRegistrationV2Test extends TestCase
         $this->assertNotNull($intern);
         $this->assertEquals('2026-11-01', $intern->start_date);
         $this->assertEquals('2027-04-30', $intern->end_date);
+
+        // Verifikasi Brand tersimpan dengan benar
+        $this->assertNotNull($intern->brand_id, 'Brand ID harus tersimpan di interns.brand_id!');
+        $brand = Brand::find($intern->brand_id);
+        $this->assertNotNull($brand);
+        $this->assertStringContainsString('Seven Inc', $brand->name);
+
         // Default shift adalah Shift Pagi
         $pagiShift = Shift::where('name', 'like', '%Pagi%')->first();
         $this->assertEquals($pagiShift?->id, $intern->shift_id);
@@ -108,6 +116,7 @@ class ExternalRegistrationV2Test extends TestCase
             'password_hash' => Hash::make('password123'),
             'full_name'     => 'Andi Perlindungan',
             'division_name' => 'Programmer',
+            'brand_name'    => 'Seven Inc',
             'start_date'    => '2026-11-01',
             'end_date'      => '2027-04-30',
             'status'        => 'accepted',
@@ -123,7 +132,6 @@ class ExternalRegistrationV2Test extends TestCase
         $profile = Profile::where('user_id', $user->id)->first();
 
         // 2. Simulasi HR / Admin di Web Absen mengatur shift & penempatan kerja secara khusus
-        // Misalnya diubah ke Shift Siang (ID 2), work_placement_type 'custom_office', dan alamat manual
         $siangShift = Shift::where('name', 'like', '%Siang%')->first();
         $this->assertNotNull($siangShift);
 
@@ -137,10 +145,11 @@ class ExternalRegistrationV2Test extends TestCase
             'address' => 'Jl. Kaliurang KM 9, Sleman, Yogyakarta',
         ]);
 
-        // 3. Admin Web Intern mengedit tanggal magang / brand & memicu re-sync
+        // 3. Admin Web Intern mengedit tanggal magang / brand & memicu re-sync dengan status active
         $payload2 = [
             'email'         => $email,
             'full_name'     => 'Andi Perlindungan (Updated)',
+            'brand_name'    => 'Seven Inc',
             'start_date'    => '2026-12-01',
             'end_date'      => '2027-05-31',
             'status'        => 'active',
@@ -167,18 +176,21 @@ class ExternalRegistrationV2Test extends TestCase
         // Dan tanggal magang yang diupdate dari Web Intern BERHASIL terupdate
         $this->assertEquals('2026-12-01', $internFresh->start_date);
         $this->assertEquals('2027-05-31', $internFresh->end_date);
+
+        // Dan status akun tetap false (menunggu aktivasi admin absen secara manual)
+        $this->assertFalse((bool) $user->fresh()->is_active);
     }
 
     public function test_status_exited_deactivates_user_account()
     {
         $email = 'intern_exit_' . uniqid() . '@example.com';
 
-        // 1. Buat pemagang aktif
+        // 1. Buat pemagang (otomatis non-aktif di awal agar admin tahu ada data baru)
         $payload = [
             'email'         => $email,
             'password_hash' => Hash::make('password123'),
             'full_name'     => 'Pemagang Keluar',
-            'status'        => 'accepted',
+            'status'        => 'active',
         ];
 
         $this->withHeaders([
@@ -187,9 +199,13 @@ class ExternalRegistrationV2Test extends TestCase
         ])->postJson('/api/v1/external/register-sync', $payload)->assertStatus(201);
 
         $user = User::where('email', $email)->first();
-        $this->assertTrue((bool) $user->is_active);
+        $this->assertFalse((bool) $user->is_active, 'Pemagang baru dari Web Intern harus berstatus nonaktif di Absen Djuragan');
 
-        // 2. Pemagang keluar (exited)
+        // Admin di Absen mengaktifkan akun
+        $user->update(['is_active' => true]);
+        $this->assertTrue((bool) $user->fresh()->is_active);
+
+        // 2. Pemagang keluar (exited) -> menonaktifkan akun
         $payloadExit = [
             'email'     => $email,
             'full_name' => 'Pemagang Keluar',
@@ -202,19 +218,115 @@ class ExternalRegistrationV2Test extends TestCase
         ])->postJson('/api/v1/external/register-sync', $payloadExit)->assertStatus(200);
 
         $this->assertFalse((bool) $user->fresh()->is_active, 'User harus dinonaktifkan saat status exited!');
+    }
 
-        // 3. Re-aktivasi jika diubah kembali ke active
-        $payloadActive = [
+    public function test_verify_intern_with_valid_credentials()
+    {
+        $email = 'verify_intern_' . uniqid() . '@example.com';
+        $user = User::create([
+            'username'  => 'intern_' . uniqid(),
             'email'     => $email,
-            'full_name' => 'Pemagang Keluar',
-            'status'    => 'active',
-        ];
+            'password'  => 'Secret123!',
+            'role_id'   => 3,
+            'is_active' => true,
+        ]);
 
-        $this->withHeaders([
+        Profile::create([
+            'user_id'       => $user->id,
+            'full_name'     => 'Siti Nurhaliza',
+            'phone'         => '081234567899',
+            'gender'        => 'Perempuan',
+            'date_of_birth' => '2004-01-01',
+            'birth_place'   => 'Yogyakarta',
+        ]);
+
+        $division = Division::firstOrCreate(['name' => 'Programmer']);
+        $brand = Brand::firstOrCreate(['name' => 'SevenInc']);
+        $school = School::firstOrCreate(['name' => 'SMK Negeri 2 Yogyakarta']);
+
+        Intern::create([
+            'user_id'     => $user->id,
+            'division_id' => $division->id,
+            'brand_id'    => $brand->id,
+            'school_id'   => $school->id,
+            'nim'         => '12345/TKJ/2026',
+            'start_date'  => '2026-09-01',
+            'end_date'    => '2026-12-31',
+        ]);
+
+        $response = $this->withHeaders([
             'X-API-KEY' => $this->apiKey,
             'Accept'    => 'application/json',
-        ])->postJson('/api/v1/external/register-sync', $payloadActive)->assertStatus(200);
+        ])->postJson('/api/v1/external/verify-intern', [
+            'login'    => $email,
+            'password' => 'Secret123!',
+        ]);
 
-        $this->assertTrue((bool) $user->fresh()->is_active, 'User harus aktif kembali saat status active!');
+        $response->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'message' => 'Kredensial Pemagang valid.',
+                'user'    => [
+                    'email'         => $email,
+                    'full_name'     => 'Siti Nurhaliza',
+                    'role'          => 'pemagang',
+                    'role_id'       => 3,
+                    'division_name' => 'Programmer',
+                    'school_name'   => 'SMK Negeri 2 Yogyakarta',
+                    'student_id'    => '12345/TKJ/2026',
+                    'is_active'     => true,
+                ],
+            ]);
+    }
+
+    public function test_verify_intern_with_invalid_password()
+    {
+        $email = 'verify_fail_' . uniqid() . '@example.com';
+        User::create([
+            'username'  => 'intern_' . uniqid(),
+            'email'     => $email,
+            'password'  => 'CorrectPassword',
+            'role_id'   => 3,
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeaders([
+            'X-API-KEY' => $this->apiKey,
+            'Accept'    => 'application/json',
+        ])->postJson('/api/v1/external/verify-intern', [
+            'login'    => $email,
+            'password' => 'WrongPassword',
+        ]);
+
+        $response->assertStatus(401)
+            ->assertJson([
+                'success' => false,
+                'message' => 'Email/Username atau password salah.',
+            ]);
+    }
+
+    public function test_verify_intern_rejects_admin_role()
+    {
+        $email = 'admin_' . uniqid() . '@example.com';
+        User::create([
+            'username'  => 'admin_' . uniqid(),
+            'email'     => $email,
+            'password'  => 'AdminPassword',
+            'role_id'   => 1, // Admin
+            'is_active' => true,
+        ]);
+
+        $response = $this->withHeaders([
+            'X-API-KEY' => $this->apiKey,
+            'Accept'    => 'application/json',
+        ])->postJson('/api/v1/external/verify-intern', [
+            'login'    => $email,
+            'password' => 'AdminPassword',
+        ]);
+
+        $response->assertStatus(403)
+            ->assertJson([
+                'success' => false,
+            ]);
     }
 }

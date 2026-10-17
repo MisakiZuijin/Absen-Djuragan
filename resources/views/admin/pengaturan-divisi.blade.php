@@ -81,6 +81,7 @@
                             <th class="py-3.5 px-4 sm:px-6 text-center w-16">No</th>
                             <th class="py-3.5 px-4 sm:px-6 w-20">Icon</th>
                             <th class="py-3.5 px-4 sm:px-6">Nama Divisi</th>
+                            <th class="py-3.5 px-4 sm:px-6">Aturan Logbook</th>
                             <th class="py-3.5 px-4 sm:px-6 text-center w-36">Aksi</th>
                         </tr>
                     </thead>
@@ -140,6 +141,24 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required>
                     <p class="text-[11px] text-gray-400 mt-1">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
+                </div>
+
+                <!-- Pengaturan Pengisian Logbook -->
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 mb-4 space-y-2">
+                    <div class="flex items-center gap-2 pb-1.5 border-b border-slate-200">
+                        <i class="fa-solid fa-book-bookmark text-blue-600 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aturan Pengisian Logbook</span>
+                    </div>
+
+                    <div>
+                        <label for="max_logbook_per_day" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Batas Pengisian Logbook / Hari <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="max_logbook_per_day" name="max_logbook_per_day" min="1" max="10" value="1"
+                            class="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                            required>
+                        <p class="text-[11px] text-gray-500 mt-1">Berapa kali pemagang di divisi ini dapat mengisi logbook per hari (Default: 1 kali).</p>
+                    </div>
                 </div>
 
                 <!-- Info Penjadwalan Otomatis (Auto-Scheduling) -->
@@ -202,6 +221,24 @@
                         class="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-xs"
                         accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
                     <p class="text-[11px] text-gray-400 mt-1">Format foto: JPG, JPEG, PNG, WebP (Maks. 2MB)</p>
+                </div>
+
+                <!-- Pengaturan Pengisian Logbook -->
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 mb-4 space-y-2">
+                    <div class="flex items-center gap-2 pb-1.5 border-b border-slate-200">
+                        <i class="fa-solid fa-book-bookmark text-amber-600 text-xs"></i>
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wider">Aturan Pengisian Logbook</span>
+                    </div>
+
+                    <div>
+                        <label for="edit_max_logbook_per_day" class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Batas Pengisian Logbook / Hari <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="edit_max_logbook_per_day" name="max_logbook_per_day" min="1" max="10" value="1"
+                            class="w-full px-3.5 py-2 text-xs border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+                            required>
+                        <p class="text-[11px] text-gray-500 mt-1">Berapa kali pemagang di divisi ini dapat mengisi logbook per hari (Default: 1 kali).</p>
+                    </div>
                 </div>
 
                 <!-- Info Penjadwalan Otomatis (Auto-Scheduling) -->
@@ -283,7 +320,7 @@
                 if (totalItems === 0) {
                     $('#division-table-body').append(`
                         <tr>
-                            <td colspan="4" class="py-8 text-center text-gray-400 text-xs">
+                            <td colspan="5" class="py-8 text-center text-gray-400 text-xs">
                                 <i class="fa-solid fa-folder-open text-2xl mb-2 block"></i>
                                 Tidak ada data divisi ditemukan.
                             </td>
@@ -302,6 +339,13 @@
                         ? `<img src="{{ asset('img') }}/${division.icon}" alt="${division.name}" class="w-8 h-8 rounded-lg object-contain bg-gray-50 border border-gray-200 p-0.5">`
                         : `<div class="w-8 h-8 rounded-lg bg-gray-100 text-gray-400 flex items-center justify-center text-xs"><i class="fa-solid fa-sitemap"></i></div>`;
 
+                    const maxLogbook = division.max_logbook_per_day || 1;
+                    const logbookRulesHtml = `
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                            <i class="fa-solid fa-repeat text-[10px]"></i> Maks. ${maxLogbook}x / hari
+                        </span>
+                    `;
+
                     $('#division-table-body').append(`
                         <tr class="hover:bg-blue-50/30 transition-colors border-b border-gray-100">
                             <td class="py-3.5 px-4 sm:px-6 text-center text-gray-500 font-mono text-xs">${startIndex + index + 1}</td>
@@ -309,10 +353,16 @@
                             <td class="py-3.5 px-4 sm:px-6 font-bold text-gray-800 whitespace-nowrap">
                                 <div>${division.name}</div>
                             </td>
+                            <td class="py-3.5 px-4 sm:px-6">
+                                ${logbookRulesHtml}
+                            </td>
                             <td class="py-3.5 px-4 sm:px-6 text-center whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5">
                                     <button class="editDivisi px-2.5 py-1.5 bg-amber-500 text-white hover:bg-amber-600 rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
-                                        data-id="${division.id}" data-nama="${division.name}" data-icon="${division.icon}"
+                                        data-id="${division.id}" 
+                                        data-nama="${division.name}" 
+                                        data-icon="${division.icon}"
+                                        data-max-logbook="${maxLogbook}"
                                         title="Edit Divisi">
                                         <i class="fa-solid fa-pen-to-square"></i>
                                     </button>
@@ -389,6 +439,7 @@
             $('#addDivisiButton').on('click', function() {
                 $('#namaDivisi').val('');
                 $('#iconDivisi').val('');
+                $('#max_logbook_per_day').val(1);
                 $('#addDivisiModal').removeClass('hidden');
             });
 
@@ -399,12 +450,14 @@
             $(document).on('click', '.editDivisi', function() {
                 const divisiId = $(this).data('id');
                 const namaDivisi = $(this).data('nama');
+                const maxLogbook = $(this).data('max-logbook') || 1;
 
                 $('#editDivisiId').val(divisiId);
                 var actionUrl = "{{ route('divisions.update', ':id') }}".replace(':id', divisiId);
                 $('#editDivisiForm').attr('action', actionUrl);
                 $('#editNamaDivisi').val(namaDivisi);
                 $('#editIconDivisi').val('');
+                $('#edit_max_logbook_per_day').val(maxLogbook);
 
                 $('#editDivisiModal').removeClass('hidden');
             });

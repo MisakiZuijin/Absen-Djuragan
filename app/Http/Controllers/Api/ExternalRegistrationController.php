@@ -38,6 +38,7 @@ class ExternalRegistrationController extends Controller
     public function registerSync(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'absen_user_id'          => 'nullable|integer',
             'email'                  => 'required|email|max:100',
             'password'               => 'nullable|string|min:6',
             'password_hash'          => 'nullable|string',
@@ -60,17 +61,23 @@ class ExternalRegistrationController extends Controller
             'status'                 => 'nullable|string|max:50',
         ]);
 
-        DB::beginTransaction();
         try {
-            // Evaluasi status keaktifan akun pemagang di Web Absen
-            $status = !empty($validated['status']) ? strtolower(trim($validated['status'])) : null;
-            $isActive = true;
-            if ($status && in_array($status, ['exited', 'completed', 'rejected'], true)) {
-                $isActive = false;
-            }
+            DB::beginTransaction();
 
-            // 1. Identifikasi User (Cari berdasarkan email)
-            $user = User::where('email', $validated['email'])->first();
+            // Evaluasi status keaktifan akun pemagang di Web Absen
+            // Kebijakan Cross-API: Setiap akun baru yang masuk dari Web Intern SELALU masuk ke kondisi
+            // BELUM AKTIF (is_active = false) terlebih dahulu agar Admin di Web Absen dapat mengetahui
+            // pemagang yang baru masuk, mengatur shift/kantor, dan mengaktifkannya secara manual.
+            $status = !empty($validated['status']) ? strtolower(trim($validated['status'])) : null;
+
+            // 1. Identifikasi User (Cari berdasarkan absen_user_id atau email)
+            $user = null;
+            if (!empty($validated['absen_user_id'])) {
+                $user = User::find((int) $validated['absen_user_id']);
+            }
+            if (!$user) {
+                $user = User::where('email', $validated['email'])->first();
+            }
             $isNewUser = false;
 
             if (!$user) {
@@ -102,7 +109,7 @@ class ExternalRegistrationController extends Controller
                     'username'        => $candidateUsername,
                     'email'           => $validated['email'],
                     'role_id'         => 3, // Role Pemagang
-                    'is_active'       => $isActive,
+                    'is_active'       => false, // Selalu tidak aktif saat baru masuk dari Web Intern
                     'is_confirm'      => true, // Dikonfirmasi
                     'is_gps_support'  => false,
                     'is_gps_activate' => false,
@@ -119,6 +126,13 @@ class ExternalRegistrationController extends Controller
 
                 $user->save();
             } else {
+                // Perbarui email jika berubah dan belum dipakai user lain
+                if ($user->email !== $validated['email']) {
+                    $emailTaken = User::where('email', $validated['email'])->where('id', '!=', $user->id)->exists();
+                    if (!$emailTaken) {
+                        $user->email = $validated['email'];
+                    }
+                }
                 // Perbarui kata sandi jika diberikan
                 if (!empty($validated['password_hash'])) {
                     $user->setRawAttributes(array_merge($user->getAttributes(), ['password' => $validated['password_hash']]));
@@ -126,10 +140,11 @@ class ExternalRegistrationController extends Controller
                     $user->password = $validated['password'];
                 }
                 $user->role_id = 3;
-                if ($status !== null) {
-                    $user->is_active = $isActive;
+                if ($status && in_array($status, ['exited', 'completed', 'rejected', 'accepted'], true)) {
+                    $user->is_active = false;
                 } else {
-                    $user->is_active = true;
+                    // Jangan pernah mengaktifkan otomatis dari Web Intern; pertahankan status aktif yang diatur Admin Absen
+                    $user->is_active = (bool) $user->is_active;
                 }
                 $user->is_confirm = true;
                 $user->save();
@@ -170,7 +185,9 @@ class ExternalRegistrationController extends Controller
             $schoolId = null;
             if (!empty($validated['school_name'])) {
                 $schoolName = trim($validated['school_name']);
-                $school = School::where('name', 'like', '%' . $schoolName . '%')->first();
+                $school = School::whereRaw('LOWER(name) = ?', [strtolower($schoolName)])
+                    ->orWhere('name', 'like', '%' . $schoolName . '%')
+                    ->first();
                 if (!$school) {
                     $school = School::create([
                         'name'                 => $schoolName,
@@ -180,6 +197,8 @@ class ExternalRegistrationController extends Controller
                     ]);
                 }
                 $schoolId = $school->id;
+            } elseif (!empty($validated['school_id']) && School::where('id', $validated['school_id'])->exists()) {
+                $schoolId = (int) $validated['school_id'];
             } else {
                 $defaultSchool = School::first();
                 $schoolId = $defaultSchool ? $defaultSchool->id : null;
@@ -191,13 +210,43 @@ class ExternalRegistrationController extends Controller
                 !empty($validated['division_id']) ? (int) $validated['division_id'] : null
             );
 
-            // 5. Resolusi Brand
+            // 5. Resolusi Brand (Prioritaskan brand_name lintas sistem sebelum fallback ke brand_id)
             $brandId = null;
-            if (!empty($validated['brand_id']) && Brand::where('id', $validated['brand_id'])->exists()) {
-                $brandId = (int) $validated['brand_id'];
-            } elseif (!empty($validated['brand_name'])) {
-                $brand = Brand::where('name', 'like', '%' . trim($validated['brand_name']) . '%')->first();
+            if (!empty($validated['brand_name'])) {
+                $rawBrandName = trim($validated['brand_name']);
+                $brandSlug = Str::slug($rawBrandName);
+                $normalizedKey = strtolower(str_replace([' ', '-', '_'], '', $rawBrandName));
+
+                // 1. Cari berdasarkan nama persis atau slug
+                $brand = Brand::where('name', $rawBrandName)
+                    ->orWhere('slug', $brandSlug)
+                    ->first();
+
+                // 2. Normalisasi variasi brand populer (SevenInc <-> Seven Inc)
+                if (!$brand && $normalizedKey === 'seveninc') {
+                    $brand = Brand::whereRaw("LOWER(REPLACE(REPLACE(name, ' ', ''), '-', '')) = 'seveninc'")->first();
+                }
+
+                // 3. Fallback pencarian LIKE
+                if (!$brand) {
+                    $brand = Brand::where('name', 'like', '%' . $rawBrandName . '%')->first();
+                }
+
+                // 4. Jika brand belum ada di Web Absen, buat otomatis (seperti halnya Sekolah / Kampus)
+                if (!$brand) {
+                    $brand = Brand::create([
+                        'name'        => $rawBrandName,
+                        'slug'        => $brandSlug ?: ('brand-' . time()),
+                        'description' => "Unit bisnis / brand {$rawBrandName}",
+                        'is_active'   => true,
+                    ]);
+                }
+
                 $brandId = $brand ? $brand->id : null;
+            }
+
+            if (!$brandId && !empty($validated['brand_id']) && Brand::where('id', $validated['brand_id'])->exists()) {
+                $brandId = (int) $validated['brand_id'];
             }
 
             // 6. Resolusi Shift & Proteksi Konfigurasi Absensi
@@ -358,16 +407,130 @@ class ExternalRegistrationController extends Controller
     }
 
     /**
+     * Verifikasi kredensial login Pemagang untuk Remote Login Fallback dari Web Intern.
+     */
+    public function verifyIntern(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'login'    => 'required|string',
+            'password' => 'required|string',
+        ]);
+
+        $loginInput = trim($validated['login']);
+        $user = User::where('email', $loginInput)
+            ->orWhere('username', $loginInput)
+            ->first();
+
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun pemagang tidak ditemukan di Absen Djuragan.',
+            ], 404);
+        }
+
+        $passwordValid = \Illuminate\Support\Facades\Hash::check($validated['password'], $user->password)
+            || ($user->password === $validated['password']);
+
+        if (!$passwordValid) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Email/Username atau password salah.',
+            ], 401);
+        }
+
+        $roleId = (int) $user->role_id;
+
+        // Khusus role Pemagang (3)
+        if ($roleId !== 3) {
+            if (in_array($roleId, [1, 7], true)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Akun ini adalah Admin/Super Admin, silakan gunakan login Admin.',
+                ], 403);
+            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak: Akun bukan pemagang.',
+            ], 403);
+        }
+
+        $user->loadMissing(['profile', 'intern.school', 'intern.division', 'intern.brand', 'intern.whatsappNumber']);
+        $profile = $user->profile;
+        $intern  = $user->intern;
+
+        $rawGender = $profile?->gender;
+        $normGender = null;
+        if (!empty($rawGender)) {
+            $gLower = strtolower(trim($rawGender));
+            if (in_array($gLower, ['p', 'perempuan', 'female', 'wanita'], true)) {
+                $normGender = 'Perempuan';
+            } elseif (in_array($gLower, ['l', 'laki-laki', 'male', 'pria'], true)) {
+                $normGender = 'Laki-laki';
+            } else {
+                $normGender = $rawGender;
+            }
+        }
+
+        $rawReligion = $profile?->religion;
+        $normReligion = null;
+        if (!empty($rawReligion)) {
+            $rLower = strtolower(trim($rawReligion));
+            if (in_array($rLower, ['kristen', 'kristen protestan', 'protestan'], true)) {
+                $normReligion = 'Kristen Protestan';
+            } elseif (in_array($rLower, ['khonghucu', 'konghucu'], true)) {
+                $normReligion = 'Khonghucu';
+            } elseif ($rLower === 'islam') {
+                $normReligion = 'Islam';
+            } elseif ($rLower === 'katolik') {
+                $normReligion = 'Katolik';
+            } elseif ($rLower === 'hindu') {
+                $normReligion = 'Hindu';
+            } elseif (in_array($rLower, ['buddha', 'budha'], true)) {
+                $normReligion = 'Buddha';
+            } else {
+                $normReligion = trim($rawReligion);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Kredensial Pemagang valid.',
+            'user'    => [
+                'absen_user_id' => $user->id,
+                'email'         => $user->email,
+                'username'      => $user->username,
+                'full_name'              => $profile?->full_name ?? $user->name ?? $user->username,
+                'phone'                  => $profile?->phone ?? $intern?->whatsappNumber?->phone_number,
+                'parent_whatsapp_number' => $intern?->whatsappNumber?->phone_number,
+                'gender'                 => $normGender,
+                'birth_place'   => $profile?->birth_place,
+                'born_date'     => $profile?->date_of_birth,
+                'religion'      => $normReligion,
+                'address'       => $profile?->address,
+                'student_id'    => $intern?->nim,
+                'school_name'   => $intern?->school?->name ?? (!empty($intern?->school_id) ? \App\Models\School::find($intern->school_id)?->name : null),
+                'division_name' => $intern?->division?->name ?? (!empty($intern?->division_id) ? \App\Models\Division::find($intern->division_id)?->name : null),
+                'brand_name'    => $intern?->brand?->name ?? (!empty($intern?->brand_id) ? \App\Models\Brand::find($intern->brand_id)?->name : null),
+                'brand_id'      => $intern?->brand_id,
+                'start_date'    => $intern?->start_date,
+                'end_date'      => $intern?->end_date,
+                'role'          => 'pemagang',
+                'role_id'       => 3,
+                'is_active'     => (bool) $user->is_active,
+                'status'        => $user->is_active ? 'active' : 'accepted',
+            ],
+        ]);
+    }
+
+    /**
      * Resolusi ID Divisi dengan pencocokan nama persis, kamus sinonim, 2-way flexible matching, dan auto-create.
      */
     protected function resolveDivision(?string $divisionName, ?int $divisionId = null): ?int
     {
-        // 1. Cek division_id langsung jika valid
-        if (!empty($divisionId) && Division::where('id', $divisionId)->exists()) {
-            return (int) $divisionId;
-        }
-
         if (empty($divisionName) || trim($divisionName) === '-' || trim($divisionName) === '') {
+            if (!empty($divisionId) && Division::where('id', $divisionId)->exists()) {
+                return (int) $divisionId;
+            }
             $defaultDiv = Division::first();
             return $defaultDiv ? $defaultDiv->id : null;
         }

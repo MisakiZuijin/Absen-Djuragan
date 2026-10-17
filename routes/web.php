@@ -96,6 +96,11 @@ Route::post('/public/resolve-gmaps-url', [AdminMapsController::class, 'resolveGm
     ->middleware('throttle:30,1')
     ->name('public.resolve-gmaps-url');
 
+// Single Sign-On (SSO) to InternHub (Web Intern) for all authenticated users (Admin, Super Admin, Pemagang)
+Route::get('/sso/to-intern', [\App\Http\Controllers\SsoController::class, 'redirectToIntern'])
+    ->middleware('auth')
+    ->name('sso.to-intern');
+
 // User Routes (Intern)
 Route::prefix('user')->middleware('role:3')->group(function () {
     Route::controller(UserController::class)->group(function () {

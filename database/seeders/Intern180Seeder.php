@@ -247,6 +247,8 @@ class Intern180Seeder extends Seeder
                 $birthMonth = str_pad(($i % 12) + 1, 2, '0', STR_PAD_LEFT);
                 $birthDay = str_pad(($i % 27) + 1, 2, '0', STR_PAD_LEFT);
                 $birthPlace = $birthPlaces[$i % count($birthPlaces)];
+                $religions = ['Islam', 'Islam', 'Islam', 'Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha'];
+                $religion = $religions[($i - 1) % count($religions)];
 
                 Profile::create([
                     'user_id' => $userId,
@@ -257,6 +259,7 @@ class Intern180Seeder extends Seeder
                     'date_of_birth' => "{$birthYear}-{$birthMonth}-{$birthDay}",
                     'birth_place' => $birthPlace,
                     'gender' => $gender,
+                    'religion' => $religion,
                 ]);
 
                 // Buat Data Pemagang

@@ -63,12 +63,16 @@ Route::controller(AttendanceController::class)->group(function () {
 // External API Routes (Internship Management System Integration)
 Route::prefix('v1/external')->middleware('external.api.auth')->group(function () {
     Route::get('/health', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'healthCheck']);
+    Route::get('/health-check', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'healthCheck']);
     Route::post('/register-sync', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'registerSync']);
     Route::post('/verify-admin', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'verifyAdmin']);
+    Route::post('/verify-intern', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'verifyIntern']);
 });
 
 Route::prefix('v2/external')->middleware('external.api.auth')->group(function () {
     Route::get('/health', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'healthCheck']);
+    Route::get('/health-check', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'healthCheck']);
     Route::post('/register-sync', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'registerSync']);
     Route::post('/verify-admin', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'verifyAdmin']);
+    Route::post('/verify-intern', [\App\Http\Controllers\Api\ExternalRegistrationController::class, 'verifyIntern']);
 });

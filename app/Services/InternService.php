@@ -121,8 +121,8 @@ class InternService
                 "date_of_birth" => $data["birth_date"],
                 "NIP" => !empty($data["nip"]) ? $data["nip"] : null,
                 "phone" => $data["phone"],
-                "gender" => $data["gender"] ?? null,
-                "religion" => $data["religion"] ?? null,
+                "gender" => !empty($data["gender"]) ? $data["gender"] : ($userResult->profile?->gender ?? null),
+                "religion" => !empty($data["religion"]) ? $data["religion"] : ($userResult->profile?->religion ?? null),
                 "address" => $data["address"] ?? null,
             ];
 
@@ -251,6 +251,37 @@ class InternService
             }
 
             DB::commit();
+
+            // Sinkronkan pembaruan data pemagang ke Internship Management System via API (non-blocking)
+            try {
+                $divName = $intern->division?->name ?? (!empty($data['division_id']) ? \App\Models\Division::find($data['division_id'])?->name : null);
+                $brName  = $intern->brand?->name ?? (!empty($data['brand_id']) ? \App\Models\Brand::find($data['brand_id'])?->name : null);
+                $scName  = $school?->name;
+
+                $syncData = array_merge($data, [
+                    'email'                  => $userResult->email,
+                    'username'               => $userResult->username,
+                    'full_name'              => $data['full_name'] ?? $userResult->name,
+                    'phone'                  => $data['phone'] ?? null,
+                    'parent_whatsapp_number' => $nomorTujuan,
+                    'gender'                 => !empty($data['gender']) ? $data['gender'] : ($userResult->profile?->gender ?? null),
+                    'date_of_birth'          => $data['birth_date'] ?? null,
+                    'birth_place'            => $data['birth_place'] ?? null,
+                    'religion'               => $data['religion'] ?? null,
+                    'address'                => $data['address'] ?? null,
+                    'school_name'            => $scName,
+                    'division_name'          => $divName,
+                    'brand_name'             => $brName,
+                    'start_date'             => $data['in_date'] ?? null,
+                    'end_date'               => $data['out_date'] ?? null,
+                    'nim'                    => $data['nim'] ?? null,
+                    'is_active'              => (bool) ($data['account_status'] ?? $userResult->is_active),
+                    'status'                 => (!empty($data['account_status']) || $userResult->is_active) ? 'active' : 'accepted',
+                ]);
+                \App\Services\InternSystemSyncService::syncRegistration($syncData, $scName);
+            } catch (\Throwable $syncErr) {
+                Log::warning('Sinkronisasi update intern ke Intern System gagal (non-blocking): ' . $syncErr->getMessage());
+            }
 
             return new ActionResult(true, "success update intern data", $data);
         } catch (\Throwable $th) {
